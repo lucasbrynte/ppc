@@ -1,0 +1,48 @@
+FROM nvidia/cuda:9.0-cudnn7-devel-ubuntu16.04
+
+RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends apt-utils && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        git && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -o ~/miniconda.sh -O  https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh  && \
+     chmod +x ~/miniconda.sh && \
+     ~/miniconda.sh -b -p /opt/conda && \
+     rm ~/miniconda.sh
+ENV PATH /opt/conda/bin:$PATH
+RUN conda install -y -c pytorch \
+    pytorch \
+    torchvision \
+    cudatoolkit=9.0
+RUN conda install -y -c conda-forge \
+    attrdict \
+    opencv \
+    pyyaml \
+    tensorboardX
+RUN conda clean -ya
+
+# OpenGV
+RUN apt-get update -y
+RUN apt-get update
+RUN apt-get install -y --no-install-recommends \
+    build-essential cmake wget libeigen3-dev
+
+RUN git clone https://github.com/laurentkneip/opengv.git /tmp/opengv-git
+WORKDIR /tmp/opengv-git
+RUN git submodule init
+RUN git submodule update
+RUN sed -i -e 's/OPTION(BUILD_PYTHON "Build Python extension" OFF)/OPTION(BUILD_PYTHON "Build Python extension" ON)/g' /tmp/opengv-git/CMakeLists.txt
+RUN mkdir /tmp/opengv-git/build
+WORKDIR /tmp/opengv-git/build
+RUN cmake .. \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_PYTHON=ON \
+    -DBUILD_POSITION_INDEPENDENT_CODE=ON \
+    -DINSTALL_OPENGV=ON
+RUN make
+RUN make install
+RUN ln -s /usr/lib/python3.7/site-packages/pyopengv.cpython-37m-x86_64-linux-gnu.so /opt/conda/lib/python3.7/site-packages
