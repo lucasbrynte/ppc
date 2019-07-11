@@ -19,10 +19,12 @@ RUN conda install -y -c pytorch \
     cudatoolkit=9.0
 RUN conda install -y -c conda-forge \
     attrdict \
-    opencv \
+    Cython \
     pyyaml \
     tensorboardX
 RUN conda clean -ya
+
+RUN pip install glumpy
 
 # OpenGV
 RUN apt-get update -y
