@@ -1,0 +1,36 @@
+training:
+  n_epochs: 100
+  learning_rate: 0.0001
+  weight_decay: null
+  backup_epochs: false
+logging:
+  avg_window_size: 25
+model:
+  cnn_layers:
+    - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, merge: true}
+    - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, merge: true}
+    - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, merge: true}
+    - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, merge: true}
+    - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, merge: false}
+    - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, merge: true}
+  head_layers:
+    - {n_out: 1024, dropout_factor: null, relu_flag: true}
+    - {n_out: 1024, dropout_factor: null, relu_flag: true}
+    - {n_out: 1, dropout_factor: null, relu_flag: false}
+data:
+  dataformat: dummy
+  img_dims: [128, 128]
+loading:
+  train:
+    batch_size: 32
+    num_workers: 6
+    shuffle: true
+  val:
+    batch_size: 32
+    num_workers: 6
+    shuffle: true
