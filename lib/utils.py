@@ -21,7 +21,7 @@ def listdir_nohidden(path):
             fnames.append(f)
     return fnames
 
-def read_yaml(path):
+def read_yaml_as_attrdict(path):
     """Read yaml file to AttrDict."""
     with open(path, 'r') as file:
         yaml_dict = yaml.load(file, Loader=yaml.CLoader)
@@ -30,9 +30,9 @@ def read_yaml(path):
 
 def get_configs(config_name):
     default_config_path = os.path.join(CONFIG_ROOT, 'default_config.yml')
-    configs = read_yaml(default_config_path)
+    configs = read_yaml_as_attrdict(default_config_path)
 
     experiment_config_path = os.path.join(CONFIG_ROOT, config_name, 'config.yml')
     if os.path.isfile(experiment_config_path):
-        configs += read_yaml(experiment_config_path)
+        configs += read_yaml_as_attrdict(experiment_config_path)
     return configs
