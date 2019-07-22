@@ -3,6 +3,15 @@ training:
   learning_rate: 0.0001
   weight_decay: null
   backup_epochs: false
+tasks:
+  pixel_offset:             {n_out: 2,   loss_func: L1,   activation: null}
+  rel_depth_error:          {n_out: 1,   loss_func: L1,   activation: null}
+  delta_angle_inplane:      {n_out: 1,   loss_func: L1,   activation: null}
+  delta_theta:              {n_out: 1,   loss_func: L1,   activation: null}
+  delta_R33:                {n_out: 1,   loss_func: L2,   activation: sigmoid}
+  norm_pixel_offset:        {n_out: 1,   loss_func: L2,   activation: sigmoid}
+  abs_delta_angle_inplane:  {n_out: 1,   loss_func: L2,   activation: sigmoid}
+  abs_delta_theta:          {n_out: 1,   loss_func: L2,   activation: sigmoid}
 logging:
   avg_window_size: 25
 model:
@@ -21,10 +30,12 @@ model:
   head_layers:
     - {n_out: 1024, dropout_factor: null, relu_flag: true}
     - {n_out: 1024, dropout_factor: null, relu_flag: true}
-    - {n_out: 1, dropout_factor: null, relu_flag: false}
+    - {dropout_factor: null, relu_flag: false}
 data:
   dataformat: dummy
-  img_dims: [128, 128]
+  path: /datasets/occluded-linemod-augmented
+  img_dims: [480, 480]
+  crop_dims: [128, 128]
 loading:
   train:
     batch_size: 32

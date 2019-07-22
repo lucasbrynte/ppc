@@ -28,7 +28,7 @@ def parse_arguments():
     # parser.add_argument('--eval-mode', action='append', default=[], type=str,
     #                     help='For eval.py only. Example: "--eval-mode val --eval-mode train" performs evaluation on train & val sets, val set first.')
     # parser.add_argument('--train-seqs', default=None, type=str)
-    # parser.add_argument('--group-labels', default=None, type=str)
+    parser.add_argument('--obj-label', required=True, type=str)
 
 
     args = parser.parse_args()

@@ -147,26 +147,30 @@ class Head(nn.Module):
 class Model(nn.Module):
     def __init__(self, configs):
         super().__init__()
-        self.configs = configs
-        self.ds_factor, self.cnn_output_dims = self.calc_downsampling_dimensions(self.configs.model.cnn_layers)
-        self.verify_cnn_layer_specs(self.configs.model.cnn_layers)
-        self.verify_head_layer_specs(self.configs.model.head_layers)
-        self.semi_siamese_cnn = SemiSiameseCNN(self.configs.model.cnn_layers)
-        self.head = Head(self.cnn_output_dims, self.configs.model.head_layers)
+        self._configs = configs
+        self.ds_factor, self.cnn_output_dims = self.calc_downsampling_dimensions(self._configs.model.cnn_layers)
+        self.verify_cnn_layer_specs(self._configs.model.cnn_layers)
+        self.verify_head_layer_specs(self._configs['model']['head_layers']) # Access by key important - needs to be mutable
+        self.semi_siamese_cnn = SemiSiameseCNN(self._configs.model.cnn_layers)
+        self.head = Head(self.cnn_output_dims, self._configs.model.head_layers)
 
     def calc_downsampling_dimensions(self, cnn_specs):
         ds_factor = np.prod([layer_spec.stride for layer_spec in cnn_specs])
-        cnn_output_dims = [cnn_specs[-1].n_out] + list(np.array(self.configs.data.img_dims) // ds_factor)
+        cnn_output_dims = [cnn_specs[-1].n_out] + list(np.array(self._configs.data.crop_dims) // ds_factor)
         return ds_factor, cnn_output_dims
 
     def verify_cnn_layer_specs(self, cnn_specs):
-        assert self.configs.data.img_dims[0] % self.ds_factor == 0
-        assert self.configs.data.img_dims[1] % self.ds_factor == 0
+        assert self._configs.data.crop_dims[0] % self.ds_factor == 0
+        assert self._configs.data.crop_dims[1] % self.ds_factor == 0
         assert cnn_specs[-1].merge == True
 
     def verify_head_layer_specs(self, head_specs):
-        assert head_specs[-1].n_out == 1
-        assert head_specs[-1].relu_flag == False
+        n_out = sum([task_spec['n_out'] for task_spec in self._configs.tasks.values()])
+        if 'n_out' in head_specs[-1]:
+            assert head_specs[-1]['n_out'] == n_out
+        else:
+            head_specs[-1]['n_out'] = n_out
+        assert head_specs[-1]['relu_flag'] == False
 
     def forward(self, x):
         x = self.semi_siamese_cnn(x)
