@@ -54,6 +54,8 @@ Annotation = namedtuple('Annotation', [
     'norm_pixel_offset',
     'abs_delta_angle_inplane',
     'abs_delta_theta',
+    'cosdist_delta_angle_inplane',
+    'cosdist_delta_theta',
 ])
 
 global global_renderer
@@ -386,6 +388,8 @@ class DummyDataset(Dataset):
         MAX_PIXEL_OFFSET = 50.0
         MAX_DELTA_INPLANE = math.pi
         MAX_DELTA_THETA = math.pi * 0.5
+        MAX_COSDIST_DELTA_INPLANE = 2.0
+        MAX_COSDIST_DELTA_THETA = 2.0
 
         # NOTE ON RELATIVE DEPTH:
         # Actual depth is impossible to determine from image alone due to cropping effects on calibration.
@@ -398,16 +402,20 @@ class DummyDataset(Dataset):
         norm_pixel_offset = np.clip(np.linalg.norm(pixel_offset) / MAX_PIXEL_OFFSET, 0.0, 1.0)
         abs_delta_angle_inplane = np.clip(np.abs(delta_angle_inplane) / MAX_DELTA_INPLANE, 0.0, 1.0)
         abs_delta_theta = np.clip(np.abs(delta_theta) / MAX_DELTA_THETA, 0.0, 1.0)
+        cosdist_delta_angle_inplane = np.clip((1.0 - np.cos(delta_angle_inplane)) / MAX_DELTA_INPLANE, 0.0, 1.0)
+        cosdist_delta_theta = np.clip((1.0 - np.cos(delta_theta)) / MAX_DELTA_THETA, 0.0, 1.0)
 
         annotation = Annotation(
-            pixel_offset              = torch.tensor(pixel_offset).float(),
-            rel_depth_error           = torch.tensor(rel_depth_error).float(),
-            delta_angle_inplane       = torch.tensor(delta_angle_inplane).float(),
-            delta_theta               = torch.tensor(delta_theta).float(),
-            delta_R33                 = torch.tensor(delta_R33).float(),
-            norm_pixel_offset         = torch.tensor(norm_pixel_offset).float(),
-            abs_delta_angle_inplane   = torch.tensor(abs_delta_angle_inplane).float(),
-            abs_delta_theta           = torch.tensor(abs_delta_theta).float(),
+            pixel_offset                  = torch.tensor(pixel_offset).float(),
+            rel_depth_error               = torch.tensor(rel_depth_error).float(),
+            delta_angle_inplane           = torch.tensor(delta_angle_inplane).float(),
+            delta_theta                   = torch.tensor(delta_theta).float(),
+            delta_R33                     = torch.tensor(delta_R33).float(),
+            norm_pixel_offset             = torch.tensor(norm_pixel_offset).float(),
+            abs_delta_angle_inplane       = torch.tensor(abs_delta_angle_inplane).float(),
+            abs_delta_theta               = torch.tensor(abs_delta_theta).float(),
+            cosdist_delta_angle_inplane   = torch.tensor(cosdist_delta_angle_inplane).float(),
+            cosdist_delta_theta           = torch.tensor(cosdist_delta_theta).float(),
         )
 
         return data, annotation

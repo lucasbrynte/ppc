@@ -96,7 +96,7 @@ class LossHandler:
         self._logger.info(status_total_loss)
 
         for task_name in self._losses.keys():
-            status_task_loss = '{name:<26s}'.format(name=task_name)
+            status_task_loss = '{name:<35s}'.format(name=task_name)
             for statistic, value in losses.items():
                 status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
                                                                         value=value[task_name])
