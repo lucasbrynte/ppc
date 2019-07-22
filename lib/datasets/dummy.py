@@ -56,6 +56,8 @@ Annotation = namedtuple('Annotation', [
     'abs_delta_theta',
 ])
 
+global global_renderer
+global_renderer = None
 
 class DummyDataset(Dataset):
     def __init__(self, configs, mode):
@@ -67,7 +69,7 @@ class DummyDataset(Dataset):
         self._obj_label = self._configs.obj_label
         self._obj_id = self._determine_obj_id()
         self._model = self._init_model()
-        # self._renderer = self._init_renderer()
+        self._renderer = self._init_renderer()
         self._aug_transform = None
         # if self._mode == TRAIN:
         #     self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
@@ -110,10 +112,16 @@ class DummyDataset(Dataset):
         return model
 
     def _init_renderer(self):
+        global global_renderer
+        if global_renderer is not None:
+            print('Reusing renderer')
+            return global_renderer
         renderer = Renderer(
             self._configs.data.crop_dims,
         )
         renderer._preprocess_object_model(self._obj_id, self._model)
+        print('Not reusing renderer')
+        global_renderer = renderer
         return renderer
 
     def __len__(self):
@@ -129,7 +137,7 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, index):
         self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at every sampling.
-        self._renderer = self._init_renderer()
+        # self._renderer = self._init_renderer()
         data, annotations = self._generate_sample()
         return Sample(annotations, data)
 
