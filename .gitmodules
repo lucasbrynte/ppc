@@ -1,0 +1,3 @@
+[submodule "lib/sixd_toolkit"]
+	path = lib/sixd_toolkit
+	url = git@github.com:thodan/sixd_toolkit.git
