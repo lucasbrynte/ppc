@@ -293,7 +293,7 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_pose_pair(self):
+    def _sample_pose(self):
         pose_sampler = PoseSampler()
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
@@ -307,21 +307,7 @@ class DummyDataset(Dataset):
             principal_axis_perturb_angle_range = [-np.pi/6, np.pi/6],
         )
         T1 = T_world2cam @ T_model2world
-
-        # Perturb T1, to get T2
-        T2 = self._apply_perturbation(T1)
-
-        # Last rows expected to remain unchanged:
-        assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
-        assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
-
-        assert T1[2,3] > 0, "Center of object pose 1 behind camera"
-        assert T2[2,3] > 0, "Center of object pose 2 behind camera"
-
-        # Extract and return rotations & translations
-        R1 = T1[:3,:3]; t1 = T1[:3,[3]]
-        R2 = T2[:3,:3]; t2 = T2[:3,[3]]
-        return R1, t1, R2, t2
+        return T1
 
     def _calc_delta_angle_inplane(self, R):
         # NOTE: Perturbation of R33 element from 1 determines to what extent the rotation deviates from an inplane rotation
@@ -368,8 +354,10 @@ class DummyDataset(Dataset):
     def _generate_sample(self):
         # Resample pose until properly inside image
         while True:
-            R1, t1, R2, t2 = self._sample_pose_pair()
-            # R1, t1 corresponds to reference image (observed)
+            # T1 corresponds to reference image (observed)
+            T1 = self._sample_pose()
+            R1 = T1[:3,:3]; t1 = T1[:3,[3]]
+
             crop_box = self._bbox_from_projected_keypoints(R1, t1)
             width = crop_box[2] - crop_box[0]
             height = crop_box[3] - crop_box[1]
@@ -383,6 +371,17 @@ class DummyDataset(Dataset):
         # print("sq", crop_box)
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
+
+        # Perturb reference T1, to get proposed pose T2
+        T2 = self._apply_perturbation(T1)
+        R2 = T2[:3,:3]; t2 = T2[:3,[3]]
+
+        # Last rows expected to remain unchanged:
+        assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
+        assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
+
+        assert T1[2,3] > 0, "Center of object pose 1 behind camera"
+        assert T2[2,3] > 0, "Center of object pose 2 behind camera"
 
         img1 = pillow_to_pt(Image.fromarray(self._render(K, R1, t1)), normalize_flag=True, transform=self._aug_transform)
         img2 = pillow_to_pt(Image.fromarray(self._render(K, R2, t2)), normalize_flag=True, transform=self._aug_transform)
