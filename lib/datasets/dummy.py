@@ -262,26 +262,35 @@ class DummyDataset(Dataset):
         return T_scale @ T_transl
 
     def _apply_perturbation(self, T1):
+        obj_dimensions = np.diff(self._metadata['objects'][self._obj_label]['bbox3d'], axis=1).squeeze()
+        assert obj_dimensions.shape == (3,)
+        max_extent = np.linalg.norm(0.5*obj_dimensions)
+        min_dist_obj_and_camera_centers = max_extent + 100. # Minimum 10 cm between camera center and object surface
+
         # 90 degrees
         MAX_ANGLE = np.pi / 2
         
         # 30% of object size along each dimension
-        MAX_OBJECT_BIAS_MM = 0.3 * np.diff(self._metadata['objects'][self._obj_label]['bbox3d'], axis=1).squeeze()
+        MAX_OBJECT_BIAS_MM = 0.3 * obj_dimensions
 
-        # 300 mm
-        MAX_DEPTH_BIAS_MM = 300.
+        MAX_DEPTH_RESCALE_FACTOR = 2.0
 
         random_axis = uniform_sampling_on_S2()
         random_angle = np.random.uniform(low=0., high=MAX_ANGLE)
         random_transl = np.random.uniform(low=-MAX_OBJECT_BIAS_MM, high=MAX_OBJECT_BIAS_MM, size=(3,))
-        random_depth_bias = np.random.uniform(low=-MAX_DEPTH_BIAS_MM, high=MAX_DEPTH_BIAS_MM)
+        random_depth_rescale_factor = np.exp(np.random.uniform(low=-np.log(MAX_DEPTH_RESCALE_FACTOR), high=np.log(MAX_DEPTH_RESCALE_FACTOR)))
 
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
         T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
 
         # Additional stronger perturbation along principal axis
-        T_perturb_depth = get_translation(np.array([0., 0., random_depth_bias]))
-        T2 = T_perturb_depth @ T1 @ T_perturb_obj
+        T2 = T1 @ T_perturb_obj
+
+        # Rescale z-component of translation:
+        old_depth = T2[2,3]
+        new_depth = max(min_dist_obj_and_camera_centers, old_depth * random_depth_rescale_factor)
+        T2[2,3] = new_depth
+
         return T2
 
     def _sample_pose_pair(self):
@@ -305,6 +314,9 @@ class DummyDataset(Dataset):
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
         assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
+
+        assert T1[2,3] > 0, "Center of object pose 1 behind camera"
+        assert T2[2,3] > 0, "Center of object pose 2 behind camera"
 
         # Extract and return rotations & translations
         R1 = T1[:3,:3]; t1 = T1[:3,[3]]
