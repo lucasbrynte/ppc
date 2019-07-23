@@ -52,7 +52,7 @@ class Trainer():
             nn_out = self._run_model(batch.input)
 #             if batch_id == 0:
 #                 self._visualizer.show_outputs(nn_out, batch, index=epoch)
-            loss = self._loss_handler.calc_loss(nn_out, batch.annotation)
+            loss = self._loss_handler.calc_loss(nn_out, batch.targets)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()

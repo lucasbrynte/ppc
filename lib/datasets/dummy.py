@@ -45,7 +45,7 @@ def get_dataset(configs, mode):
     return DummyDataset(configs, mode)
 
 
-Annotation = namedtuple('Annotation', [
+Targets = namedtuple('Targets', [
     'pixel_offset',
     'rel_depth_error',
     'delta_angle_inplane',
@@ -140,8 +140,8 @@ class DummyDataset(Dataset):
     def __getitem__(self, index):
         self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at every sampling.
         # self._renderer = self._init_renderer()
-        data, annotations = self._generate_sample()
-        return Sample(annotations, data)
+        data, targets = self._generate_sample()
+        return Sample(targets, data)
 
     def _render(self, K, R, t):
         rgb, depth, seg, instance_seg, normal_map, corr_map = self._renderer.render(
@@ -405,7 +405,7 @@ class DummyDataset(Dataset):
         cosdist_delta_angle_inplane = np.clip((1.0 - np.cos(delta_angle_inplane)) / MAX_DELTA_INPLANE, 0.0, 1.0)
         cosdist_delta_theta = np.clip((1.0 - np.cos(delta_theta)) / MAX_DELTA_THETA, 0.0, 1.0)
 
-        annotation = Annotation(
+        targets = Targets(
             pixel_offset                  = torch.tensor(pixel_offset).float(),
             rel_depth_error               = torch.tensor(rel_depth_error).float(),
             delta_angle_inplane           = torch.tensor(delta_angle_inplane).float(),
@@ -418,4 +418,4 @@ class DummyDataset(Dataset):
             cosdist_delta_theta           = torch.tensor(cosdist_delta_theta).float(),
         )
 
-        return data, annotation
+        return data, targets

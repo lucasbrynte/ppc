@@ -1,16 +1,11 @@
-# RENDER IMGS FROM SLIGHTLY DIFFERENT VIEWS WITH GLUMPY
-# Transl error only initially
-# Use dict instead of attrdict for annotations. No implicit data type conversions - feels more controlled
-# Render / extract 128x128 patches
-
 """Load batches for training."""
 from collections import namedtuple
 from importlib import import_module
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, RandomSampler
 
-Sample = namedtuple('Sample', ['annotation', 'input'])
-Batch = namedtuple('Batch', ['annotation', 'input'])
+Sample = namedtuple('Sample', ['targets', 'input'])
+Batch = namedtuple('Batch', ['targets', 'input'])
 
 
 class FixedSeededRandomSampler(RandomSampler):
@@ -81,40 +76,17 @@ class Loader:
         # TODO: This is needed until pytorch pin_memory is fixed. Currently casts namedtuple to list
         # https://github.com/pytorch/pytorch/pull/16440
         for batch in getattr(self, mode):
-            batch = Batch(*(val if fieldname != 'annotation' else self._dataset_module.Annotation(*val) for fieldname, val in zip(Batch._fields, batch)))
+            batch = Batch(*(val if fieldname != 'targets' else self._dataset_module.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
             yield batch
 
 
 def collate_batch(batch_list):
     """Collates for PT data loader."""
-    annotations, in_data = zip(*batch_list)
+    targets, in_data = zip(*batch_list)
 
     # Map list hierarchy from sample/property to property/sample
-    annotations = tuple(map(torch.stack, zip(*annotations)))
+    targets = tuple(map(torch.stack, zip(*targets)))
 
     img1_batch, img2_batch = zip(*in_data)
     in_data = torch.stack(img1_batch), torch.stack(img2_batch)
-    return (annotations, in_data)
-
-#     def gen_batches(self, mode):
-#         """Return an iterator over batches."""
-#         # NOTE: Seems to be fixed in pytorch 1.1.0? What version used in container?
-#         # TODO: This is needed until pytorch pin_memory is fixed. Currently casts namedtuple to list
-#         # https://github.com/pytorch/pytorch/pull/16440
-#         for batch in getattr(self, mode):
-#             batch = Batch(*batch)
-#             for annotation in batch.annotation:
-#                 annotation = self._dataset_module.Annotation(*annotation)
-#             # for annotations in batch.annotation:
-#             #     for index, annotation in enumerate(annotations):
-#             #         annotations[index] = self._dataset_module.Annotation(*annotation)
-#             yield batch
-# 
-# 
-# def collate_batch(batch_list):
-#     """Collates for PT data loader."""
-#     annotations, in_data = zip(*batch_list)
-#     # in_data = torch.stack(in_data)
-#     img1_batch, img2_batch = zip(*in_data)
-#     in_data = torch.stack(img1_batch), torch.stack(img2_batch)
-#     return (annotations, in_data)
+    return (targets, in_data)

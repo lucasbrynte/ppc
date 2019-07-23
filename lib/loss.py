@@ -42,10 +42,7 @@ class LossHandler:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['loss_func']))
         return loss_function_dict
 
-    def calc_loss(self, nn_out, annotation):
-        # nn_out shape: (batch_size, out_features)
-        # annotation shapes: (batch_size, <ANNO_SHAPE>)
-
+    def calc_loss(self, nn_out, targets):
         loss = 0
 
         offset = 0
@@ -53,7 +50,7 @@ class LossHandler:
             pred_features = nn_out[:, offset : offset + task_spec['n_out']]
             if self._activation_dict[task_name] is not None:
                 pred_features = self._activation_dict[task_name](pred_features)
-            target_features = getattr(annotation, task_name).to(get_device())
+            target_features = getattr(targets, task_name).to(get_device())
 
             # Scalars may / may not introduce redundant dimension
             pred_features = pred_features.squeeze()
