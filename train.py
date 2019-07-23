@@ -6,7 +6,7 @@ from lib.constants import TRAIN, VAL
 from lib.loss import LossHandler
 from lib.model import Model
 from lib.utils import get_device, get_configs
-# from lib.visualize import Visualizer
+from lib.visualize import Visualizer
 from lib.loader import Loader
 
 class Trainer():
@@ -21,7 +21,7 @@ class Trainer():
         self._model = self._checkpoint_handler.init(self._init_model())
         self._optimizer = self._setup_optimizer()
         self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
-        # self._visualizer = Visualizer(configs)
+        self._visualizer = Visualizer(configs)
 
     def _init_model(self):
         model = Model(self._configs)
@@ -50,16 +50,15 @@ class Trainer():
         cnt = 0
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
             nn_out = self._run_model(batch.input)
-#             if batch_id == 0:
-#                 self._visualizer.show_outputs(nn_out, batch, index=epoch)
             loss = self._loss_handler.calc_loss(nn_out, batch.targets)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
-            # if cnt % 10 == 0:
-            #     self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
+            cnt += 1
+            if cnt % 10 == 0:
+                self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
 
         # self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
 
