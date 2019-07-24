@@ -50,6 +50,12 @@ class LossHandler:
             pred_features[task_name] = nn_out[:, offset : offset + self._configs.tasks[task_name]['n_out']]
             if self._activation_dict[task_name] is not None:
                 pred_features[task_name] = self._activation_dict[task_name](pred_features[task_name])
+                if self._configs.tasks[task_name]['activation'] == 'sigmoid':
+                    # Linearly map sigmoid output to desired range
+                    assert self._configs.tasks[task_name]['min'] is not None and self._configs.tasks[task_name]['max'] is not None, \
+                        'Min/max values mandatory when sigmoid activaiton is used'
+                    pred_features[task_name] = pred_features[task_name] * (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min'])
+                    pred_features[task_name] = pred_features[task_name] + self._configs.tasks[task_name]['min']
             target_features[task_name] = getattr(targets, task_name).to(get_device())
 
             # Scalars may / may not introduce redundant dimension

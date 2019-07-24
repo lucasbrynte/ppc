@@ -4,16 +4,16 @@ training:
   weight_decay: null
   backup_epochs: false
 tasks:
-  pixel_offset:                 {n_out: 2,   loss_func: L1,   activation: null}
-  rel_depth_error:              {n_out: 1,   loss_func: L1,   activation: null}
-  delta_angle_inplane:          {n_out: 1,   loss_func: L1,   activation: null}
-  delta_theta:                  {n_out: 1,   loss_func: L1,   activation: null}
-  delta_R33:                    {n_out: 1,   loss_func: L2,   activation: sigmoid}
-  norm_pixel_offset:            {n_out: 1,   loss_func: L2,   activation: sigmoid}
-  abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2,   activation: sigmoid}
-  abs_delta_theta:              {n_out: 1,   loss_func: L2,   activation: sigmoid}
-  cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2,   activation: sigmoid}
-  cosdist_delta_theta:          {n_out: 1,   loss_func: L2,   activation: sigmoid}
+  pixel_offset:                 {n_out: 2,   loss_func: L1,   activation: null, min: null, max: null}
+  rel_depth_error:              {n_out: 1,   loss_func: L1,   activation: null, min: null, max: null}
+  delta_angle_inplane:          {n_out: 1,   loss_func: L1,   activation: null, min: null, max: null}
+  delta_theta:                  {n_out: 1,   loss_func: L1,   activation: null, min: null, max: null}
+  delta_R33:                    {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 2.0} # 2 when z flips 180 deg over
+  norm_pixel_offset:            {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 50.0}
+  abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 3.1416}
+  abs_delta_theta:              {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 1.5708} # pi/2
+  cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 2.0}
+  cosdist_delta_theta:          {n_out: 1,   loss_func: L2,   activation: sigmoid, min: 0.0, max: 2.0}
 logging:
   avg_window_size: 25
 model:
