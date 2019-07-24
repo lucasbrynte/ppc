@@ -282,14 +282,12 @@ class DummyDataset(Dataset):
 
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
         T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
-
-        # Additional stronger perturbation along principal axis
         T2 = T1 @ T_perturb_obj
 
-        # Rescale z-component of translation:
+        # Additional stronger perturbation along principal axis
         old_depth = T2[2,3]
         new_depth = max(min_dist_obj_and_camera_centers, old_depth * random_depth_rescale_factor)
-        T2[2,3] = new_depth
+        T2[:3,3] *= new_depth / old_depth
 
         return T2
 
