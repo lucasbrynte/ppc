@@ -80,6 +80,7 @@ class LossHandler:
                 pred_features[task_name],
                 target_features[task_name],
             )
+            task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             self._losses[task_name].append(task_loss)
             loss += task_loss
         return loss
