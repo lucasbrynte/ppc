@@ -42,29 +42,34 @@ class LossHandler:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['loss_func']))
         return loss_function_dict
 
-    def calc_loss(self, nn_out, targets):
-        loss = 0
-
+    def get_pred_and_target_features(self, nn_out, targets):
+        pred_features = {}
+        target_features = {}
         offset = 0
-        for task_name, task_spec in self._configs.tasks.items():
-            pred_features = nn_out[:, offset : offset + task_spec['n_out']]
+        for task_name in sorted(self._configs.tasks.keys()):
+            pred_features[task_name] = nn_out[:, offset : offset + self._configs.tasks[task_name]['n_out']]
             if self._activation_dict[task_name] is not None:
-                pred_features = self._activation_dict[task_name](pred_features)
-            target_features = getattr(targets, task_name).to(get_device())
+                pred_features[task_name] = self._activation_dict[task_name](pred_features[task_name])
+            target_features[task_name] = getattr(targets, task_name).to(get_device())
 
             # Scalars may / may not introduce redundant dimension
-            pred_features = pred_features.squeeze()
-            target_features = target_features.squeeze()
-            assert pred_features.shape == target_features.shape
+            pred_features[task_name] = pred_features[task_name].squeeze()
+            target_features[task_name] = target_features[task_name].squeeze()
+            assert pred_features[task_name].shape == target_features[task_name].shape
 
+            offset += self._configs.tasks[task_name]['n_out']
+
+        return pred_features, target_features
+
+    def calc_loss(self, pred_features, target_features):
+        loss = 0
+        for task_name in sorted(self._configs.tasks.keys()):
             task_loss = self._loss_function_dict[task_name](
-                pred_features,
-                target_features,
+                pred_features[task_name],
+                target_features[task_name],
             )
             self._losses[task_name].append(task_loss)
             loss += task_loss
-            offset += task_spec['n_out']
-
         return loss
 
     def get_averages(self, num_batches=0):
