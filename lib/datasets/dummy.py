@@ -49,13 +49,14 @@ Targets = namedtuple('Targets', [
     'pixel_offset',
     'rel_depth_error',
     'delta_angle_inplane',
-    'delta_theta',
-    'delta_R33',
+    'delta_angle_total',
     'norm_pixel_offset',
     'abs_delta_angle_inplane',
-    'abs_delta_theta',
+    'abs_delta_angle_total',
+    'abs_delta_angle_paxis',
     'cosdist_delta_angle_inplane',
-    'cosdist_delta_theta',
+    'cosdist_delta_angle_total',
+    'cosdist_delta_angle_paxis',
 ])
 
 global global_renderer
@@ -397,19 +398,20 @@ class DummyDataset(Dataset):
 
         pixel_offset = pflat(K @ t2)[:2,0] - pflat(K @ t1)[:2,0]
         delta_angle_inplane = self._calc_delta_angle_inplane(R21_global)
-        delta_theta = self._angle_from_rotmat(R21_global)
+        delta_angle_total = self._angle_from_rotmat(R21_global)
 
         target_vals = {
             'pixel_offset': pixel_offset,
             'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
             'delta_angle_inplane': delta_angle_inplane,
-            'delta_theta': delta_theta,
-            'delta_R33': 1.0 - R21_global[2,2],
+            'delta_angle_total': delta_angle_total,
             'norm_pixel_offset': np.linalg.norm(pixel_offset),
-            'abs_delta_angle_inplane': np.abs(delta_angle_inplane),
-            'abs_delta_theta': np.abs(delta_theta),
+            'abs_delta_angle_inplane': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
+            'abs_delta_angle_total': np.abs(delta_angle_total),
+            'abs_delta_angle_paxis': np.arccos(1.0 - R21_global[2,2]),
             'cosdist_delta_angle_inplane': 1.0 - np.cos(delta_angle_inplane),
-            'cosdist_delta_theta': 1.0 - np.cos(delta_theta),
+            'cosdist_delta_angle_total': 1.0 - np.cos(delta_angle_total),
+            'cosdist_delta_angle_paxis': 1.0 - R21_global[2,2],
         }
 
         for task_name, task_spec in self._configs.tasks.items():
