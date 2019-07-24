@@ -65,7 +65,7 @@ class Trainer():
             # if cnt % 30 == 0:
             #     visual_cnt += 1
             #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
-        self._visualizer.save_images(batch, nn_out, mode, epoch, sample=-1)
+        self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
         self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
 
