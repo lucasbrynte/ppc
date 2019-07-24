@@ -409,7 +409,7 @@ class DummyDataset(Dataset):
         rel_depth_error = np.log(t2[2,0]) - np.log(t1[2,0])
         delta_angle_inplane = self._calc_delta_angle_inplane(R21_global)
         delta_theta = self._angle_from_rotmat(R21_global)
-        delta_R33 = np.clip(-(1.0 + R21_global[2,2]) / MAX_DELTA_R33, 0.0, 1.0)
+        delta_R33 = np.clip((1.0 - R21_global[2,2]) / MAX_DELTA_R33, 0.0, 1.0)
         norm_pixel_offset = np.clip(np.linalg.norm(pixel_offset) / MAX_PIXEL_OFFSET, 0.0, 1.0)
         abs_delta_angle_inplane = np.clip(np.abs(delta_angle_inplane) / MAX_DELTA_INPLANE, 0.0, 1.0)
         abs_delta_theta = np.clip(np.abs(delta_theta) / MAX_DELTA_THETA, 0.0, 1.0)
