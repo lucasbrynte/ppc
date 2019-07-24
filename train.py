@@ -47,7 +47,8 @@ class Trainer():
     def _run_epoch(self, epoch, mode):
         self._model.train()
 
-        cnt = 0
+        # cnt = 0
+        # visual_cnt = 0
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
             nn_out = self._run_model(batch.input)
             loss = self._loss_handler.calc_loss(nn_out, batch.targets)
@@ -56,11 +57,16 @@ class Trainer():
             self._optimizer.step()
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
-            cnt += 1
-            if cnt % 10 == 0:
-                self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
+            # cnt += 1
+            # if cnt % 10 == 0:
+            #     self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
 
-        # self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
+            # if cnt % 30 == 0:
+            #     visual_cnt += 1
+            #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
+        self._visualizer.save_images(batch, nn_out, mode, epoch, sample=-1)
+
+        self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
 
         self._loss_handler.finish_epoch(epoch, mode)
 
