@@ -189,6 +189,17 @@ class DummyDataset(Dataset):
         shifted_bbox = (x1, y1, x2, y2)
         return shifted_bbox
 
+    def _expand_bbox(self, bbox, resize_factor):
+        x1, y1, x2, y2 = bbox
+        center_x = 0.5*(x1+x2)
+        center_y = 0.5*(y1+y2)
+        return (
+            max(-0.5,                                  center_x + resize_factor*(x1 - center_x)),
+            max(-0.5,                                  center_y + resize_factor*(y1 - center_y)),
+            min(-0.5 + self._configs.data.img_dims[1], center_x + resize_factor*(x2 - center_x)),
+            min(-0.5 + self._configs.data.img_dims[0], center_y + resize_factor*(y2 - center_y)),
+        )
+
     def _bbox_from_projected_keypoints(self, R, t):
         assert R.shape == (3, 3)
         assert t.shape == (3, 1)
@@ -197,6 +208,7 @@ class DummyDataset(Dataset):
         x1, y1 = np.min(keypoints_2d, axis=1)
         x2, y2 = np.max(keypoints_2d, axis=1)
         bbox = (x1, y1, x2, y2)
+        bbox = self._expand_bbox(bbox, 1.5) # Expand bbox slightly, in order to include all of object (not just the keypoints)
         bbox = self._truncate_bbox(bbox)
         return bbox
 
