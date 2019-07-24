@@ -39,6 +39,27 @@ class FixedSeededRandomSampler(RandomSampler):
     def _reset_rng_state(self):
         torch.set_rng_state(self._rng_state)
 
+# class Loader:
+#     """docstring for Loader."""
+#     def __init__(self, modes, configs):
+#         self._configs = configs
+#         self._dataset_module = import_module('lib.datasets.%s' % configs.data.dataformat)
+#         for mode in modes:
+#             dataset = self._dataset_module.get_dataset(self._configs, mode)
+#             setattr(self, mode, dataset)
+# 
+#     def gen_batches(self, mode):
+#         """Return an iterator over batches."""
+#         # getattr(self, mode).__getitem__(0)
+#         # assert False
+# 
+#         assert getattr(self._configs.loading, mode).batch_size == 1
+#         for sample in getattr(self, mode):
+#             batch = collate_batch([sample])
+#             batch = Batch(*(val if fieldname != 'targets' else self._dataset_module.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
+#             yield batch
+
+
 class Loader:
     """docstring for Loader."""
     def __init__(self, modes, configs):

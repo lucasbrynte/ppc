@@ -68,6 +68,12 @@ class LossHandler:
         return pred_features, target_features
 
     def calc_loss(self, pred_features, target_features):
+        # ======================================================================
+        # TODO: Make sure CPU->GPU overhead is not too much.
+        # Make sure "pin_memory" in dataloader works as intended.
+        # Ideally custom batch & targets classes with pin_memory methods should be used, see: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
+        # ======================================================================
+
         loss = 0
         for task_name in sorted(self._configs.tasks.keys()):
             task_loss = self._loss_function_dict[task_name](
