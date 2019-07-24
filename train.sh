@@ -23,7 +23,7 @@ OBJECTS=(duck)
 
 for OBJ in ${OBJECTS[@]}; do
     echo "Removing experiment /hdd/lucas/out/3dod-experiments/$EXPERIMENT_PREFIX/$OBJ"
-    rm -rf /hdd/lucas/out/3dod-experiments/$EXPERIMENT_PREFIX/$OBJ
+    rm -rf /hdd/lucas/out/ppc-experiments/$EXPERIMENT_PREFIX/$OBJ
 done
 
 xhost + # allow connections to X server
