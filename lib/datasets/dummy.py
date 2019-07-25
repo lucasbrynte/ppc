@@ -420,7 +420,7 @@ class DummyDataset(Dataset):
             'norm_pixel_offset': np.linalg.norm(pixel_offset),
             'abs_delta_angle_inplane': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
             'abs_delta_angle_total': np.abs(delta_angle_total),
-            'abs_delta_angle_paxis': np.arccos(1.0 - R21_global[2,2]),
+            'abs_delta_angle_paxis': np.arccos(R21_global[2,2]),
             'cosdist_delta_angle_inplane': 1.0 - np.cos(delta_angle_inplane),
             'cosdist_delta_angle_total': 1.0 - np.cos(delta_angle_total),
             'cosdist_delta_angle_paxis': 1.0 - R21_global[2,2],
