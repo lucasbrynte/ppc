@@ -281,17 +281,20 @@ class DummyDataset(Dataset):
         min_dist_obj_and_camera_centers = max_extent + 100. # Minimum 10 cm between camera center and object surface
 
         # 90 degrees
-        MAX_ANGLE = np.pi / 2
+        STD_ANGLE = np.pi / 4
         
-        # 30% of object size along each dimension
-        MAX_OBJECT_BIAS_MM = 0.3 * obj_dimensions
+        # 20% of object size along each dimension
+        STD_OBJECT_BIAS_MM = 0.2 * obj_dimensions
 
-        MAX_DEPTH_RESCALE_FACTOR = 2.0
+        STD_DEPTH_RESCALE_FACTOR = 0.5 * 2.0
 
         random_axis = uniform_sampling_on_S2()
-        random_angle = np.random.uniform(low=0., high=MAX_ANGLE)
-        random_transl = np.random.uniform(low=-MAX_OBJECT_BIAS_MM, high=MAX_OBJECT_BIAS_MM, size=(3,))
-        random_depth_rescale_factor = np.exp(np.random.uniform(low=-np.log(MAX_DEPTH_RESCALE_FACTOR), high=np.log(MAX_DEPTH_RESCALE_FACTOR)))
+
+        # Gaussian distribution
+        random_angle = np.random.normal(loc=0.0, scale=STD_ANGLE)
+        random_transl = np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS_MM, size=(3,))
+        # Log-normal distribution
+        random_depth_rescale_factor = np.exp(np.random.normal(loc=0.0, scale=np.log(STD_DEPTH_RESCALE_FACTOR)))
 
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
         T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
