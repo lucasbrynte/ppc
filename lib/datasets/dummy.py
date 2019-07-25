@@ -274,36 +274,41 @@ class DummyDataset(Dataset):
         T_scale = self._get_scale_projectivity(scale_x, scale_y)
         return T_scale @ T_transl
 
-    def _apply_perturbation(self, T1):
+    def _get_object_dimensions(self):
         obj_dimensions = np.diff(self._metadata['objects'][self._obj_label]['bbox3d'], axis=1).squeeze()
         assert obj_dimensions.shape == (3,)
+        return obj_dimensions
+
+    def _get_max_extent(self):
+        """
+        Returns maximum distance between 3D bbox corners, i.e. "diameter" of the box.
+        """
+        obj_dimensions = self._get_object_dimensions()
         max_extent = np.linalg.norm(0.5*obj_dimensions)
-        min_dist_obj_and_camera_centers = max_extent + 100. # Minimum 10 cm between camera center and object surface
+        return max_extent
 
-        # 90 degrees
-        STD_ANGLE = np.pi / 4
-        
-        # 20% of object size along each dimension
-        STD_OBJECT_BIAS_MM = 0.2 * obj_dimensions
+    # def _set_depth_by_translation_along_viewing_ray(self, T, new_depth):
+    #     T = T.copy()
+    #     old_depth = T[2,3]
+    #     T[:3,3] *= new_depth / old_depth
+    #     return T
 
-        STD_DEPTH_RESCALE_FACTOR = 0.5 * 2.0
+    def _apply_perturbation(self, T1):
+        STD_ANGLE = np.pi/180. * np.array(self._configs.data.sampling.perturbation.std_angle)
+        STD_OBJECT_BIAS = self._get_object_dimensions() * self._configs.data.sampling.perturbation.std_object_bias_over_extent
+        STD_DEPTH_RESCALE_FACTOR = self._configs.data.sampling.perturbation.std_depth_rescale_factor
 
         random_axis = uniform_sampling_on_S2()
 
         # Gaussian distribution
         random_angle = np.random.normal(loc=0.0, scale=STD_ANGLE)
-        random_transl = np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS_MM, size=(3,))
+        random_transl = np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS, size=(3,))
         # Log-normal distribution
         random_depth_rescale_factor = np.exp(np.random.normal(loc=0.0, scale=np.log(STD_DEPTH_RESCALE_FACTOR)))
 
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
         T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
         T2 = T1 @ T_perturb_obj
-
-        # Additional stronger perturbation along principal axis
-        old_depth = T2[2,3]
-        new_depth = max(min_dist_obj_and_camera_centers, old_depth * random_depth_rescale_factor)
-        T2[:3,3] *= new_depth / old_depth
 
         return T2
 
@@ -312,13 +317,13 @@ class DummyDataset(Dataset):
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
-        table_size = 1000. # 1000 mm
+        table_size = self._configs.data.sampling.object_pose.table_size
         T_model2world = pose_sampler.sample_object_pose_on_xy_plane(up_dir, bottom_center, table_size)
         T_world2cam = pose_sampler.sample_camera_pose(
-            hemisphere_polar_angle_range = [0., np.pi/2],
-            hemisphere_radius_range = [700., 1500.], # 700 - 1500 mm
-            inplane_rot_angle_range = [-np.pi/6, np.pi/6],
-            principal_axis_perturb_angle_range = [-np.pi/6, np.pi/6],
+            hemisphere_polar_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.hemisphere_polar_angle_range),
+            hemisphere_radius_range = self._configs.data.sampling.camera_pose.hemisphere_radius_range,
+            inplane_rot_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.inplane_rot_angle_range),
+            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.principal_axis_perturb_angle_range),
         )
         T1 = T_world2cam @ T_model2world
         return T1
@@ -366,32 +371,49 @@ class DummyDataset(Dataset):
             assert False
 
     def _generate_sample(self):
-        # Resample pose until properly inside image
+        # Minimum allowed distance between object and camera centers
+        min_dist_obj_and_camera_centers = self._get_max_extent() + self._configs.data.sampling.perturbation.min_dist_obj_and_camera
+
+        # Resample pose until accepted
         while True:
             # T1 corresponds to reference image (observed)
             T1 = self._sample_pose()
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
+            if T1[2,3] < min_dist_obj_and_camera_centers:
+                # print("Rejected T1, due to small depth", T1)
+                continue
+
             crop_box = self._bbox_from_projected_keypoints(R1, t1)
             width = crop_box[2] - crop_box[0]
             height = crop_box[3] - crop_box[1]
-            if width >= 50 and height >= 50:
-                # print("Success", crop_box)
-                break
-            # else:
-            #     print("Fail", crop_box)
+            if width < 50 or height < 50:
+                # print("Rejected T1, due to crop_box", crop_box)
+                continue
+
+            break
+
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
         # print("sq", crop_box)
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        # Perturb reference T1, to get proposed pose T2
-        T2 = self._apply_perturbation(T1)
-        R2 = T2[:3,:3]; t2 = T2[:3,[3]]
+        # Resample perturbation until accepted
+        while True:
+            # Perturb reference T1, to get proposed pose T2
+            T2 = self._apply_perturbation(T1)
+            R2 = T2[:3,:3]; t2 = T2[:3,[3]]
+
+            if T2[2,3] < min_dist_obj_and_camera_centers:
+                # print("Rejected T2, due to small depth", T2)
+                continue
+
+            break
 
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
+        # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
 
         assert T1[2,3] > 0, "Center of object pose 1 behind camera"
