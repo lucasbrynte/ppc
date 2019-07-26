@@ -75,20 +75,20 @@ class LossHandler:
         # ======================================================================
 
         loss = 0
-        task_losses = {}
+        task_loss_signal_vals = {}
         for task_name in sorted(self._configs.tasks.keys()):
             task_loss = self._loss_function_dict[task_name](
                 pred_features[task_name],
                 target_features[task_name],
             )
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
-            task_losses[task_name] = task_loss
+            task_loss_signal_vals[task_name] = task_loss
             loss += task_loss
-        return loss, task_losses
+        return loss, task_loss_signal_vals
 
-    def record_loss(self, task_losses):
-        for task_name, task_loss in task_losses.items():
-            self._losses[task_name].append(task_loss)
+    def record_signals(self, signal_vals):
+        for signal_name, signal_val in signal_vals.items():
+            self._losses[signal_name].append(signal_val)
 
     def get_averages(self, num_batches=0):
         avg_losses = defaultdict(int)

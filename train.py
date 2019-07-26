@@ -52,8 +52,8 @@ class Trainer():
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
             nn_out = self._run_model(batch.input)
             pred_features, target_features = self._loss_handler.get_pred_and_target_features(nn_out, batch.targets)
-            loss, task_losses = self._loss_handler.calc_loss(pred_features, target_features)
-            self._loss_handler.record_loss(task_losses)
+            loss, task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
+            self._loss_handler.record_signals(task_loss_signal_vals)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
