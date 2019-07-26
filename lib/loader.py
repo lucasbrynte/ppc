@@ -56,7 +56,7 @@ class FixedSeededRandomSampler(RandomSampler):
 #         assert getattr(self._configs.loading, mode).batch_size == 1
 #         for sample in getattr(self, mode):
 #             batch = collate_batch([sample])
-#             batch = Batch(*(val if fieldname != 'targets' else self._dataset_module.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
+#             batch = Batch(*(val if fieldname != 'targets' else getattr(self, mode).dataset.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
 #             yield batch
 
 
@@ -97,7 +97,7 @@ class Loader:
         # TODO: This is needed until pytorch pin_memory is fixed. Currently casts namedtuple to list
         # https://github.com/pytorch/pytorch/pull/16440
         for batch in getattr(self, mode):
-            batch = Batch(*(val if fieldname != 'targets' else self._dataset_module.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
+            batch = Batch(*(val if fieldname != 'targets' else getattr(self, mode).dataset.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
             yield batch
 
 

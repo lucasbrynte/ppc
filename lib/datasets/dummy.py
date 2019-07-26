@@ -45,20 +45,6 @@ def get_dataset(configs, mode):
     return DummyDataset(configs, mode)
 
 
-Targets = namedtuple('Targets', [
-    'pixel_offset',
-    'rel_depth_error',
-    'delta_angle_inplane',
-    'delta_angle_total',
-    'norm_pixel_offset',
-    'abs_delta_angle_inplane',
-    'abs_delta_angle_total',
-    'abs_delta_angle_paxis',
-    'cosdist_delta_angle_inplane',
-    'cosdist_delta_angle_total',
-    'cosdist_delta_angle_paxis',
-])
-
 global global_renderer
 global_renderer = None
 
@@ -79,6 +65,7 @@ class DummyDataset(Dataset):
         #     # self._aug_transform = ColorJitter(brightness=(0.7, 1.5), contrast=(0.7, 1.5), saturation=(0.7, 1.5), hue=(-0.03, 0.03))
         # else:
         #     self._aug_transform = None
+        self.Targets = self._get_target_def()
 
         self._pids_path = '/tmp/sixd_kp_pids/' + self._mode
         if os.path.exists(self._pids_path):
@@ -86,6 +73,9 @@ class DummyDataset(Dataset):
             print("Removing " + self._pids_path)
         print("Creating " + self._pids_path)
         os.makedirs(self._pids_path)
+
+    def _get_target_def(self):
+        return namedtuple('Targets', list(self._configs.tasks.keys()))
 
     def _read_yaml(self, path):
         return read_yaml_and_pickle(path)
@@ -441,7 +431,7 @@ class DummyDataset(Dataset):
         delta_angle_inplane = self._calc_delta_angle_inplane(R21_global)
         delta_angle_total = self._angle_from_rotmat(R21_global)
 
-        target_vals = {
+        all_target_vals = {
             'pixel_offset': pixel_offset,
             'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
             'delta_angle_inplane': delta_angle_inplane,
@@ -455,11 +445,13 @@ class DummyDataset(Dataset):
             'cosdist_delta_angle_paxis': 1.0 - R21_global[2,2],
         }
 
+        target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.tasks}
+
         for task_name, task_spec in self._configs.tasks.items():
             target = target_vals[task_name]
             if not (task_spec['min'] is None and task_spec['max'] is None):
                 target = np.clip(target, task_spec['min'], task_spec['max'])
             target_vals[task_name] = torch.tensor(target).float()
-        targets = Targets(**target_vals)
+        targets = self.Targets(**target_vals)
 
         return data, targets
