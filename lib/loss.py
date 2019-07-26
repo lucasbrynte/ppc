@@ -1,11 +1,12 @@
 """Loss handler."""
 import logging
 from collections import defaultdict
+import numpy as np
 import torch
 from torch import nn, exp, clamp
 
 from lib.constants import TRAIN, VAL
-from lib.utils import get_device
+from lib.utils import get_device, get_human_interp_maps
 
 
 class LossHandler:
@@ -13,7 +14,8 @@ class LossHandler:
     def __init__(self, configs, name):
         self._configs = configs
         self._logger = logging.getLogger(name)
-        self._losses = defaultdict(list)
+        self._signals = defaultdict(list)
+        self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
 
         self._activation_dict = self._init_activations()
         self._loss_function_dict = self._init_loss_functions()
@@ -67,6 +69,18 @@ class LossHandler:
 
         return pred_features, target_features
 
+    def calc_human_interpretable_feature_errors(self, pred_features, target_features):
+        interp_feat_error_signal_vals = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            pred   = self._human_interp_maps[task_name](  pred_features[task_name])
+            target = self._human_interp_maps[task_name](target_features[task_name])
+            if len(pred.shape) == 1:
+                interp_feat_error_signal_vals[task_name] = torch.mean(torch.abs(pred - target))
+            else:
+                assert len(pred.shape) == 2
+                interp_feat_error_signal_vals[task_name] = torch.mean(torch.norm(pred - target, dim=1))
+        return interp_feat_error_signal_vals
+
     def calc_loss(self, pred_features, target_features):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
@@ -84,16 +98,16 @@ class LossHandler:
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
 
-    def record_signals(self, signal_vals):
+    def record_signals(self, signal_vals, prefix=''):
         for signal_name, signal_val in signal_vals.items():
-            self._losses[signal_name].append(signal_val)
+            self._signals[prefix + signal_name].append(signal_val)
 
     def get_averages(self, num_batches=0):
-        avg_losses = defaultdict(int)
-        for loss_name, loss_list in self._losses.items():
-            latest_losses = loss_list[-num_batches:]
-            avg_losses[loss_name] = sum(latest_losses) / len(latest_losses)
-        return avg_losses
+        avg_signals = defaultdict(int)
+        for signal_name, signal_list in self._signals.items():
+            latest_signals = signal_list[-num_batches:]
+            avg_signals[signal_name] = (sum(latest_signals) / len(latest_signals)).detach().cpu().numpy()
+        return avg_signals
 
     def log_batch(self, epoch, iteration, mode):
         """Log current batch."""
@@ -108,13 +122,13 @@ class LossHandler:
                              format(name=mode.upper(),
                                     epoch=epoch,
                                     iteration=iteration))
-        for statistic, value in losses.items():
-            status_total_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
-                                                                     value=sum(value.values()))
+        # for statistic, value in losses.items():
+        #     status_total_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
+        #                                                              value=sum(value.values()))
         self._logger.info(status_total_loss)
 
-        for task_name in self._losses.keys():
-            status_task_loss = '{name:<35s}'.format(name=task_name)
+        for task_name in self._signals.keys():
+            status_task_loss = '{name:<45s}'.format(name=task_name)
             for statistic, value in losses.items():
                 status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
                                                                         value=value[task_name])
@@ -125,4 +139,4 @@ class LossHandler:
         mode = {TRAIN: 'Training', VAL: 'Validation'}[mode]
         self._logger.info('%s epoch %s done!',
                           mode, epoch)
-        self._losses = defaultdict(list)
+        self._signals = defaultdict(list)

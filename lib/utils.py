@@ -2,6 +2,7 @@ import os
 import yaml
 import pickle
 from attrdict import AttrDict
+import math
 import numpy as np
 from scipy.spatial.transform import Rotation
 import torch
@@ -104,3 +105,23 @@ def get_translation(translation_vec):
     T = np.eye(4)
     T[0:3, 3] = translation_vec
     return T
+
+def get_human_interp_maps(configs, api):
+    """
+    Determine how to map output features into human-interpretable quantities.
+    """
+    assert api in ('torch', 'numpy')
+    human_interp_maps = {}
+    for task_name in configs.tasks.keys():
+        unit = configs.tasks[task_name]['unit']
+        if unit == 'px':
+            human_interp_maps[task_name] = lambda x: x
+        elif unit == 'angle':
+            human_interp_maps[task_name] = lambda x: x * 180./math.pi
+        elif unit == 'cosdist':
+            human_interp_maps[task_name] = lambda x: 180./math.pi * (torch.arccos(1.0-x) if api=='torch' else np.arccos(1.0-x))
+        elif unit == 'log_factor':
+            human_interp_maps[task_name] = lambda x: torch.exp(x) if api=='torch' else np.exp(x)
+        else:
+            human_interp_maps[task_name] = lambda x: x
+    return human_interp_maps

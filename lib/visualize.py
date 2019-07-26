@@ -12,6 +12,7 @@ import torch
 from torchvision.transforms.functional import normalize
 from tensorboardX import SummaryWriter
 
+from lib.utils import get_human_interp_maps
 from lib.constants import PYPLOT_DPI
 from lib.constants import TV_MEAN, TV_STD
 
@@ -23,8 +24,8 @@ class Visualizer:
         vis_path = os.path.join(configs.experiment_path, 'visual')
         shutil.rmtree(vis_path, ignore_errors=True)
         self._writer = SummaryWriter(vis_path)
-        self._loss_count_dict = {'train': 0, 'val': 0}
-        self._human_interp_maps = self._get_human_interp_maps()
+        self._signal_count_dict = {'train': 0, 'val': 0}
+        self._human_interp_maps = get_human_interp_maps(self._configs, 'numpy')
 
     def __del__(self):
         # Unsure of the importance of calling close()... Might not be done in case of KeyboardInterrupt
@@ -32,10 +33,9 @@ class Visualizer:
         # https://stackoverflow.com/questions/33364340/how-to-avoid-suppressing-keyboardinterrupt-during-garbage-collection-in-python
         self._writer.close()
 
-    def report_loss(self, losses, mode):
-        self._writer.add_scalar('loss/{}'.format(mode), sum(losses.values()), self._loss_count_dict[mode])
-        self._writer.add_scalars('task_losses/{}'.format(mode), losses, self._loss_count_dict[mode])
-        self._loss_count_dict[mode] += 1
+    def report_signals(self, signals, mode):
+        self._writer.add_scalars('{}'.format(mode), signals, self._signal_count_dict[mode])
+        self._signal_count_dict[mode] += 1
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
@@ -61,25 +61,6 @@ class Visualizer:
         ax.axis('off')
         ax.axis([0, 10, 0, 10])
         ax.text(0, 10, text, verticalalignment='top', horizontalalignment='left', wrap=True, fontsize=fontsize, fontfamily='monospace')
-
-    def _get_human_interp_maps(self):
-        """
-        Determine how to map output features into human-interpretable quantities.
-        """
-        human_interp_maps = {}
-        for task_name in self._configs.tasks.keys():
-            unit = self._configs.tasks[task_name]['unit']
-            if unit == 'px':
-                human_interp_maps[task_name] = lambda x: x
-            elif unit == 'angle':
-                human_interp_maps[task_name] = lambda x: x * 180./math.pi
-            elif unit == 'cosdist':
-                human_interp_maps[task_name] = lambda x: np.arccos(1.0-x) * 180./math.pi
-            elif unit == 'log_factor':
-                human_interp_maps[task_name] = lambda x: np.exp(x)
-            else:
-                human_interp_maps[task_name] = lambda x: x
-        return human_interp_maps
 
     def _pretty_print_feature_value(self, task_name, feat):
         feat = np.array(feat)

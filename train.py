@@ -53,27 +53,29 @@ class Trainer():
             nn_out = self._run_model(batch.input)
             pred_features, target_features = self._loss_handler.get_pred_and_target_features(nn_out, batch.targets)
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
-            self._loss_handler.record_signals(task_loss_signal_vals)
-            self._optimizer.zero_grad()
             loss = sum(task_loss_signal_vals.values())
+            interp_feat_error_signal_vals = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
+            self._loss_handler.record_signals({'loss': loss})
+            self._loss_handler.record_signals(task_loss_signal_vals, prefix='task_losses/')
+            self._loss_handler.record_signals(interp_feat_error_signal_vals, prefix='interp_feat_error/')
+            self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
             # cnt += 1
             # if cnt % 10 == 0:
-            #     self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
+            #     self._visualizer.report_signals(self._loss_handler.get_averages(), mode)
 
             # if cnt % 30 == 0:
             #     visual_cnt += 1
             #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
         self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
-        self._visualizer.report_loss(self._loss_handler.get_averages(), mode)
+        self._visualizer.report_signals(self._loss_handler.get_averages(), mode)
 
+        score = self._loss_handler.get_averages()['loss']
         self._loss_handler.finish_epoch(epoch, mode)
-
-        score = sum(self._loss_handler.get_averages().values())
         return score
 
     def _run_model(self, inputs):
