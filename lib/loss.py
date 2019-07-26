@@ -74,7 +74,6 @@ class LossHandler:
         # Ideally custom batch & targets classes with pin_memory methods should be used, see: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
         # ======================================================================
 
-        loss = 0
         task_loss_signal_vals = {}
         for task_name in sorted(self._configs.tasks.keys()):
             task_loss = self._loss_function_dict[task_name](
@@ -83,8 +82,7 @@ class LossHandler:
             )
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss_signal_vals[task_name] = task_loss
-            loss += task_loss
-        return loss, task_loss_signal_vals
+        return task_loss_signal_vals
 
     def record_signals(self, signal_vals):
         for signal_name, signal_val in signal_vals.items():
