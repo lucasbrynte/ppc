@@ -24,6 +24,7 @@ class Visualizer:
         shutil.rmtree(vis_path, ignore_errors=True)
         self._writer = SummaryWriter(vis_path)
         self._loss_count_dict = {'train': 0, 'val': 0}
+        self._human_interp_maps = self._get_human_interp_maps()
 
     def __del__(self):
         # Unsure of the importance of calling close()... Might not be done in case of KeyboardInterrupt
@@ -61,6 +62,25 @@ class Visualizer:
         ax.axis([0, 10, 0, 10])
         ax.text(0, 10, text, verticalalignment='top', horizontalalignment='left', wrap=True, fontsize=fontsize, fontfamily='monospace')
 
+    def _get_human_interp_maps(self):
+        """
+        Determine how to map output features into human-interpretable quantities.
+        """
+        human_interp_maps = {}
+        for task_name in self._configs.tasks.keys():
+            unit = self._configs.tasks[task_name]['unit']
+            if unit == 'px':
+                human_interp_maps[task_name] = lambda x: x
+            elif unit == 'angle':
+                human_interp_maps[task_name] = lambda x: x * 180./math.pi
+            elif unit == 'cosdist':
+                human_interp_maps[task_name] = lambda x: np.arccos(1.0-x) * 180./math.pi
+            elif unit == 'log_factor':
+                human_interp_maps[task_name] = lambda x: np.exp(x)
+            else:
+                human_interp_maps[task_name] = lambda x: x
+        return human_interp_maps
+
     def _pretty_print_feature_value(self, task_name, feat):
         feat = np.array(feat)
         ndims = len(feat.shape)
@@ -71,21 +91,21 @@ class Visualizer:
 
         unit = self._configs.tasks[task_name]['unit']
         if unit == 'px':
-            print_elem = lambda x: '{:.2f}'.format(x)
+            format_spec = '{:.2f}'
             unit_suffix = ' px'
         elif unit == 'angle':
-            print_elem = lambda x: '{:.1f}'.format(x * 180./math.pi)
+            format_spec = '{:.1f}'
             unit_suffix = ' deg'
         elif unit == 'cosdist':
-            print_elem = lambda x: '{:.1f}'.format(np.arccos(1.0-x) * 180./math.pi)
+            format_spec = '{:.1f}'
             unit_suffix = ' deg'
         elif unit == 'log_factor':
-            print_elem = lambda x: '{:.2f}'.format(np.exp(x))
+            format_spec = '{:.2f}'
             unit_suffix = ' factor'
         else:
             return '{}'.format(feat)
 
-        tmp = ', '.join([print_elem(val) for val in feat])
+        tmp = ', '.join([format_spec.format(self._human_interp_maps[task_name](val)) for val in feat])
         if len(feat) > 1:
             tmp = '(' + tmp + ')'
         return tmp + unit_suffix
