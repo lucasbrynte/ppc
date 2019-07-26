@@ -287,11 +287,11 @@ class DummyDataset(Dataset):
         max_extent = np.linalg.norm(0.5*obj_dimensions)
         return max_extent
 
-    # def _set_depth_by_translation_along_viewing_ray(self, T, new_depth):
-    #     T = T.copy()
-    #     old_depth = T[2,3]
-    #     T[:3,3] *= new_depth / old_depth
-    #     return T
+    def _set_depth_by_translation_along_viewing_ray(self, T, new_depth):
+        T = T.copy()
+        old_depth = T[2,3]
+        T[:3,3] *= new_depth / old_depth
+        return T
 
     def _apply_perturbation(self, T1):
         STD_ANGLE = np.pi/180. * np.array(self._configs.data.sampling.perturbation.std_angle)
@@ -309,6 +309,10 @@ class DummyDataset(Dataset):
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
         T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
         T2 = T1 @ T_perturb_obj
+
+        # Additional perturbation along viewing ray
+        old_depth = T2[2,3]
+        T2 = self._set_depth_by_translation_along_viewing_ray(T2, old_depth * random_depth_rescale_factor)
 
         return T2
 
