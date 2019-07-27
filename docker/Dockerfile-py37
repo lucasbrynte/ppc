@@ -21,8 +21,7 @@ RUN conda install -y -c conda-forge \
     matplotlib \
     attrdict \
     Cython \
-    pyyaml \
-    tensorboardX
+    pyyaml
 RUN apt-get install -y --no-install-recommends libgl1-mesa-dev
 RUN conda install -y -c anaconda \
     scipy \
@@ -32,6 +31,7 @@ RUN conda clean -ya
 RUN pip install glumpy
 RUN pip install pypng
 RUN pip install ruamel.yaml
+RUN pip install tb-nightly future
 
 # OpenGV
 RUN apt-get update -y

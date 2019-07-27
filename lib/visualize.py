@@ -11,7 +11,8 @@ import numpy as np
 
 import torch
 from torchvision.transforms.functional import normalize
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
+# from tensorboardX import SummaryWriter
 
 from lib.utils import get_human_interp_maps
 from lib.constants import PYPLOT_DPI
