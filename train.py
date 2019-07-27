@@ -55,9 +55,11 @@ class Trainer():
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             loss = sum(task_loss_signal_vals.values())
             interp_feat_error_signal_vals = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
-            self._loss_handler.record_signals({'loss': loss})
-            self._loss_handler.record_signals(task_loss_signal_vals, prefix='task_losses/')
-            self._loss_handler.record_signals(interp_feat_error_signal_vals, prefix='interp_feat_error/')
+            rel_feat_error_signal_vals = self._loss_handler.calc_relative_feature_errors(pred_features, target_features)
+            self._loss_handler.record_signals('loss', {'loss': loss})
+            self._loss_handler.record_signals('task_losses', task_loss_signal_vals)
+            self._loss_handler.record_signals('interp_feat_error', interp_feat_error_signal_vals)
+            self._loss_handler.record_signals('rel_feat_error', rel_feat_error_signal_vals)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
@@ -74,7 +76,7 @@ class Trainer():
 
         self._visualizer.report_signals(self._loss_handler.get_averages(), mode)
 
-        score = self._loss_handler.get_averages()['loss']
+        score = self._loss_handler.get_averages()['loss']['loss']
         self._loss_handler.finish_epoch(epoch, mode)
         return score
 

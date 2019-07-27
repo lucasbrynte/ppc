@@ -14,7 +14,7 @@ class LossHandler:
     def __init__(self, configs, name):
         self._configs = configs
         self._logger = logging.getLogger(name)
-        self._signals = defaultdict(list)
+        self._signals = self._reset_signals()
         self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
 
         self._activation_dict = self._init_activations()
@@ -30,6 +30,9 @@ class LossHandler:
             else:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['activation']))
         return activation_dict
+
+    def _reset_signals(self):
+        return defaultdict(lambda: defaultdict(list))
 
     def _init_loss_functions(self):
         loss_function_dict = {}
@@ -81,6 +84,18 @@ class LossHandler:
                 interp_feat_error_signal_vals[task_name] = torch.mean(torch.norm(pred - target, dim=1))
         return interp_feat_error_signal_vals
 
+    def calc_relative_feature_errors(self, pred_features, target_features):
+        rel_feat_error_signal_vals = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            pred   = self._human_interp_maps[task_name](  pred_features[task_name])
+            target = self._human_interp_maps[task_name](target_features[task_name])
+            if len(pred.shape) == 1:
+                rel_feat_error_signal_vals[task_name] = torch.mean(torch.abs((pred - target)/target))
+            else:
+                assert len(pred.shape) == 2
+                rel_feat_error_signal_vals[task_name] = torch.mean(torch.norm((pred - target)/target, dim=1))
+        return rel_feat_error_signal_vals
+
     def calc_loss(self, pred_features, target_features):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
@@ -98,21 +113,25 @@ class LossHandler:
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
 
-    def record_signals(self, signal_vals, prefix=''):
+    def record_signals(self, tag, signal_vals):
         for signal_name, signal_val in signal_vals.items():
-            self._signals[prefix + signal_name].append(signal_val)
+            self._signals[tag][signal_name].append(signal_val)
 
-    def get_averages(self, num_batches=0):
-        avg_signals = defaultdict(int)
-        for signal_name, signal_list in self._signals.items():
-            latest_signals = signal_list[-num_batches:]
-            avg_signals[signal_name] = (sum(latest_signals) / len(latest_signals)).detach().cpu().numpy()
+    def get_averages(self, num_batches=0, tag_filter=None):
+        avg_signals = defaultdict(lambda: defaultdict(float))
+        # avg_signals = defaultdict(int)
+        for tag in self._signals:
+            if tag_filter is not None and tag != tag_filter:
+                continue
+            for signal_name, signal_list in self._signals[tag].items():
+                latest_signals = signal_list[-num_batches:]
+                avg_signals[tag][signal_name] = (sum(latest_signals) / len(latest_signals)).detach().cpu().numpy()
         return avg_signals
 
     def log_batch(self, epoch, iteration, mode):
         """Log current batch."""
         losses = {
-            'Loss': self.get_averages(num_batches=1),
+            'Raw': self.get_averages(num_batches=1),
             'Moving Avg': self.get_averages(num_batches=self._configs.logging.avg_window_size),
             'Average': self.get_averages(num_batches=0)
         }
@@ -127,16 +146,17 @@ class LossHandler:
         #                                                              value=sum(value.values()))
         self._logger.info(status_total_loss)
 
-        for task_name in self._signals.keys():
-            status_task_loss = '{name:<45s}'.format(name=task_name)
-            for statistic, value in losses.items():
-                status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
-                                                                        value=value[task_name])
-            self._logger.info(status_task_loss)
+        for tag in self._signals:
+            for signal_name, signal_list in self._signals[tag].items():
+                status_task_loss = '{name:<45s}'.format(name=tag+'/'+signal_name)
+                for statistic, value in losses.items():
+                    status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
+                                                                        value=value[tag][signal_name])
+                self._logger.info(status_task_loss)
 
     def finish_epoch(self, epoch, mode):
         """Log current epoch."""
         mode = {TRAIN: 'Training', VAL: 'Validation'}[mode]
         self._logger.info('%s epoch %s done!',
                           mode, epoch)
-        self._signals = defaultdict(list)
+        self._signals = self._reset_signals()

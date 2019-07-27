@@ -1,5 +1,6 @@
 import os
 import shutil
+from collections import defaultdict
 
 import matplotlib
 matplotlib.use('Agg')
@@ -24,7 +25,7 @@ class Visualizer:
         vis_path = os.path.join(configs.experiment_path, 'visual')
         shutil.rmtree(vis_path, ignore_errors=True)
         self._writer = SummaryWriter(vis_path)
-        self._signal_count_dict = {'train': 0, 'val': 0}
+        self._signal_count_dict = defaultdict(int)
         self._human_interp_maps = get_human_interp_maps(self._configs, 'numpy')
 
     def __del__(self):
@@ -34,8 +35,9 @@ class Visualizer:
         self._writer.close()
 
     def report_signals(self, signals, mode):
-        self._writer.add_scalars('{}'.format(mode), signals, self._signal_count_dict[mode])
-        self._signal_count_dict[mode] += 1
+        for tag in signals:
+            self._writer.add_scalars('{}/{}'.format(tag, mode), signals[tag], self._signal_count_dict[(tag,mode)])
+            self._signal_count_dict[(tag,mode)] += 1
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
