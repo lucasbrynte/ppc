@@ -449,6 +449,9 @@ class DummyDataset(Dataset):
 
         for task_name, task_spec in self._configs.tasks.items():
             target = target_vals[task_name]
+            target = np.array(target)
+            if len(target.shape) == 0:
+                target = target[None] # Add redundant dimension (unsqueeze)
             if not (task_spec['min'] is None and task_spec['max'] is None):
                 target = np.clip(target, task_spec['min'], task_spec['max'])
             target_vals[task_name] = torch.tensor(target).float()

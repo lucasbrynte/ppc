@@ -63,9 +63,8 @@ class LossHandler:
                     pred_features[task_name] = pred_features[task_name] + self._configs.tasks[task_name]['min']
             target_features[task_name] = getattr(targets, task_name).to(get_device())
 
-            # Scalars may / may not introduce redundant dimension
-            pred_features[task_name] = pred_features[task_name].squeeze()
-            target_features[task_name] = target_features[task_name].squeeze()
+            pred_features[task_name] = pred_features[task_name]
+            target_features[task_name] = target_features[task_name]
             assert pred_features[task_name].shape == target_features[task_name].shape
 
             offset += self._configs.tasks[task_name]['n_out']
