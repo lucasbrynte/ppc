@@ -1,20 +1,21 @@
 training:
-  n_epochs: 100
+  n_epochs: 50
+  # n_epochs: 125
   learning_rate: 0.0001
   weight_decay: null
   backup_epochs: false
 tasks:
-  pixel_offset:                 {n_out: 2,   loss_func: L1, loss_weight: 1.e-2,   activation: null, min: null, max: null, unit: px}
+  # pixel_offset:                 {n_out: 2,   loss_func: L1, loss_weight: 1.e-2,   activation: null, min: null, max: null, unit: px}
   rel_depth_error:              {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: log_factor}
-  delta_angle_inplane:          {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
-  delta_angle_total:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
+  # delta_angle_inplane:          {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
+  # delta_angle_total:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
   norm_pixel_offset:            {n_out: 1,   loss_func: L2, loss_weight: 1.e-2,   activation: sigmoid, min: 0.0, max: 50.0, unit: px}
   abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
   abs_delta_angle_total:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
   abs_delta_angle_paxis:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
-  cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
-  cosdist_delta_angle_total:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
-  cosdist_delta_angle_paxis:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
+  # cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
+  # cosdist_delta_angle_total:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
+  # cosdist_delta_angle_paxis:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
 logging:
   avg_window_size: 25
 model:
@@ -50,9 +51,12 @@ data:
       principal_axis_perturb_angle_range: [-30., 30.] # +- 30 deg
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
     perturbation:
-      std_angle: 90. # 90 degrees
-      std_object_bias_over_extent: 0.2 # 20% of object size along each dimension
-      std_depth_rescale_factor: 1.3
+      std_angle: 2.
+      std_object_bias_over_extent: 0.0
+      std_depth_rescale_factor: 1.0
+      # std_angle: 90. # 90 degrees
+      # std_object_bias_over_extent: 0.2 # 20% of object size along each dimension
+      # std_depth_rescale_factor: 1.3
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
 loading:
   train:
