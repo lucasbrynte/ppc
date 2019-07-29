@@ -43,6 +43,9 @@ class LossHandler:
             elif task_spec['loss_func'] == 'L2':
                 # reduction='mean' averages over all dimensions (over the batch in this case)
                 loss_function_dict[task_name] = nn.MSELoss(reduction='mean').to(get_device())
+            elif task_spec['loss_func'] == 'BCE':
+                # reduction='mean' averages over all dimensions (over the batch in this case)
+                loss_function_dict[task_name] = nn.BCELoss(reduction='mean').to(get_device())
             else:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['loss_func']))
         return loss_function_dict
@@ -104,10 +107,19 @@ class LossHandler:
 
         task_loss_signal_vals = {}
         for task_name in sorted(self._configs.tasks.keys()):
-            task_loss = self._loss_function_dict[task_name](
-                pred_features[task_name],
-                target_features[task_name],
-            )
+            if self._configs.tasks[task_name]['loss_func'] == 'BCE' and self._configs.tasks[task_name]['activation'] == 'sigmoid':
+                # Linearly map output back to [0, 1] range
+                assert self._configs.tasks[task_name]['min'] is not None and self._configs.tasks[task_name]['max'] is not None, \
+                    'Min/max values mandatory when sigmoid activaiton is used'
+                task_loss = self._loss_function_dict[task_name](
+                    (pred_features[task_name] - self._configs.tasks[task_name]['min']) / (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min']),
+                    (target_features[task_name] - self._configs.tasks[task_name]['min']) / (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min']),
+                )
+            else:
+                task_loss = self._loss_function_dict[task_name](
+                    pred_features[task_name],
+                    target_features[task_name],
+                )
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
