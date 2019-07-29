@@ -38,11 +38,11 @@ class Trainer():
     def train(self):
         """Main loop."""
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            self._run_epoch(epoch, TRAIN)
+            train_score = -self._run_epoch(epoch, TRAIN)
             val_score = -self._run_epoch(epoch, VAL)
 
             self._lr_scheduler.step(val_score)
-            self._checkpoint_handler.save(self._model, epoch, val_score)
+            self._checkpoint_handler.save(self._model, epoch, train_score)
 
     def _run_epoch(self, epoch, mode):
         self._model.train()
