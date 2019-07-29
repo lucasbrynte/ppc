@@ -77,6 +77,18 @@ def pillow_to_pt(image, normalize_flag=True, transform=None):
         image = normalize(image, TV_MEAN, TV_STD)
     return image
 
+def get_module_parameters(module):
+    w_params = []
+    b_params = []
+    for name, param in module.named_parameters():
+        if not param.requires_grad:
+            continue
+        if name.endswith('weight'):
+            w_params.append(param)
+        elif name.endswith('bias'):
+            b_params.append(param)
+    return w_params, b_params
+
 def pflat(x):
     a, n = x.shape
     alpha = x[np.newaxis,-1,:]

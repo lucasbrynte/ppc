@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from torch import nn
 
+from lib.utils import get_module_parameters
+
 class ConvBatchReLU(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
         super().__init__()
@@ -153,6 +155,16 @@ class Model(nn.Module):
         self.verify_head_layer_specs(self._configs['model']['head_layers']) # Access by key important - needs to be mutable
         self.semi_siamese_cnn = SemiSiameseCNN(self._configs.model.cnn_layers)
         self.head = Head(self.cnn_output_dims, self._configs.model.head_layers)
+
+    def get_last_layer_params(self):
+        for module in reversed(self.head.sequential):
+            w_params, b_params = get_module_parameters(module)
+            if len(w_params) > 0 or len(b_params) > 0:
+                assert len(w_params) == 1 and len(b_params) == 1
+                break
+        else:
+            assert False, "Tried to find last parameterized layer, but found no layer with parameters of interest"
+        return w_params, b_params
 
     def calc_downsampling_dimensions(self, cnn_specs):
         ds_factor = np.prod([layer_spec.stride for layer_spec in cnn_specs])

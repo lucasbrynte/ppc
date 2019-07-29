@@ -86,17 +86,19 @@ class LossHandler:
                 interp_feat_error_signal_vals[task_name] = torch.mean(torch.norm(pred - target, dim=1))
         return interp_feat_error_signal_vals
 
-    def calc_relative_feature_errors(self, pred_features, target_features):
-        rel_feat_error_signal_vals = {}
+    def calc_batch_feature_avg(self, features):
+        feat_avg_signal_vals = {}
         for task_name in sorted(self._configs.tasks.keys()):
-            pred   = self._human_interp_maps[task_name](  pred_features[task_name])
-            target = self._human_interp_maps[task_name](target_features[task_name])
-            if len(pred.shape) == 1:
-                rel_feat_error_signal_vals[task_name] = torch.mean(torch.abs((pred - target)/target))
-            else:
-                assert len(pred.shape) == 2
-                rel_feat_error_signal_vals[task_name] = torch.mean(torch.norm((pred - target)/target, dim=1))
-        return rel_feat_error_signal_vals
+            feat = self._human_interp_maps[task_name](features[task_name])
+            feat_avg_signal_vals[task_name] = torch.mean(feat)
+        return feat_avg_signal_vals
+
+    def calc_batch_feature_std(self, features):
+        feat_std_signal_vals = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            feat = self._human_interp_maps[task_name](features[task_name])
+            feat_std_signal_vals[task_name] = torch.std(feat)
+        return feat_std_signal_vals
 
     def calc_loss(self, pred_features, target_features):
         # ======================================================================

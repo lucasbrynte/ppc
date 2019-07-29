@@ -5,7 +5,7 @@ from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL
 from lib.loss import LossHandler
 from lib.model import Model
-from lib.utils import get_device, get_configs
+from lib.utils import get_device, get_configs, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -55,11 +55,42 @@ class Trainer():
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             loss = sum(task_loss_signal_vals.values())
             interp_feat_error_signal_vals = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
-            rel_feat_error_signal_vals = self._loss_handler.calc_relative_feature_errors(pred_features, target_features)
+            pred_feat_avg = self._loss_handler.calc_batch_feature_avg(pred_features)
+            target_feat_avg = self._loss_handler.calc_batch_feature_avg(target_features)
+            pred_feat_std = self._loss_handler.calc_batch_feature_std(pred_features)
+            target_feat_std = self._loss_handler.calc_batch_feature_std(target_features)
+
+            def flatten_and_stack(tensor_list):
+                return torch.cat([x.reshape(-1) for x in tensor_list])
+
+            w_params_all, b_params_all = get_module_parameters(self._model)
+            w_params_final, b_params_final = self._model.get_last_layer_params()
+            self._loss_handler.record_signals(
+                'params/mean',
+                {
+                    'all_w_mean': flatten_and_stack(w_params_all).mean(),
+                    'all_b_mean': flatten_and_stack(b_params_all).mean(),
+                    'final_w_mean': flatten_and_stack(w_params_final).mean(),
+                    'final_b_mean': flatten_and_stack(b_params_final).mean(),
+                },
+            )
+            self._loss_handler.record_signals(
+                'params/std',
+                {
+                    'all_w_std': flatten_and_stack(w_params_all).std(),
+                    'all_b_std': flatten_and_stack(b_params_all).std(),
+                    'final_w_std': flatten_and_stack(w_params_final).std(),
+                    'final_b_std': flatten_and_stack(b_params_final).std(),
+                },
+            )
+
             self._loss_handler.record_signals('loss', {'loss': loss})
             self._loss_handler.record_signals('task_losses', task_loss_signal_vals)
             self._loss_handler.record_signals('interp_feat_error', interp_feat_error_signal_vals)
-            self._loss_handler.record_signals('rel_feat_error', rel_feat_error_signal_vals)
+            self._loss_handler.record_signals('pred_feat_avg', pred_feat_avg)
+            self._loss_handler.record_signals('target_feat_avg', target_feat_avg)
+            self._loss_handler.record_signals('pred_feat_std', pred_feat_std)
+            self._loss_handler.record_signals('target_feat_std', target_feat_std)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
