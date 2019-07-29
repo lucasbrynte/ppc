@@ -119,6 +119,10 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
+            if self._configs.tasks[task_name]['target_norm_loss_decay'] is not None:
+                assert len(target_features[task_name].shape) == 2
+                gamma = np.log(2.0) / self._configs.tasks[task_name]['target_norm_loss_decay']['halflife']
+                task_loss = task_loss * torch.exp(-gamma * torch.norm(target_features[task_name], dim=1, keepdim=True))
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss

@@ -5,18 +5,18 @@ training:
   weight_decay: null
   backup_epochs: false
 tasks:
-  # pixel_offset:                 {n_out: 2,   loss_func: L1, loss_weight: 1.e-2,   activation: null, min: null, max: null, unit: px}
-  rel_depth_error:              {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: log_factor}
-  # delta_angle_inplane:          {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
-  # delta_angle_paxis:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
-  # delta_angle_total:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
-  norm_pixel_offset:            {n_out: 1,   loss_func: L2, loss_weight: 1.e-2,   activation: sigmoid, min: 0.0, max: 50.0, unit: px}
-  abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
-  abs_delta_angle_total:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
-  abs_delta_angle_paxis:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
-  # cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
-  # cosdist_delta_angle_total:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
-  # cosdist_delta_angle_paxis:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist}
+  # pixel_offset:                 {n_out: 2,   loss_func: L1, loss_weight: 1.e-2,   activation: null, min: null, max: null, unit: px, target_norm_loss_decay: null}
+  rel_depth_error:              {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: log_factor, target_norm_loss_decay: null}
+  # delta_angle_inplane:          {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle, target_norm_loss_decay: null}
+  # delta_angle_paxis:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle, target_norm_loss_decay: null}
+  # delta_angle_total:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle, target_norm_loss_decay: null}
+  norm_pixel_offset:            {n_out: 1,   loss_func: L2, loss_weight: 1.e-2,   activation: sigmoid, min: 0.0, max: 50.0, unit: px, target_norm_loss_decay: null}
+  abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle, target_norm_loss_decay: null}
+  abs_delta_angle_total:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle, target_norm_loss_decay: null}
+  abs_delta_angle_paxis:        {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle, target_norm_loss_decay: null}
+  # cosdist_delta_angle_inplane:  {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist, target_norm_loss_decay: null}
+  # cosdist_delta_angle_total:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist, target_norm_loss_decay: null}
+  # cosdist_delta_angle_paxis:    {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 2.0, unit: cosdist, target_norm_loss_decay: null}
 logging:
   avg_window_size: 25
 model:
