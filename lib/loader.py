@@ -97,7 +97,10 @@ class Loader:
         # TODO: This is needed until pytorch pin_memory is fixed. Currently casts namedtuple to list
         # https://github.com/pytorch/pytorch/pull/16440
         for batch in getattr(self, mode):
-            batch = Batch(*(val if fieldname != 'targets' else getattr(self, mode).dataset.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
+            batch = Batch(
+                targets = getattr(self, mode).dataset.Targets(*batch[0]),
+                input = batch[1],
+            )
             yield batch
 
 
