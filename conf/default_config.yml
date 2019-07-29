@@ -8,6 +8,7 @@ tasks:
   # pixel_offset:                 {n_out: 2,   loss_func: L1, loss_weight: 1.e-2,   activation: null, min: null, max: null, unit: px}
   rel_depth_error:              {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: log_factor}
   # delta_angle_inplane:          {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
+  # delta_angle_paxis:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
   # delta_angle_total:            {n_out: 1,   loss_func: L1, loss_weight: 1.0,   activation: null, min: null, max: null, unit: angle}
   norm_pixel_offset:            {n_out: 1,   loss_func: L2, loss_weight: 1.e-2,   activation: sigmoid, min: 0.0, max: 50.0, unit: px}
   abs_delta_angle_inplane:      {n_out: 1,   loss_func: L2, loss_weight: 1.0,   activation: sigmoid, min: 0.0, max: 3.1416, unit: angle}
