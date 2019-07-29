@@ -38,14 +38,11 @@ class LossHandler:
         loss_function_dict = {}
         for task_name, task_spec in self._configs.tasks.items():
             if task_spec['loss_func'] == 'L1':
-                # reduction='mean' averages over all dimensions (over the batch in this case)
-                loss_function_dict[task_name] = nn.L1Loss(reduction='mean').to(get_device())
+                loss_function_dict[task_name] = nn.L1Loss(reduction='none').to(get_device())
             elif task_spec['loss_func'] == 'L2':
-                # reduction='mean' averages over all dimensions (over the batch in this case)
-                loss_function_dict[task_name] = nn.MSELoss(reduction='mean').to(get_device())
+                loss_function_dict[task_name] = nn.MSELoss(reduction='none').to(get_device())
             elif task_spec['loss_func'] == 'BCE':
-                # reduction='mean' averages over all dimensions (over the batch in this case)
-                loss_function_dict[task_name] = nn.BCELoss(reduction='mean').to(get_device())
+                loss_function_dict[task_name] = nn.BCELoss(reduction='none').to(get_device())
             else:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['loss_func']))
         return loss_function_dict
@@ -123,6 +120,7 @@ class LossHandler:
                     target_features[task_name],
                 )
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
+            task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
 
