@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from lib.utils import get_module_parameters
+from lib.utils import get_module_parameters, get_device
 
 class ConvBatchReLU(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
@@ -22,8 +22,9 @@ class SiameseUnit(nn.Module):
     Takes a pair of siamese inputs.
     Siamese inputs are fed separately to the same conv operation, resulting in corresponding siamese outputs.
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
+    def __init__(self, configs, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
         super().__init__()
+        self._configs = configs
         self.conv = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
     def forward(self, x):
@@ -34,19 +35,58 @@ class SiameseUnit(nn.Module):
             y.append(z)
         return y
 
+# model:
+#   coord_maps:
+#     enabled: False
+#     viewing_ray_dependent_coordinates: True
+#     preserve_scale: False
 class MergeUnit(nn.Module):
     """
     Takes a number of feature maps as input. None elements allowed, but disregarded.
     Concatenates maps, and feeds them through a conv operation.
     """
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
+    def __init__(self, configs, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
         super().__init__()
+        self._configs = configs
         self.has_prev_merged = in_channels[-1] is not None
         total_in_channels = sum(in_channels) if self.has_prev_merged else sum(in_channels[:-1])
+        if self._configs.model.coord_maps.enabled:
+            total_in_channels += 2
         self.conv = ConvBatchReLU(total_in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
     def forward(self, x):
+        extra_input = x[0]
+        x = x[1:]
         x = [fmap for fmap in x if fmap is not None]
+        batch_size, _, ds_height, ds_width = x[0].shape
+        if self._configs.model.coord_maps.enabled:
+            coord_maps = torch.empty((batch_size, 2, ds_height, ds_width), device=get_device())
+            for sample_idx in range(batch_size):
+                (x1, y1, x2, y2) = extra_input.crop_box_normalized[sample_idx]
+                if self._configs.model.coord_maps.viewing_ray_dependent_coordinates:
+                    # Bounding box center in normalized coordinates
+                    xc = 0.5 * (x1 + x2)
+                    yc = 0.5 * (y1 + y2)
+                else:
+                    xc = 0.
+                    yc = 0.
+                if self._configs.model.coord_maps.preserve_scale:
+                    # "Preserving the scale" effectively preserves some information which is dependent on absolute depth
+                    # Bounding box width & height are in normalized coordinates.
+                    cc_width  = x2 - x1
+                    cc_height = y2 - y1
+                else:
+                    cc_width = 2.
+                    cc_height = 2.
+
+                # Map width & height from edge-to-edge into distance between centers of edge pixels:
+                cc_width  *= (ds_width - 1) / ds_width
+                cc_height *= (ds_height - 1) / ds_height
+
+                x_coord_vals = torch.linspace(xc-0.5*cc_width, xc+0.5*cc_width, steps=ds_width, device=get_device())
+                y_coord_vals = torch.linspace(yc-0.5*cc_height, yc+0.5*cc_height, steps=ds_height, device=get_device())
+                coord_maps[sample_idx, :, :, :] = torch.stack(torch.meshgrid(y_coord_vals, x_coord_vals))
+            x.append(coord_maps)
         x = torch.cat(x, dim=1)
         x = self.conv(x)
         return x
@@ -69,8 +109,9 @@ class SemiSiameseCNN(nn.Module):
     Additionally however, there is a third "merged" data stream, which has access to all levels of the siamese streams.
     The output from the semi-siamese network is the final feature map from the merged stream.
     """
-    def __init__(self, cnn_layers):
+    def __init__(self, configs, cnn_layers):
         super().__init__()
+        self._configs = configs
         self.cnn_layers = cnn_layers
         siamese_units_list = []
         merge_units_list = []
@@ -83,14 +124,14 @@ class SemiSiameseCNN(nn.Module):
             stride = layer_spec.stride
             padding = (layer_spec.kernel_size // 2) * layer_spec.dilation
             if i < len(self.cnn_layers) - 1:
-                siamese_units_list.append(SiameseUnit(in_channels_siamese, out_channels, kernel_size, stride=stride, padding=padding))
+                siamese_units_list.append(SiameseUnit(self._configs, in_channels_siamese, out_channels, kernel_size, stride=stride, padding=padding))
             if layer_spec.merge:
                 # if in_channels_merged is None:
                 #     tmp = [in_channels_siamese]*2
                 # else:
                 #     tmp = [in_channels_siamese]*2 + [in_channels_merged]
                 tmp = [in_channels_siamese]*2 + [in_channels_merged]
-                merge_units_list.append(MergeUnit(tmp, out_channels, kernel_size, stride=stride, padding=padding))
+                merge_units_list.append(MergeUnit(self._configs, tmp, out_channels, kernel_size, stride=stride, padding=padding))
             else:
                 merge_units_list.append(PassThroughLastMap(ds_factor=stride))
             in_channels_siamese = out_channels
@@ -104,23 +145,24 @@ class SemiSiameseCNN(nn.Module):
 
     def forward(self, x):
         # Initialize
-        s1, s2 = x
+        extra_input, s1, s2 = x
         mrg = None # Unused
 
         # Loop through layers
         for i in range(len(self.cnn_layers) - 1):
             s1_next, s2_next = self.siamese_units[i]([s1, s2])
-            mrg_next = self.merge_units[i]([s1, s2, mrg])
+            mrg_next = self.merge_units[i]([extra_input, s1, s2, mrg])
             s1, s2, mrg = s1_next, s2_next, mrg_next
 
         # Final layer
-        mrg = self.merge_units[-1]([s1, s2, mrg])
+        mrg = self.merge_units[-1]([extra_input, s1, s2, mrg])
 
         return mrg
 
 class Head(nn.Module):
-    def __init__(self, feature_map_dims, head_layers):
+    def __init__(self, configs, feature_map_dims, head_layers):
         super().__init__()
+        self._configs = configs
         self.feature_map_dims = feature_map_dims
         units = []
         in_features = np.prod(self.feature_map_dims)
@@ -153,8 +195,8 @@ class Model(nn.Module):
         self.ds_factor, self.cnn_output_dims = self.calc_downsampling_dimensions(self._configs.model.cnn_layers)
         self.verify_cnn_layer_specs(self._configs.model.cnn_layers)
         self.verify_head_layer_specs(self._configs['model']['head_layers']) # Access by key important - needs to be mutable
-        self.semi_siamese_cnn = SemiSiameseCNN(self._configs.model.cnn_layers)
-        self.head = Head(self.cnn_output_dims, self._configs.model.head_layers)
+        self.semi_siamese_cnn = SemiSiameseCNN(self._configs, self._configs.model.cnn_layers)
+        self.head = Head(self._configs, self.cnn_output_dims, self._configs.model.head_layers)
 
     def get_last_layer_params(self):
         for module in reversed(self.head.sequential):

@@ -20,6 +20,10 @@ from lib.sixd_toolkit.pysixd import inout
 from lib.rendering.glumpy_renderer import Renderer
 from lib.rendering.pose_sampler import PoseSampler
 
+ExtraInput = namedtuple('ExtraInput', [
+    'crop_box_normalized',
+])
+
 def get_metadata(configs):
     path = os.path.join(configs.data.path, 'models', 'models_info.yml')
     with open(path, 'r') as file:
@@ -131,8 +135,8 @@ class DummyDataset(Dataset):
     def __getitem__(self, index):
         self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at every sampling.
         # self._renderer = self._init_renderer()
-        data, targets = self._generate_sample()
-        return Sample(targets, data)
+        data, targets, extra_input = self._generate_sample()
+        return Sample(targets, data, extra_input)
 
     def _render(self, K, R, t):
         rgb, depth, seg, instance_seg, normal_map, corr_map = self._renderer.render(
@@ -228,6 +232,15 @@ class DummyDataset(Dataset):
         square_bbox = (x1_new, y1_new, x2_new, y2_new)
         square_bbox = self._shift_bbox_into_img(square_bbox)
         return square_bbox
+
+    def _normalize_bbox(self, bbox, fx, fy, px, py):
+        (x1, y1, x2, y2) = bbox
+        x1 = (x1 - px) / fx
+        y1 = (y1 - py) / fy
+        x2 = (x2 - px) / fx
+        y2 = (y2 - py) / fy
+        bbox = (x1, y1, x2, y2)
+        return bbox
 
     def _get_transl_projectivity(self, delta_x, delta_y):
         T = np.eye(3)
@@ -390,6 +403,7 @@ class DummyDataset(Dataset):
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
         # print("sq", crop_box)
+        crop_box_normalized = self._normalize_bbox(crop_box, self._K[0,0], self._K[1,1], self._K[0,2], self._K[1,2])
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
@@ -458,4 +472,8 @@ class DummyDataset(Dataset):
             target_vals[task_name] = torch.tensor(target).float()
         targets = self.Targets(**target_vals)
 
-        return data, targets
+        extra_input = ExtraInput(
+            crop_box_normalized = torch.tensor(crop_box_normalized).float(),
+        )
+
+        return data, targets, extra_input

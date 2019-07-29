@@ -50,7 +50,7 @@ class Trainer():
         # cnt = 0
         # visual_cnt = 0
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
-            nn_out = self._run_model(batch.input)
+            nn_out = self._run_model(batch.input, batch.extra_input)
             pred_features, target_features = self._loss_handler.get_pred_and_target_features(nn_out, batch.targets)
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             loss = sum(task_loss_signal_vals.values())
@@ -111,11 +111,12 @@ class Trainer():
         self._loss_handler.finish_epoch(epoch, mode)
         return score
 
-    def _run_model(self, inputs):
+    def _run_model(self, inputs, extra_input):
         img1, img2 = inputs
         img1 = img1.to(get_device(), non_blocking=True)
         img2 = img2.to(get_device(), non_blocking=True)
-        return self._model((img1, img2))
+        extra_input = extra_input.__class__(*tuple(map(lambda x: x.to(get_device(), non_blocking=True), extra_input)))
+        return self._model((extra_input, img1, img2))
 
 
 def main(setup):
