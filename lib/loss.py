@@ -71,6 +71,13 @@ class LossHandler:
 
         return pred_features, target_features
 
+    def clamp_features(self, features):
+        clamped_features = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            if self._configs.tasks[task_name]['min'] is not None or self._configs.tasks[task_name]['max'] is not None:
+                clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.tasks[task_name]['min'], max=self._configs.tasks[task_name]['max'])
+        return clamped_features
+
     def calc_human_interpretable_feature_errors(self, pred_features, target_features):
         interp_feat_error_signal_vals = {}
         for task_name in sorted(self._configs.tasks.keys()):

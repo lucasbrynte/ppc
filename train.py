@@ -54,6 +54,9 @@ class Trainer():
             pred_features, target_features = self._loss_handler.get_pred_and_target_features(nn_out, batch.targets)
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             loss = sum(task_loss_signal_vals.values())
+            if self._configs.training.clamp_predictions:
+                # Done after loss computation
+                pred_features = self._loss_handler.clamp_features(pred_features)
             interp_feat_error_signal_vals = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
             pred_feat_avg = self._loss_handler.calc_batch_feature_avg(pred_features)
             target_feat_avg = self._loss_handler.calc_batch_feature_avg(target_features)
