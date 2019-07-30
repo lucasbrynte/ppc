@@ -57,11 +57,12 @@ class Trainer():
             if self._configs.training.clamp_predictions:
                 # Done after loss computation
                 pred_features = self._loss_handler.clamp_features(pred_features)
-            interp_feat_error_signal_vals = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
-            pred_feat_avg = self._loss_handler.calc_batch_feature_avg(pred_features)
-            target_feat_avg = self._loss_handler.calc_batch_feature_avg(target_features)
-            pred_feat_std = self._loss_handler.calc_batch_feature_std(pred_features)
-            target_feat_std = self._loss_handler.calc_batch_feature_std(target_features)
+            interp_feat_error = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
+            interp_feat_error_avg = self._loss_handler.calc_batch_signal_avg(interp_feat_error)
+            pred_feat_avg = self._loss_handler.calc_batch_signal_avg(pred_features)
+            target_feat_avg = self._loss_handler.calc_batch_signal_avg(target_features)
+            pred_feat_std = self._loss_handler.calc_batch_signal_std(pred_features)
+            target_feat_std = self._loss_handler.calc_batch_signal_std(target_features)
 
             def flatten_and_stack(tensor_list):
                 return torch.cat([x.reshape(-1) for x in tensor_list])
@@ -89,7 +90,7 @@ class Trainer():
 
             self._loss_handler.record_scalar_signals('loss', {'loss': loss})
             self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
-            self._loss_handler.record_scalar_signals('interp_feat_error', interp_feat_error_signal_vals)
+            self._loss_handler.record_scalar_signals('interp_feat_error_avg', interp_feat_error_avg)
             self._loss_handler.record_scalar_signals('pred_feat_avg', pred_feat_avg)
             self._loss_handler.record_scalar_signals('target_feat_avg', target_feat_avg)
             self._loss_handler.record_scalar_signals('pred_feat_std', pred_feat_std)
