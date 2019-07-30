@@ -98,6 +98,9 @@ class Trainer():
             self._loss_handler.record_scalar_signals('pred_feat_std', pred_feat_std)
             self._loss_handler.record_scalar_signals('target_feat_std', target_feat_std)
 
+            self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
+            self._loss_handler.record_tensor_signals('interp_pred_feat', interp_pred_features)
+            self._loss_handler.record_tensor_signals('interp_target_feat', interp_target_features)
             self._loss_handler.record_tensor_signals('pred_feat', pred_features)
             self._loss_handler.record_tensor_signals('target_feat', target_features)
             self._optimizer.zero_grad()
@@ -115,6 +118,7 @@ class Trainer():
         self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
         self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
+        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch)
 
         score = self._loss_handler.get_scalar_averages()['loss']['loss']
         self._loss_handler.finish_epoch(epoch, mode)

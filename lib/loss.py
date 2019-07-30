@@ -160,6 +160,16 @@ class LossHandler:
         for signal_name, signal_val in signal_vals.items():
             self._scalar_signals[tag][signal_name].append(signal_val)
 
+    def get_signals_numpy(self, tag_filter=None):
+        numpy_signals = defaultdict(lambda: defaultdict(float))
+        for signals_list in [self._tensor_signals, self._scalar_signals]:
+            for tag in signals_list:
+                if tag_filter is not None and tag != tag_filter:
+                    continue
+                for signal_name, signal_list in signals_list[tag].items():
+                    numpy_signals[tag][signal_name] = torch.tensor(signal_list).detach().cpu().numpy()
+        return numpy_signals
+
     def get_scalar_averages(self, num_batches=0, tag_filter=None):
         avg_signals = defaultdict(lambda: defaultdict(float))
         for tag in self._scalar_signals:
