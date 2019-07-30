@@ -26,7 +26,6 @@ class Visualizer:
         vis_path = os.path.join(configs.experiment_path, 'visual')
         shutil.rmtree(vis_path, ignore_errors=True)
         self._writer = SummaryWriter(vis_path)
-        self._signal_count_dict = defaultdict(int)
         self._human_interp_maps = get_human_interp_maps(self._configs, 'numpy')
 
     def __del__(self):
@@ -35,10 +34,9 @@ class Visualizer:
         # https://stackoverflow.com/questions/33364340/how-to-avoid-suppressing-keyboardinterrupt-during-garbage-collection-in-python
         self._writer.close()
 
-    def report_signals(self, signals, mode):
-        for tag in signals:
-            self._writer.add_scalars('{}/{}'.format(tag, mode), signals[tag], self._signal_count_dict[(tag,mode)])
-            self._signal_count_dict[(tag,mode)] += 1
+    def report_signals(self, avg_signals, mode, step_index):
+        for tag in avg_signals:
+            self._writer.add_scalars('{}/{}'.format(tag, mode), avg_signals[tag], step_index)
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)

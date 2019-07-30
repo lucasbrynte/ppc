@@ -108,7 +108,7 @@ class Trainer():
             #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
         self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
-        self._visualizer.report_signals(self._loss_handler.get_averages(), mode)
+        self._visualizer.report_signals(self._loss_handler.get_averages(), mode, epoch)
 
         score = self._loss_handler.get_averages()['loss']['loss']
         self._loss_handler.finish_epoch(epoch, mode)
