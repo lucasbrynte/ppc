@@ -31,6 +31,7 @@ model:
     enabled: True
     viewing_ray_dependent_coordinates: True
     preserve_scale: False
+    # NOTE: Different tasks might desire different format on coord maps. Maybe supply coord maps in multiple formats?
   cnn_layers:
     - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, merge: false}
     - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, merge: false}

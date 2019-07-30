@@ -43,6 +43,7 @@ class Trainer():
 
             self._lr_scheduler.step(val_score)
             self._checkpoint_handler.save(self._model, epoch, train_score)
+            # self._checkpoint_handler.save(self._model, epoch, val_score)
 
     def _run_epoch(self, epoch, mode):
         self._model.train()
@@ -106,6 +107,9 @@ class Trainer():
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
+            # assert len(w_params_final) == 1 and len(b_params_final) == 1
+            # w_params_final[0].data.clamp_(min=0.)
+            # b_params_final[0].data.clamp_(min=0., max=0.)
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
             # cnt += 1

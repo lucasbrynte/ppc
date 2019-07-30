@@ -122,6 +122,8 @@ class DummyDataset(Dataset):
         return renderer
 
     def __len__(self):
+        # return 32
+        # return 512
         return 512 if self._mode == TRAIN else 32
 
     def _init_worker_seed(self):
