@@ -77,20 +77,20 @@ class LossHandler:
 
     def clamp_features(self, features):
         clamped_features = {}
-        for task_name in sorted(self._configs.tasks.keys()):
+        for task_name in self._configs.tasks.keys():
             if self._configs.tasks[task_name]['min'] is not None or self._configs.tasks[task_name]['max'] is not None:
                 clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.tasks[task_name]['min'], max=self._configs.tasks[task_name]['max'])
         return clamped_features
 
     def calc_human_interpretable_features(self, features):
         interp_features = {}
-        for task_name in sorted(self._configs.tasks.keys()):
+        for task_name in self._configs.tasks.keys():
             interp_features[task_name] = self._human_interp_maps[task_name](features[task_name])
         return interp_features
 
     def calc_feature_errors(self, pred_features, target_features):
         feat_error_signal_vals = {}
-        for task_name in sorted(self._configs.tasks.keys()):
+        for task_name in self._configs.tasks.keys():
             if len(pred_features[task_name].shape) == 1:
                 feat_error_signal_vals[task_name] = torch.abs(pred_features[task_name] - target_features[task_name])
             else:
@@ -118,7 +118,7 @@ class LossHandler:
         # ======================================================================
 
         task_loss_signal_vals = {}
-        for task_name in sorted(self._configs.tasks.keys()):
+        for task_name in self._configs.tasks.keys():
             if self._configs.tasks[task_name]['loss_func'] == 'BCE' and self._configs.tasks[task_name]['activation'] == 'sigmoid':
                 # Linearly map output back to [0, 1] range
                 assert self._configs.tasks[task_name]['min'] is not None and self._configs.tasks[task_name]['max'] is not None, \
