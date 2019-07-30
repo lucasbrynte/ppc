@@ -82,17 +82,21 @@ class LossHandler:
                 clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.tasks[task_name]['min'], max=self._configs.tasks[task_name]['max'])
         return clamped_features
 
-    def calc_human_interpretable_feature_errors(self, pred_features, target_features):
-        interp_feat_error_signal_vals = {}
+    def calc_human_interpretable_features(self, features):
+        interp_features = {}
         for task_name in sorted(self._configs.tasks.keys()):
-            pred   = self._human_interp_maps[task_name](  pred_features[task_name])
-            target = self._human_interp_maps[task_name](target_features[task_name])
-            if len(pred.shape) == 1:
-                interp_feat_error_signal_vals[task_name] = torch.abs(pred - target)
+            interp_features[task_name] = self._human_interp_maps[task_name](features[task_name])
+        return interp_features
+
+    def calc_feature_errors(self, pred_features, target_features):
+        feat_error_signal_vals = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            if len(pred_features[task_name].shape) == 1:
+                feat_error_signal_vals[task_name] = torch.abs(pred_features[task_name] - target_features[task_name])
             else:
-                assert len(pred.shape) == 2
-                interp_feat_error_signal_vals[task_name] = torch.norm(pred - target, dim=1)
-        return interp_feat_error_signal_vals
+                assert len(pred_features[task_name].shape) == 2
+                feat_error_signal_vals[task_name] = torch.norm(pred_features[task_name] - target_features[task_name], dim=1)
+        return feat_error_signal_vals
 
     def calc_batch_signal_avg(self, signals):
         feat_avg_signal_vals = {}

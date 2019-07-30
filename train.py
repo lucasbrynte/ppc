@@ -57,7 +57,9 @@ class Trainer():
             if self._configs.training.clamp_predictions:
                 # Done after loss computation
                 pred_features = self._loss_handler.clamp_features(pred_features)
-            interp_feat_error = self._loss_handler.calc_human_interpretable_feature_errors(pred_features, target_features)
+            interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
+            interp_target_features = self._loss_handler.calc_human_interpretable_features(target_features)
+            interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
             interp_feat_error_avg = self._loss_handler.calc_batch_signal_avg(interp_feat_error)
             pred_feat_avg = self._loss_handler.calc_batch_signal_avg(pred_features)
             target_feat_avg = self._loss_handler.calc_batch_signal_avg(target_features)
