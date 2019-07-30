@@ -79,7 +79,7 @@ class DummyDataset(Dataset):
         os.makedirs(self._pids_path)
 
     def _get_target_def(self):
-        return namedtuple('Targets', list(self._configs.tasks.keys()))
+        return namedtuple('Targets', list(self._configs.targets.keys()))
 
     def _read_yaml(self, path):
         return read_yaml_and_pickle(path)
@@ -450,28 +450,26 @@ class DummyDataset(Dataset):
         all_target_vals = {
             'pixel_offset': pixel_offset,
             'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
-            'delta_angle_inplane': delta_angle_inplane,
+            'norm_pixel_offset': np.linalg.norm(pixel_offset),
+            'delta_angle_inplane_signed': delta_angle_inplane,
+            'delta_angle_inplane_unsigned': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
             'delta_angle_paxis': np.arccos(R21_global[2,2]),
             'delta_angle_total': delta_angle_total,
-            'norm_pixel_offset': np.linalg.norm(pixel_offset),
-            'abs_delta_angle_inplane': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
-            'abs_delta_angle_total': np.abs(delta_angle_total),
-            'abs_delta_angle_paxis': np.arccos(R21_global[2,2]),
-            'cosdist_delta_angle_inplane': 1.0 - np.cos(delta_angle_inplane),
-            'cosdist_delta_angle_total': 1.0 - np.cos(delta_angle_total),
-            'cosdist_delta_angle_paxis': 1.0 - R21_global[2,2],
+            'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
+            'delta_angle_paxis_cosdist': 1.0 - R21_global[2,2],
+            'delta_angle_total_cosdist': 1.0 - np.cos(delta_angle_total),
         }
 
-        target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.tasks}
+        target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.targets.keys()}
 
-        for task_name, task_spec in self._configs.tasks.items():
-            target = target_vals[task_name]
+        for target_name, target_spec in self._configs.targets.items():
+            target = target_vals[target_name]
             target = np.array(target)
             if len(target.shape) == 0:
                 target = target[None] # Add redundant dimension (unsqueeze)
-            if not (task_spec['min'] is None and task_spec['max'] is None):
-                target = np.clip(target, task_spec['min'], task_spec['max'])
-            target_vals[task_name] = torch.tensor(target).float()
+            if not (target_spec['min'] is None and target_spec['max'] is None):
+                target = np.clip(target, target_spec['min'], target_spec['max'])
+            target_vals[target_name] = torch.tensor(target).float()
         targets = self.Targets(**target_vals)
 
         extra_input = ExtraInput(

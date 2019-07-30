@@ -219,7 +219,7 @@ class Model(nn.Module):
         assert cnn_specs[-1].merge == True
 
     def verify_head_layer_specs(self, head_specs):
-        n_out = sum([task_spec['n_out'] for task_spec in self._configs.tasks.values()])
+        n_out = sum([self._configs.targets[task_spec['target']]['n_out'] for task_spec in self._configs.tasks.values()])
         if 'n_out' in head_specs[-1]:
             assert head_specs[-1]['n_out'] == n_out
         else:

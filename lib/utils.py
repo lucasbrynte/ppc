@@ -125,7 +125,7 @@ def get_human_interp_maps(configs, api):
     assert api in ('torch', 'numpy')
     human_interp_maps = {}
     for task_name in configs.tasks.keys():
-        unit = configs.tasks[task_name]['unit']
+        unit = configs.targets[configs.tasks[task_name]['target']]['unit']
         if unit == 'px':
             human_interp_maps[task_name] = lambda x: x
         elif unit == 'angle':

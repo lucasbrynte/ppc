@@ -56,30 +56,30 @@ class LossHandler:
         target_features = {}
         offset = 0
         for task_name in sorted(self._configs.tasks.keys()):
-            pred_features[task_name] = nn_out[:, offset : offset + self._configs.tasks[task_name]['n_out']]
+            pred_features[task_name] = nn_out[:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
             if self._activation_dict[task_name] is not None:
                 pred_features[task_name] = self._activation_dict[task_name](pred_features[task_name])
                 if self._configs.tasks[task_name]['activation'] == 'sigmoid':
                     # Linearly map sigmoid output to desired range
-                    assert self._configs.tasks[task_name]['min'] is not None and self._configs.tasks[task_name]['max'] is not None, \
+                    assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
                         'Min/max values mandatory when sigmoid activaiton is used'
-                    pred_features[task_name] = pred_features[task_name] * (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min'])
-                    pred_features[task_name] = pred_features[task_name] + self._configs.tasks[task_name]['min']
-            target_features[task_name] = getattr(targets, task_name).to(get_device())
+                    pred_features[task_name] = pred_features[task_name] * (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min'])
+                    pred_features[task_name] = pred_features[task_name] + self._configs.targets[self._configs.tasks[task_name]['target']]['min']
+            target_features[task_name] = getattr(targets, self._configs.tasks[task_name]['target']).to(get_device())
 
             pred_features[task_name] = pred_features[task_name]
             target_features[task_name] = target_features[task_name]
             assert pred_features[task_name].shape == target_features[task_name].shape
 
-            offset += self._configs.tasks[task_name]['n_out']
+            offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']
 
         return pred_features, target_features
 
     def clamp_features(self, features):
         clamped_features = {}
         for task_name in self._configs.tasks.keys():
-            if self._configs.tasks[task_name]['min'] is not None or self._configs.tasks[task_name]['max'] is not None:
-                clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.tasks[task_name]['min'], max=self._configs.tasks[task_name]['max'])
+            if self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None or self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None:
+                clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.targets[self._configs.tasks[task_name]['target']]['min'], max=self._configs.targets[self._configs.tasks[task_name]['target']]['max'])
         return clamped_features
 
     def calc_human_interpretable_features(self, features):
@@ -121,11 +121,11 @@ class LossHandler:
         for task_name in self._configs.tasks.keys():
             if self._configs.tasks[task_name]['loss_func'] == 'BCE' and self._configs.tasks[task_name]['activation'] == 'sigmoid':
                 # Linearly map output back to [0, 1] range
-                assert self._configs.tasks[task_name]['min'] is not None and self._configs.tasks[task_name]['max'] is not None, \
+                assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
                     'Min/max values mandatory when sigmoid activaiton is used'
                 task_loss = self._loss_function_dict[task_name](
-                    (pred_features[task_name] - self._configs.tasks[task_name]['min']) / (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min']),
-                    (target_features[task_name] - self._configs.tasks[task_name]['min']) / (self._configs.tasks[task_name]['max'] - self._configs.tasks[task_name]['min']),
+                    (pred_features[task_name] - self._configs.targets[self._configs.tasks[task_name]['target']]['min']) / (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min']),
+                    (target_features[task_name] - self._configs.targets[self._configs.tasks[task_name]['target']]['min']) / (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min']),
                 )
             else:
                 task_loss = self._loss_function_dict[task_name](

@@ -128,7 +128,7 @@ class Visualizer:
         else:
             assert ndims == 1, "Pretty printing with feature dimensions {} unsupported.".format(feat.shape)
 
-        unit = self._configs.tasks[task_name]['unit']
+        unit = self._configs.targets[self._configs.tasks[task_name]['target']]['unit']
         if unit == 'px':
             format_spec = '{:.2f}'
             unit_suffix = ' px'
