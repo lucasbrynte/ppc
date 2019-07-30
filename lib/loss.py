@@ -101,15 +101,13 @@ class LossHandler:
     def calc_batch_signal_avg(self, signals):
         feat_avg_signal_vals = {}
         for task_name in signals:
-            feat = self._human_interp_maps[task_name](signals[task_name])
-            feat_avg_signal_vals[task_name] = torch.mean(feat)
+            feat_avg_signal_vals[task_name] = torch.mean(signals[task_name])
         return feat_avg_signal_vals
 
     def calc_batch_signal_std(self, signals):
         feat_std_signal_vals = {}
         for task_name in signals:
-            feat = self._human_interp_maps[task_name](signals[task_name])
-            feat_std_signal_vals[task_name] = torch.std(feat)
+            feat_std_signal_vals[task_name] = torch.std(signals[task_name])
         return feat_std_signal_vals
 
     def calc_loss(self, pred_features, target_features):
