@@ -14,7 +14,8 @@ class LossHandler:
     def __init__(self, configs, name):
         self._configs = configs
         self._logger = logging.getLogger(name)
-        self._signals = self._reset_signals()
+        self._tensor_signals = self._reset_signals()
+        self._scalar_signals = self._reset_signals()
         self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
 
         self._activation_dict = self._init_activations()
@@ -48,6 +49,9 @@ class LossHandler:
         return loss_function_dict
 
     def get_pred_and_target_features(self, nn_out, targets):
+        # Batch size determined and preserved to be used in other methods. May vary when switching between TRAIN / VAL
+        self._batch_size = nn_out.shape[0]
+
         pred_features = {}
         target_features = {}
         offset = 0
@@ -135,17 +139,29 @@ class LossHandler:
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
 
-    def record_signals(self, tag, signal_vals):
+    def record_tensor_signals(self, tag, signal_vals):
+        """
+        Takes a dict of GPU pytorch tensors, with 1st dimension over samples in batch.
+        Splits the tensors into list of samples, and concatenates this list onto their corresponding signal lists
+        """
+        assert tag not in self._scalar_signals.keys()
         for signal_name, signal_val in signal_vals.items():
-            self._signals[tag][signal_name].append(signal_val)
+            self._tensor_signals[tag][signal_name] += list(signal_val)
 
-    def get_averages(self, num_batches=0, tag_filter=None):
+    def record_scalar_signals(self, tag, signal_vals):
+        """
+        Takes a dict of GPU pytorch scalars, and appends them to their corresponding signal lists
+        """
+        assert tag not in self._tensor_signals.keys()
+        for signal_name, signal_val in signal_vals.items():
+            self._scalar_signals[tag][signal_name].append(signal_val)
+
+    def get_scalar_averages(self, num_batches=0, tag_filter=None):
         avg_signals = defaultdict(lambda: defaultdict(float))
-        # avg_signals = defaultdict(int)
-        for tag in self._signals:
+        for tag in self._scalar_signals:
             if tag_filter is not None and tag != tag_filter:
                 continue
-            for signal_name, signal_list in self._signals[tag].items():
+            for signal_name, signal_list in self._scalar_signals[tag].items():
                 latest_signals = signal_list[-num_batches:]
                 avg_signals[tag][signal_name] = (sum(latest_signals) / len(latest_signals)).detach().cpu().numpy()
         return avg_signals
@@ -153,9 +169,9 @@ class LossHandler:
     def log_batch(self, epoch, iteration, mode):
         """Log current batch."""
         losses = {
-            'Raw': self.get_averages(num_batches=1),
-            'Moving Avg': self.get_averages(num_batches=self._configs.logging.avg_window_size),
-            'Average': self.get_averages(num_batches=0)
+            'Raw': self.get_scalar_averages(num_batches=1),
+            'Moving Avg': self.get_scalar_averages(num_batches=self._configs.logging.avg_window_size),
+            'Average': self.get_scalar_averages(num_batches=0)
         }
         status_total_loss = ('[{name:s}]  '
                              'Epoch:{epoch:<3d}  '
@@ -168,8 +184,8 @@ class LossHandler:
         #                                                              value=sum(value.values()))
         self._logger.info(status_total_loss)
 
-        for tag in self._signals:
-            for signal_name, signal_list in self._signals[tag].items():
+        for tag in self._scalar_signals:
+            for signal_name, signal_list in self._scalar_signals[tag].items():
                 status_task_loss = '{name:<45s}'.format(name=tag+'/'+signal_name)
                 for statistic, value in losses.items():
                     status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
@@ -181,4 +197,4 @@ class LossHandler:
         mode = {TRAIN: 'Training', VAL: 'Validation'}[mode]
         self._logger.info('%s epoch %s done!',
                           mode, epoch)
-        self._signals = self._reset_signals()
+        self._scalar_signals = self._reset_signals()

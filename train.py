@@ -68,7 +68,7 @@ class Trainer():
 
             w_params_all, b_params_all = get_module_parameters(self._model)
             w_params_final, b_params_final = self._model.get_last_layer_params()
-            self._loss_handler.record_signals(
+            self._loss_handler.record_scalar_signals(
                 'params/mean',
                 {
                     'all_w_mean': flatten_and_stack(w_params_all).mean(),
@@ -77,7 +77,7 @@ class Trainer():
                     'final_b_mean': flatten_and_stack(b_params_final).mean(),
                 },
             )
-            self._loss_handler.record_signals(
+            self._loss_handler.record_scalar_signals(
                 'params/std',
                 {
                     'all_w_std': flatten_and_stack(w_params_all).std(),
@@ -87,13 +87,16 @@ class Trainer():
                 },
             )
 
-            self._loss_handler.record_signals('loss', {'loss': loss})
-            self._loss_handler.record_signals('task_losses', task_loss_signal_vals)
-            self._loss_handler.record_signals('interp_feat_error', interp_feat_error_signal_vals)
-            self._loss_handler.record_signals('pred_feat_avg', pred_feat_avg)
-            self._loss_handler.record_signals('target_feat_avg', target_feat_avg)
-            self._loss_handler.record_signals('pred_feat_std', pred_feat_std)
-            self._loss_handler.record_signals('target_feat_std', target_feat_std)
+            self._loss_handler.record_scalar_signals('loss', {'loss': loss})
+            self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
+            self._loss_handler.record_scalar_signals('interp_feat_error', interp_feat_error_signal_vals)
+            self._loss_handler.record_scalar_signals('pred_feat_avg', pred_feat_avg)
+            self._loss_handler.record_scalar_signals('target_feat_avg', target_feat_avg)
+            self._loss_handler.record_scalar_signals('pred_feat_std', pred_feat_std)
+            self._loss_handler.record_scalar_signals('target_feat_std', target_feat_std)
+
+            self._loss_handler.record_tensor_signals('pred_feat', pred_features)
+            self._loss_handler.record_tensor_signals('target_feat', target_features)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
@@ -101,16 +104,16 @@ class Trainer():
 
             # cnt += 1
             # if cnt % 10 == 0:
-            #     self._visualizer.report_signals(self._loss_handler.get_averages(), mode)
+            #     self._visualizer.report_signals(self._loss_handler.get_scalar_averages(), mode)
 
             # if cnt % 30 == 0:
             #     visual_cnt += 1
             #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
         self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
-        self._visualizer.report_signals(self._loss_handler.get_averages(), mode, epoch)
+        self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
 
-        score = self._loss_handler.get_averages()['loss']['loss']
+        score = self._loss_handler.get_scalar_averages()['loss']['loss']
         self._loss_handler.finish_epoch(epoch, mode)
         return score
 

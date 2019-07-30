@@ -34,7 +34,7 @@ class Visualizer:
         # https://stackoverflow.com/questions/33364340/how-to-avoid-suppressing-keyboardinterrupt-during-garbage-collection-in-python
         self._writer.close()
 
-    def report_signals(self, avg_signals, mode, step_index):
+    def report_scalar_signals(self, avg_signals, mode, step_index):
         for tag in avg_signals:
             self._writer.add_scalars('{}/{}'.format(tag, mode), avg_signals[tag], step_index)
 
