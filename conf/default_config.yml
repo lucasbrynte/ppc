@@ -63,7 +63,7 @@ data:
       principal_axis_perturb_angle_range: [-30., 30.] # +- 30 deg
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
     perturbation:
-      std_angle: 2.
+      std_angle: 20.
       std_object_bias_over_extent: 0.0
       std_depth_rescale_factor: 1.0
       # std_angle: 90. # 90 degrees
