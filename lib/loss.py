@@ -97,7 +97,7 @@ class LossHandler:
             interp_features[task_name] = self._human_interp_maps[task_name](features[task_name])
         return interp_features
 
-    def calc_feature_errors(self, pred_features, target_features):
+    def calc_feature_abserrors(self, pred_features, target_features):
         feat_error_signal_vals = {}
         for task_name in self._configs.tasks.keys():
             if len(pred_features[task_name].shape) == 1:
@@ -106,6 +106,12 @@ class LossHandler:
                 assert len(pred_features[task_name].shape) == 2
                 feat_error_signal_vals[task_name] = torch.norm(pred_features[task_name] - target_features[task_name], dim=1)
         return feat_error_signal_vals
+
+    def calc_feature_errors(self, pred_features, target_features):
+        feat_resid_signal_vals = {}
+        for task_name in self._configs.tasks.keys():
+            feat_resid_signal_vals[task_name] = pred_features[task_name] - target_features[task_name]
+        return feat_resid_signal_vals
 
     def calc_batch_signal_avg(self, signals):
         feat_avg_signal_vals = {}

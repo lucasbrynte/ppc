@@ -61,7 +61,7 @@ class Visualizer:
 
         return bin_edges, binned_signals
 
-    def plot_feature_error_against_target_magnitude(self, interp_target_feat, interp_feat_error, mode, step_index):
+    def plot_feature_error_against_target_magnitude(self, interp_target_feat, interp_feat_error, tag, mode, step_index):
         bin_edges, binned_signals = self._group_feature_error_data_into_bins_wrt_target_magnitude(interp_target_feat, interp_feat_error)
         fig, axes_array = plt.subplots(
             nrows=len(binned_signals),
@@ -93,7 +93,7 @@ class Visualizer:
             axes_array[j,1].set_title(task_name)
             axes_array[j,1].set_xlabel('Target feature value')
             axes_array[j,1].set_ylabel('Feature error - std')
-        self._writer.add_figure('_'.join([mode, 'feature_error_against_target_magnitude']), fig, step_index)
+        self._writer.add_figure('_'.join([mode, tag]), fig, step_index)
 
     def plot_feature_histograms(self, signals, mode, step_index):
         fig, axes_array = plt.subplots(
@@ -116,7 +116,8 @@ class Visualizer:
         self._writer.add_figure('_'.join([mode, 'feature_histograms']), fig, step_index)
 
     def calc_and_plot_signal_stats(self, signals, mode, step_index):
-        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], mode, step_index)
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_abserror'], 'feature_abserror_against_target_magnitude', mode, step_index)
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], 'feature_error_against_target_magnitude', mode, step_index)
         histogram_signals = [
             'interp_target_feat',
             'interp_pred_feat',
