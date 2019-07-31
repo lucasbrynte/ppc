@@ -112,6 +112,7 @@ class Trainer():
             self._loss_handler.record_tensor_signals('interp_target_feat', interp_target_features)
             self._loss_handler.record_tensor_signals('pred_feat', pred_features)
             self._loss_handler.record_tensor_signals('target_feat', target_features)
+            self._loss_handler.record_tensor_signals('pred_feat_raw', pred_features_raw)
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()

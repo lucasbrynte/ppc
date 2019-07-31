@@ -121,6 +121,7 @@ class Visualizer:
         histogram_signals = [
             'interp_target_feat',
             'interp_pred_feat',
+            'pred_feat_raw',
         ]
         self.plot_feature_histograms({signal_name: signal for signal_name, signal in signals.items() if signal_name in histogram_signals}, mode, step_index)
 
