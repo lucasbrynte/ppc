@@ -48,12 +48,11 @@ class LossHandler:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['loss_func']))
         return loss_function_dict
 
-    def get_pred_and_target_features(self, nn_out, targets):
+    def get_pred_features(self, nn_out):
         # Batch size determined and preserved to be used in other methods. May vary when switching between TRAIN / VAL
         self._batch_size = nn_out.shape[0]
 
         pred_features = {}
-        target_features = {}
         offset = 0
         for task_name in sorted(self._configs.tasks.keys()):
             pred_features[task_name] = nn_out[:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
@@ -65,13 +64,16 @@ class LossHandler:
                         'Min/max values mandatory when sigmoid activaiton is used'
                     pred_features[task_name] = pred_features[task_name] * (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min'])
                     pred_features[task_name] = pred_features[task_name] + self._configs.targets[self._configs.tasks[task_name]['target']]['min']
-            target_features[task_name] = getattr(targets, self._configs.tasks[task_name]['target']).to(get_device())
-
-            assert pred_features[task_name].shape == target_features[task_name].shape
 
             offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']
 
-        return pred_features, target_features
+        return pred_features
+
+    def get_target_features(self, targets):
+        target_features = {}
+        for task_name in sorted(self._configs.tasks.keys()):
+            target_features[task_name] = getattr(targets, self._configs.tasks[task_name]['target']).to(get_device())
+        return target_features
 
     def clamp_features(self, features, before_loss=False):
         clamped_features = features.copy() # Shallow copy
@@ -120,6 +122,7 @@ class LossHandler:
 
         task_loss_signal_vals = {}
         for task_name in self._configs.tasks.keys():
+            assert pred_features[task_name].shape == target_features[task_name].shape
             if self._configs.tasks[task_name]['loss_func'] == 'BCE' and self._configs.tasks[task_name]['activation'] == 'sigmoid':
                 # Linearly map output back to [0, 1] range
                 assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
