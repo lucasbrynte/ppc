@@ -225,4 +225,5 @@ class LossHandler:
         mode = {TRAIN: 'Training', VAL: 'Validation'}[mode]
         self._logger.info('%s epoch %s done!',
                           mode, epoch)
+        self._tensor_signals = self._reset_signals()
         self._scalar_signals = self._reset_signals()
