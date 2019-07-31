@@ -1,6 +1,6 @@
 training:
-  n_epochs: 50
-  # n_epochs: 125
+  # n_epochs: 50
+  n_epochs: 150
   learning_rate: 0.0001
   weight_decay: null
   backup_epochs: false
@@ -25,10 +25,14 @@ tasks:
   # norm_pixel_offset:                  {target: norm_pixel_offset,                 loss_func: L2,   loss_weight: 1.e-2,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: null}
   # delta_angle_inplane_unsigned_L2:    {target: delta_angle_inplane_unsigned,      loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 4deg
   # delta_angle_paxis_L2:               {target: delta_angle_paxis,                 loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 4deg
-  delta_angle_total_L2:               {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 4deg
+
+  # delta_angle_total_L2_decay2deg:               {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.05}} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 4deg
+  delta_angle_total_L2_decay8deg:               {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 4deg
+  # delta_angle_total_L2_nodecay:               {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   activation: null, clamp_before_loss: false, target_norm_loss_decay: null}
+
   # delta_angle_inplane_unsigned_BCE:   {target: delta_angle_inplane_unsigned,      loss_func: BCE,  loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}}
   # delta_angle_paxis_BCE:              {target: delta_angle_paxis,                 loss_func: BCE,  loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}}
-  delta_angle_total_BCE:              {target: delta_angle_total,                 loss_func: BCE,  loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}}
+  # delta_angle_total_BCE:              {target: delta_angle_total,                 loss_func: BCE,  loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: {halflife: 0.2}}
   # delta_angle_inplane_cosdist_L2:     {target: delta_angle_inplane_cosdist,       loss_func: L2,   loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: null}
   # delta_angle_paxis_cosdist_L2:       {target: delta_angle_paxis_cosdist,         loss_func: L2,   loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: null}
   # delta_angle_total_cosdist_L2:       {target: delta_angle_total_cosdist,         loss_func: L2,   loss_weight: 1.0,   activation: sigmoid, clamp_before_loss: false, target_norm_loss_decay: null}
@@ -56,7 +60,7 @@ model:
     - {n_out: 1024, dropout_factor: null, bias: true, relu_flag: true}
     - {n_out: 1024, dropout_factor: null, bias: true, relu_flag: true}
     - {dropout_factor: null, bias: true, relu_flag: false}
-   # - {dropout_factor: null, bias: false, relu_flag: false}
+    # - {dropout_factor: null, bias: false, relu_flag: false}
 data:
   dataformat: dummy
   path: /datasets/occluded-linemod-augmented
