@@ -66,9 +66,13 @@ class Loader:
         self._configs = configs
         self._dataset_module = import_module('lib.datasets.%s' % configs.data.dataformat)
         for mode in modes:
-            loader_configs = self._get_loader_config(mode)
-            loader = DataLoader(**loader_configs)
+            loader = self._init_loader(mode)
             setattr(self, mode, loader)
+
+    def _init_loader(self, mode):
+        loader_configs = self._get_loader_config(mode)
+        loader = DataLoader(**loader_configs)
+        return loader
 
     def _get_loader_config(self, mode):
         dataset = self._dataset_module.get_dataset(self._configs, mode)
