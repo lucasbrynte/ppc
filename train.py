@@ -115,8 +115,9 @@ class Trainer():
             self._optimizer.zero_grad()
             loss.backward()
             self._optimizer.step()
-            # assert len(w_params_final) == 1 and len(b_params_final) == 1
+            # assert len(w_params_final) == 1
             # w_params_final[0].data.clamp_(min=0.)
+            # assert len(b_params_final) == 1
             # b_params_final[0].data.clamp_(min=0., max=0.)
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
