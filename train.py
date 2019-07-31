@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -119,6 +120,11 @@ class Trainer():
             # b_params_final[0].data.clamp_(min=0., max=0.)
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
+            # for task_name in sorted(self._configs.tasks.keys()):
+            #     tmp = np.sqrt(target_features[task_name].detach().cpu().numpy())
+            #     print('{} - batch std: {}'.format(task_name, np.sqrt(np.mean(tmp**2))))
+            #     print('{} - batch median energy: {}'.format(task_name, np.sqrt(np.median(tmp**2))))
+
             # cnt += 1
             # if cnt % 10 == 0:
             #     self._visualizer.report_signals(self._loss_handler.get_scalar_averages(), mode)
@@ -130,6 +136,12 @@ class Trainer():
 
         self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
         self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch)
+
+        # for task_name in sorted(self._configs.tasks.keys()):
+        #     tmp = np.sqrt(self._loss_handler.get_signals_numpy()['target_feat'][task_name])
+        #     print('{} - global std: {}'.format(task_name, np.sqrt(np.mean(tmp**2))))
+        #     print('{} - global median energy: {}'.format(task_name, np.sqrt(np.median(tmp**2))))
+        # assert False
 
         score = self._loss_handler.get_scalar_averages()['loss']['loss']
         self._loss_handler.finish_epoch(epoch, mode)
