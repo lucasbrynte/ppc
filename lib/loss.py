@@ -26,6 +26,8 @@ class LossHandler:
         for task_name, task_spec in self._configs.tasks.items():
             if task_spec['activation'] == None:
                 activation_dict[task_name] = None
+            elif task_spec['activation'] == 'square':
+                activation_dict[task_name] = lambda x: x**2
             elif task_spec['activation'] == 'sigmoid':
                 activation_dict[task_name] = nn.Sigmoid()
             else:
