@@ -49,9 +49,13 @@ class Trainer():
     def _run_epoch(self, epoch, mode):
         self._model.train()
 
+        # nbr_batches = 1
+        # nbr_batches = 16
+        nbr_batches = 16 if mode == TRAIN else 1
+
         # cnt = 0
         # visual_cnt = 0
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
             nn_out = self._run_model(batch.input, batch.extra_input)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)
             pred_features = self._loss_handler.apply_activation(pred_features_raw)

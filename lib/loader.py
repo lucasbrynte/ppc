@@ -65,44 +65,43 @@ class Loader:
     def __init__(self, modes, configs):
         self._configs = configs
         self._dataset_module = import_module('lib.datasets.%s' % configs.data.dataformat)
-        for mode in modes:
-            loader = self._init_loader(mode)
-            setattr(self, mode, loader)
+        self._datasets = {mode: self._dataset_module.get_dataset(self._configs, mode) for mode in modes}
 
-    def _init_loader(self, mode):
-        loader_configs = self._get_loader_config(mode)
+    def _init_loader(self, mode, nbr_samples):
+        loader_configs = self._get_loader_config(mode, nbr_samples)
         loader = DataLoader(**loader_configs)
         return loader
 
-    def _get_loader_config(self, mode):
-        dataset = self._dataset_module.get_dataset(self._configs, mode)
+    def _get_loader_config(self, mode, nbr_samples):
+        self._datasets[mode].set_len(nbr_samples)
         data_configs = getattr(self._configs.loading, mode)
         loader_config = {}
-        loader_config['dataset'] = dataset
+        loader_config['dataset'] = self._datasets[mode]
         loader_config['collate_fn'] = collate_batch
         loader_config['pin_memory'] = True
         loader_config['batch_size'] = data_configs.batch_size
         # loader_config['num_workers'] = data_configs.num_workers
         loader_config['drop_last'] = True
         if data_configs.shuffle == True:
-            loader_config['sampler'] = RandomSampler(dataset)
+            loader_config['sampler'] = RandomSampler(self._datasets[mode])
         elif data_configs.shuffle == False:
-            loader_config['sampler'] = SequentialSampler(dataset)
+            loader_config['sampler'] = SequentialSampler(self._datasets[mode])
         elif data_configs.shuffle == 'fixed':
-            loader_config['sampler'] = FixedSeededRandomSampler(dataset, seed='314159')
+            loader_config['sampler'] = FixedSeededRandomSampler(self._datasets[mode], seed='314159')
         else:
             # Should not happen
             assert False
         return loader_config
 
-    def gen_batches(self, mode):
+    def gen_batches(self, mode, nbr_samples):
         """Return an iterator over batches."""
+        loader = self._init_loader(mode, nbr_samples)
         # NOTE: Seems to be fixed in pytorch 1.1.0? What version used in container?
         # TODO: This is needed until pytorch pin_memory is fixed. Currently casts namedtuple to list
         # https://github.com/pytorch/pytorch/pull/16440
-        for batch in getattr(self, mode):
+        for batch in loader:
             batch = Batch(
-                targets = getattr(self, mode).dataset.Targets(*batch[0]),
+                targets = loader.dataset.Targets(*batch[0]),
                 input = batch[1],
                 extra_input = self._dataset_module.ExtraInput(*batch[2]),
             )

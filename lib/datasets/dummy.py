@@ -121,10 +121,11 @@ class DummyDataset(Dataset):
         global_renderer = renderer
         return renderer
 
+    def set_len(self, nbr_samples):
+        self._len = nbr_samples
+
     def __len__(self):
-        # return 32
-        # return 512
-        return 512 if self._mode == TRAIN else 32
+        return self._len
 
     def _init_worker_seed(self):
         pid = os.getpid()
