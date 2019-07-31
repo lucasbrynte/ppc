@@ -66,7 +66,7 @@ class Visualizer:
         fig, axes_array = plt.subplots(
             nrows=len(binned_signals),
             ncols=2,
-            figsize=[10, 10],
+            figsize=[10, 2*len(self._configs.tasks)],
             squeeze=False,
             dpi=PYPLOT_DPI,
             tight_layout=True,
