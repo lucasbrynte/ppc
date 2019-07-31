@@ -95,31 +95,33 @@ class Visualizer:
             axes_array[j,1].set_ylabel('Feature error - std')
         self._writer.add_figure('_'.join([mode, 'feature_error_against_target_magnitude']), fig, step_index)
 
-    def plot_feature_histograms(self, interp_pred_feat, interp_target_feat, mode, step_index):
+    def plot_feature_histograms(self, signals, mode, step_index):
         fig, axes_array = plt.subplots(
             nrows=len(self._configs.tasks),
-            ncols=2,
-            figsize=[10, 2*len(self._configs.tasks)],
+            ncols=len(signals),
+            figsize=[np.clip(4*len(signals), 6, 12), 2*len(self._configs.tasks)],
             squeeze=False,
             dpi=PYPLOT_DPI,
             tight_layout=True,
         )
 
-        for k, curr_signals in enumerate([interp_pred_feat, interp_target_feat]):
+        for k, signal_name in enumerate(sorted(signals.keys())):
             for j, task_name in enumerate(sorted(self._configs.tasks.keys())):
                 axes_array[j,k].hist(
-                    curr_signals[task_name],
+                    signals[signal_name][task_name],
                     bins = 30,
                 )
-                axes_array[j,k].set_title('{} - {}'.format(task_name, ['Prediction', 'Target'][k]))
-                # axes_array[j,k].set_xlabel('')
-                # axes_array[j,k].set_ylabel('')
+                axes_array[j,k].set_title('/\n'.join([signal_name, task_name]))
 
         self._writer.add_figure('_'.join([mode, 'feature_histograms']), fig, step_index)
 
     def calc_and_plot_signal_stats(self, signals, mode, step_index):
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], mode, step_index)
-        self.plot_feature_histograms(signals['interp_pred_feat'], signals['interp_target_feat'], mode, step_index)
+        histogram_signals = [
+            'interp_target_feat',
+            'interp_pred_feat',
+        ]
+        self.plot_feature_histograms({signal_name: signal for signal_name, signal in signals.items() if signal_name in histogram_signals}, mode, step_index)
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
