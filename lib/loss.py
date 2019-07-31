@@ -75,11 +75,14 @@ class LossHandler:
 
         return pred_features, target_features
 
-    def clamp_features(self, features):
-        clamped_features = {}
+    def clamp_features(self, features, before_loss=False):
+        clamped_features = features.copy() # Shallow copy
         for task_name in self._configs.tasks.keys():
-            if self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None or self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None:
-                clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.targets[self._configs.tasks[task_name]['target']]['min'], max=self._configs.targets[self._configs.tasks[task_name]['target']]['max'])
+            if before_loss and not self._configs.tasks[task_name]['clamp_before_loss']:
+                continue
+            if self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is None:
+                continue
+            clamped_features[task_name] = torch.clamp(features[task_name], min=self._configs.targets[self._configs.tasks[task_name]['target']]['min'], max=self._configs.targets[self._configs.tasks[task_name]['target']]['max'])
         return clamped_features
 
     def calc_human_interpretable_features(self, features):

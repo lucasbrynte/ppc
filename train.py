@@ -53,11 +53,14 @@ class Trainer():
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
             nn_out = self._run_model(batch.input, batch.extra_input)
             pred_features, target_features = self._loss_handler.get_pred_and_target_features(nn_out, batch.targets)
+            if self._configs.training.clamp_predictions:
+                # Clamp features before loss computation (for the features where desired)
+                pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             loss = sum(task_loss_signal_vals.values())
             if self._configs.training.clamp_predictions:
-                # Done after loss computation
-                pred_features = self._loss_handler.clamp_features(pred_features)
+                # Clamp features after loss computation (for all features)
+                pred_features = self._loss_handler.clamp_features(pred_features, before_loss=False)
             interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
             interp_target_features = self._loss_handler.calc_human_interpretable_features(target_features)
             interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
