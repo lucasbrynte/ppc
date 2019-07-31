@@ -170,7 +170,7 @@ class Head(nn.Module):
             out_features = layer_spec.n_out
             dropout_factor = layer_spec.dropout_factor
             relu_flag = layer_spec.relu_flag
-            units.append(nn.Linear(in_features, out_features))
+            units.append(nn.Linear(in_features, out_features, bias=layer_spec.bias))
             if relu_flag:
                 units.append(nn.ReLU(inplace=True))
             if dropout_factor is not None:
@@ -202,7 +202,7 @@ class Model(nn.Module):
         for module in reversed(self.head.sequential):
             w_params, b_params = get_module_parameters(module)
             if len(w_params) > 0 or len(b_params) > 0:
-                assert len(w_params) == 1 and len(b_params) == 1
+                assert len(w_params) == 1 and len(b_params) == (1 if self._configs.model.head_layers[-1].bias else 0)
                 break
         else:
             assert False, "Tried to find last parameterized layer, but found no layer with parameters of interest"

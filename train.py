@@ -81,7 +81,7 @@ class Trainer():
                     'all_w_mean': flatten_and_stack(w_params_all).mean(),
                     'all_b_mean': flatten_and_stack(b_params_all).mean(),
                     'final_w_mean': flatten_and_stack(w_params_final).mean(),
-                    'final_b_mean': flatten_and_stack(b_params_final).mean(),
+                    'final_b_mean': flatten_and_stack(b_params_final).mean() if self._configs.model.head_layers[-1].bias else None,
                 },
             )
             self._loss_handler.record_scalar_signals(
@@ -90,7 +90,7 @@ class Trainer():
                     'all_w_std': flatten_and_stack(w_params_all).std(),
                     'all_b_std': flatten_and_stack(b_params_all).std(),
                     'final_w_std': flatten_and_stack(w_params_final).std(),
-                    'final_b_std': flatten_and_stack(b_params_final).std(),
+                    'final_b_std': flatten_and_stack(b_params_final).std() if self._configs.model.head_layers[-1].bias else None,
                 },
             )
 
