@@ -52,7 +52,8 @@ class Trainer():
         # visual_cnt = 0
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode)):
             nn_out = self._run_model(batch.input, batch.extra_input)
-            pred_features = self._loss_handler.get_pred_features(nn_out)
+            pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+            pred_features = self._loss_handler.apply_activation(pred_features_raw)
             target_features = self._loss_handler.get_target_features(batch.targets)
             if self._configs.training.clamp_predictions:
                 # Clamp features before loss computation (for the features where desired)

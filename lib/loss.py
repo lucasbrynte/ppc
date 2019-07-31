@@ -56,15 +56,6 @@ class LossHandler:
         offset = 0
         for task_name in sorted(self._configs.tasks.keys()):
             pred_features[task_name] = nn_out[:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
-            if self._activation_dict[task_name] is not None:
-                pred_features[task_name] = self._activation_dict[task_name](pred_features[task_name])
-                if self._configs.tasks[task_name]['activation'] == 'sigmoid':
-                    # Linearly map sigmoid output to desired range
-                    assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
-                        'Min/max values mandatory when sigmoid activaiton is used'
-                    pred_features[task_name] = pred_features[task_name] * (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min'])
-                    pred_features[task_name] = pred_features[task_name] + self._configs.targets[self._configs.tasks[task_name]['target']]['min']
-
             offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']
 
         return pred_features
@@ -74,6 +65,19 @@ class LossHandler:
         for task_name in sorted(self._configs.tasks.keys()):
             target_features[task_name] = getattr(targets, self._configs.tasks[task_name]['target']).to(get_device())
         return target_features
+
+    def apply_activation(self, pred_features_raw):
+        pred_features = pred_features_raw.copy() # Shallow copy
+        for task_name in self._configs.tasks.keys():
+            if self._activation_dict[task_name] is not None:
+                pred_features[task_name] = self._activation_dict[task_name](pred_features_raw[task_name])
+                if self._configs.tasks[task_name]['activation'] == 'sigmoid':
+                    # Linearly map sigmoid output to desired range
+                    assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
+                        'Min/max values mandatory when sigmoid activaiton is used'
+                    pred_features[task_name] = pred_features[task_name] * (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min'])
+                    pred_features[task_name] = pred_features[task_name] + self._configs.targets[self._configs.tasks[task_name]['target']]['min']
+        return pred_features
 
     def clamp_features(self, features, before_loss=False):
         clamped_features = features.copy() # Shallow copy
