@@ -38,7 +38,7 @@ class Visualizer:
         for tag in avg_signals:
             self._writer.add_scalars('{}/{}'.format(tag, mode), avg_signals[tag], step_index)
 
-    def _perform_binning(self, signals):
+    def _group_feature_error_data_into_bins_wrt_target_magnitude(self, interp_target_feat, interp_feat_error):
         """
         Groups the "interp_feat_error" signals, based on the magnitude of the corresponding target values
         """
@@ -46,8 +46,8 @@ class Visualizer:
         bin_edges = {}
 
         for task_name in sorted(self._configs.tasks.keys()):
-            nbr_samples = signals['interp_target_feat'][task_name].shape[0]
-            target_magnitudes = np.linalg.norm(signals['interp_target_feat'][task_name].reshape(nbr_samples, -1), axis=1)
+            nbr_samples = interp_target_feat[task_name].shape[0]
+            target_magnitudes = np.linalg.norm(interp_target_feat[task_name].reshape(nbr_samples, -1), axis=1)
 
             nbr_bins = 30
             bin_edges[task_name] = np.sort(target_magnitudes)[np.linspace(0, len(target_magnitudes)-1, nbr_bins+1, dtype=int)]
@@ -57,12 +57,12 @@ class Visualizer:
             # nbr_bins = len(bin_edges[task_name]) - 1
             for bin_idx in range(nbr_bins):
                 mask = bin_indices == bin_idx
-                binned_signals[task_name][bin_idx] = signals['interp_feat_error'][task_name][mask]
+                binned_signals[task_name][bin_idx] = interp_feat_error[task_name][mask]
 
         return bin_edges, binned_signals
 
-    def calc_and_plot_signal_stats(self, signals, mode, step_index):
-        bin_edges, binned_signals = self._perform_binning(signals)
+    def plot_feature_error_against_target_magnitude(self, interp_target_feat, interp_feat_error, mode, step_index):
+        bin_edges, binned_signals = self._group_feature_error_data_into_bins_wrt_target_magnitude(interp_target_feat, interp_feat_error)
         fig, axes_array = plt.subplots(
             nrows=len(binned_signals),
             ncols=2,
@@ -93,7 +93,10 @@ class Visualizer:
             axes_array[j,1].set_title(task_name)
             axes_array[j,1].set_xlabel('Target feature value')
             axes_array[j,1].set_ylabel('Feature error - std')
-        self._writer.add_figure('_'.join([mode, 'binned_stats']), fig, step_index)
+        self._writer.add_figure('_'.join([mode, 'feature_error_against_target_magnitude']), fig, step_index)
+
+    def calc_and_plot_signal_stats(self, signals, mode, step_index):
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], mode, step_index)
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
