@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import geomloss
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -24,6 +25,14 @@ class Trainer():
         self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
         self._visualizer = Visualizer(configs)
 
+        self._target_prior_samples = None
+        if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
+            self._sinkhorn_loss = geomloss.SamplesLoss(
+                loss = 'sinkhorn',
+                p = 2,
+                blur = 0.05,
+            )
+
     def _init_model(self):
         model = Model(self._configs)
         return model
@@ -38,6 +47,10 @@ class Trainer():
 
     def train(self):
         """Main loop."""
+        if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
+            target_prior_samples = self._sample_epoch_of_targets(TRAIN)
+            self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
+
         for epoch in range(1, self._configs.training.n_epochs + 1):
             train_score = -self._run_epoch(epoch, TRAIN)
             val_score = -self._run_epoch(epoch, VAL)
@@ -45,6 +58,29 @@ class Trainer():
             self._lr_scheduler.step(val_score)
             self._checkpoint_handler.save(self._model, epoch, train_score)
             # self._checkpoint_handler.save(self._model, epoch, val_score)
+
+    def _sample_epoch_of_targets(self, mode):
+        print('Running through epoch to collect target samples for prior...')
+        # nbr_batches = 4
+        nbr_batches = 128
+        # nbr_batches = 256
+
+        selected_tasks = [task_name for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None]
+
+        cnt = 1
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
+            target_features = self._loss_handler.get_target_features(batch.targets, selected_tasks=selected_tasks)
+            target_features_raw = self._loss_handler.apply_inverse_activation(target_features)
+            self._loss_handler.record_tensor_signals('target_feat_raw', target_features_raw)
+            if cnt % 10 == 0:
+                print('{}/{}'.format(cnt, nbr_batches))
+            cnt += 1
+
+        target_samples = self._loss_handler.get_signals_numpy()['target_feat_raw']
+        self._loss_handler._tensor_signals = self._loss_handler._reset_signals()
+        self._loss_handler._scalar_signals = self._loss_handler._reset_signals()
+        print('Done.')
+        return target_samples
 
     def _run_epoch(self, epoch, mode):
         self._model.train()
@@ -64,6 +100,11 @@ class Trainer():
                 # Clamp features before loss computation (for the features where desired)
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
+            for task_name, task_spec in self._configs.tasks.items():
+                if task_spec['prior_loss'] is not None:
+                    assert task_spec['prior_loss']['method'] == 'sinkhorn'
+                    loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
+                    task_loss_signal_vals[task_name + '_prior'] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], self._target_prior_samples[task_name].reshape(-1,1))
             loss = sum(task_loss_signal_vals.values())
             if self._configs.training.clamp_predictions:
                 # Clamp features after loss computation (for all features)

@@ -32,6 +32,8 @@ RUN pip install glumpy
 RUN pip install pypng
 RUN pip install ruamel.yaml
 RUN pip install tb-nightly future
+# Sinkloss:
+RUN pip install pykeops geomloss
 
 # OpenGV
 RUN apt-get update -y
