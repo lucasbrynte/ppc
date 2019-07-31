@@ -148,7 +148,9 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            if self._configs.tasks[task_name]['target_norm_loss_decay'] is not None:
+            if self._configs.tasks[task_name]['target_norm_loss_decay'] is None:
+                pass
+            elif self._configs.tasks[task_name]['target_norm_loss_decay']['method'] == 'exp_decay':
                 assert len(target_features[task_name].shape) == 2
                 gamma = np.log(2.0) / self._configs.tasks[task_name]['target_norm_loss_decay']['halflife']
                 task_loss = task_loss * torch.exp(-gamma * torch.norm(target_features[task_name], dim=1, keepdim=True))
