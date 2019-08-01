@@ -28,6 +28,8 @@ class LossHandler:
                 activation_dict[task_name] = None
             elif task_spec['activation'] == 'square':
                 activation_dict[task_name] = lambda x: x**2
+            elif task_spec['activation'] == 'abs':
+                activation_dict[task_name] = lambda x: torch.abs(x)
             elif task_spec['activation'] == 'sigmoid':
                 activation_dict[task_name] = nn.Sigmoid()
             else:
@@ -90,6 +92,9 @@ class LossHandler:
                 if self._configs.tasks[task_name]['activation'] == 'square':
                     sqrt_feat = torch.sqrt(pred_features[task_name])
                     pred_features_raw[task_name] = torch.cat([sqrt_feat, -sqrt_feat], dim=0)
+                elif self._configs.tasks[task_name]['activation'] == 'abs':
+                    feat = pred_features[task_name]
+                    pred_features_raw[task_name] = torch.cat([feat, -feat], dim=0)
                 else:
                     assert False
         return pred_features_raw
