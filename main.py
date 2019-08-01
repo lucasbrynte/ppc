@@ -11,9 +11,8 @@ from lib.utils import get_device, get_setup_configs, get_runtime_configs, get_mo
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
-class Trainer():
-    """Trainer."""
 
+class Main():
     def __init__(self, configs):
         """Constructor."""
         self._configs = configs
@@ -213,7 +212,7 @@ def main(setup):
     configs = get_setup_configs(args.config_name)
     configs.runtime = get_runtime_configs(args.config_name)
     configs += vars(args)
-    trainer = Trainer(configs)
+    trainer = Main(configs)
     # configs['data']['data_loader'] = trainer._data_loader
     trainer.train()
 

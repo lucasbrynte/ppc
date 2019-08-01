@@ -39,7 +39,7 @@ for OBJ in ${OBJECTS[@]}; do
         -v $WS:/workspace/ppc \
         -v /hdd/lucas/out/ppc-experiments:/workspace/ppc/experiments \
         -v $DATAPATH:/datasets/occluded-linemod-augmented \
-        $CONTAINER python train.py \
+        $CONTAINER python main.py \
         --overwrite-experiment \
         --config-name $CONFIGNAME \
         --experiment-name $EXPERIMENT_PREFIX/$OBJ \
