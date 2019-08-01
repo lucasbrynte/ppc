@@ -88,8 +88,10 @@ def save_settings(args):
 
     shutil.rmtree(experiment_settings_path, ignore_errors=True)
     shutil.copytree(os.path.join(CONFIG_ROOT, args.config_name), experiment_settings_path)
-    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_config.yml'),
-                    os.path.join(experiment_settings_path, 'default_config.yml'))
+    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_setup.yml'),
+                    os.path.join(experiment_settings_path, 'default_setup.yml'))
+    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_runtime.yml'),
+                    os.path.join(experiment_settings_path, 'default_runtime.yml'))
 
     with open(os.path.join(experiment_settings_path, 'args.yml'), 'w') as file:
         yaml.dump(vars(args), file, Dumper=yaml.CDumper)

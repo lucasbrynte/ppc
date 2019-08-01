@@ -7,7 +7,7 @@ from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL
 from lib.loss import LossHandler
 from lib.model import Model
-from lib.utils import get_device, get_configs, get_module_parameters
+from lib.utils import get_device, get_setup_configs, get_runtime_configs, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -210,7 +210,8 @@ def main(setup):
     setup.prepare_environment()
     setup.save_settings(args)
 
-    configs = get_configs(args.config_name)
+    configs = get_setup_configs(args.config_name)
+    configs.runtime = get_runtime_configs(args.config_name)
     configs += vars(args)
     trainer = Trainer(configs)
     # configs['data']['data_loader'] = trainer._data_loader

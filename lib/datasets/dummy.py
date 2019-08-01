@@ -300,9 +300,9 @@ class DummyDataset(Dataset):
         return T
 
     def _apply_perturbation(self, T1):
-        STD_ANGLE = np.pi/180. * np.array(self._configs.data.sampling.perturbation.std_angle)
-        STD_OBJECT_BIAS = self._get_object_dimensions() * self._configs.data.sampling.perturbation.std_object_bias_over_extent
-        STD_DEPTH_RESCALE_FACTOR = self._configs.data.sampling.perturbation.std_depth_rescale_factor
+        STD_ANGLE = np.pi/180. * np.array(self._configs.runtime.sampling.perturbation.std_angle)
+        STD_OBJECT_BIAS = self._get_object_dimensions() * self._configs.runtime.sampling.perturbation.std_object_bias_over_extent
+        STD_DEPTH_RESCALE_FACTOR = self._configs.runtime.sampling.perturbation.std_depth_rescale_factor
 
         random_axis = uniform_sampling_on_S2()
 
@@ -327,13 +327,13 @@ class DummyDataset(Dataset):
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
-        table_size = self._configs.data.sampling.object_pose.table_size
+        table_size = self._configs.runtime.sampling.object_pose.table_size
         T_model2world = pose_sampler.sample_object_pose_on_xy_plane(up_dir, bottom_center, table_size)
         T_world2cam = pose_sampler.sample_camera_pose(
-            hemisphere_polar_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.hemisphere_polar_angle_range),
-            hemisphere_radius_range = self._configs.data.sampling.camera_pose.hemisphere_radius_range,
-            inplane_rot_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.inplane_rot_angle_range),
-            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._configs.data.sampling.camera_pose.principal_axis_perturb_angle_range),
+            hemisphere_polar_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.hemisphere_polar_angle_range),
+            hemisphere_radius_range = self._configs.runtime.sampling.camera_pose.hemisphere_radius_range,
+            inplane_rot_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.inplane_rot_angle_range),
+            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.principal_axis_perturb_angle_range),
         )
         T1 = T_world2cam @ T_model2world
         return T1
@@ -382,7 +382,7 @@ class DummyDataset(Dataset):
 
     def _generate_sample(self):
         # Minimum allowed distance between object and camera centers
-        min_dist_obj_and_camera_centers = self._get_max_extent() + self._configs.data.sampling.perturbation.min_dist_obj_and_camera
+        min_dist_obj_and_camera_centers = self._get_max_extent() + self._configs.runtime.sampling.perturbation.min_dist_obj_and_camera
 
         # Resample pose until accepted
         while True:

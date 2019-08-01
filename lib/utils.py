@@ -55,14 +55,33 @@ def read_yaml_as_attrdict(path):
     return AttrDict(yaml_dict) if yaml_dict is not None else AttrDict()
 
 
-def get_configs(config_name):
-    default_config_path = os.path.join(CONFIG_ROOT, 'default_config.yml')
-    configs = read_yaml_as_attrdict(default_config_path)
+def get_setup_configs(config_name):
+    """
+    "Setup" config is only read during training, and later re-used during evaluation.
+    """
+    # Read default setup config
+    default_setup_path = os.path.join(CONFIG_ROOT, 'default_setup.yml')
+    setup_configs = read_yaml_as_attrdict(default_setup_path)
 
-    experiment_config_path = os.path.join(CONFIG_ROOT, config_name, 'config.yml')
-    if os.path.isfile(experiment_config_path):
-        configs += read_yaml_as_attrdict(experiment_config_path)
-    return configs
+    # Read experiment-specific setup config
+    experiment_setup_path = os.path.join(CONFIG_ROOT, config_name, 'setup.yml')
+    if os.path.isfile(experiment_setup_path):
+        setup_configs += read_yaml_as_attrdict(experiment_setup_path)
+    return setup_configs
+
+def get_runtime_configs(config_name):
+    """
+    "Setup" config is only read during training, and later re-used during evaluation.
+    """
+    # Read default runtime config
+    default_runtime_path = os.path.join(CONFIG_ROOT, 'default_runtime.yml')
+    runtime_configs = read_yaml_as_attrdict(default_runtime_path)
+
+    # Read experiment-specific runtime config
+    experiment_runtime_path = os.path.join(CONFIG_ROOT, config_name, 'runtime.yml')
+    if os.path.isfile(experiment_runtime_path):
+        runtime_configs += read_yaml_as_attrdict(experiment_runtime_path)
+    return runtime_configs
 
 def pillow_to_pt(image, normalize_flag=True, transform=None):
     """Pillow image to pytorch tensor."""
