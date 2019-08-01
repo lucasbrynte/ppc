@@ -12,15 +12,14 @@ class CheckpointHandler:
         self._logger = logging.getLogger(self.__class__.__name__)
         self._best_score = -float('Inf')
         self._checkpoint_dir = os.path.join(configs.experiment_path, 'checkpoints')
+        self._old_checkpoint_dir = os.path.join(configs.experiment_path, 'checkpoints')
         os.makedirs(self._checkpoint_dir, exist_ok=True)
 
     def init(self, model, force_load=False):
         """Create or load model."""
         model = model.to(get_device())
-        load_path = self._configs.checkpoint_load_path
-        if force_load:
-            load_path = load_path or os.path.join(self._checkpoint_dir, 'best_model.pth.tar')
-        if load_path:
+        if self._configs.train_or_eval == 'eval':
+            load_path = os.path.join(self._old_checkpoint_dir, self._configs.checkpoint_load_fname)
             self._logger.info('Loading checkpoint from: %s', load_path)
             checkpoint = torch.load(load_path, map_location=get_device())
             model.load_state_dict(checkpoint)

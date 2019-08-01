@@ -1,7 +1,8 @@
 # exit when any command fails
 set -e
 
-EXPERIMENT_PREFIX=$1
+OLD_EXPERIMENT_PREFIX=$1
+NEW_EXPERIMENT_PREFIX=$2
 
 REPOPATH=/home/lucas/research/ppc
 DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented3_format06
@@ -22,8 +23,8 @@ OBJECTS=(duck)
 
 
 for OBJ in ${OBJECTS[@]}; do
-    echo "Removing experiment /hdd/lucas/out/3dod-experiments/$EXPERIMENT_PREFIX/$OBJ"
-    rm -rf /hdd/lucas/out/ppc-experiments/$EXPERIMENT_PREFIX/$OBJ
+    echo "Removing experiment /hdd/lucas/out/3dod-experiments/$NEW_EXPERIMENT_PREFIX/$OBJ"
+    rm -rf /hdd/lucas/out/ppc-experiments/$NEW_EXPERIMENT_PREFIX/$OBJ
 done
 
 xhost + # allow connections to X server
@@ -40,10 +41,12 @@ for OBJ in ${OBJECTS[@]}; do
         -v /hdd/lucas/out/ppc-experiments:/workspace/ppc/experiments \
         -v $DATAPATH:/datasets/occluded-linemod-augmented \
         $CONTAINER python main.py \
-        train \
+        eval \
         --overwrite-experiment \
         --config-name $CONFIGNAME \
-        --experiment-name $EXPERIMENT_PREFIX/$OBJ \
+        --experiment-name $NEW_EXPERIMENT_PREFIX/$OBJ \
+        --old-experiment-name $OLD_EXPERIMENT_PREFIX/$OBJ \
+        --checkpoint-load-fname best_model.pth.tar \
         --obj-label $OBJ
 done
 rm -rf $WS

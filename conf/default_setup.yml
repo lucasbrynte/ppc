@@ -112,3 +112,7 @@ loading:
     batch_size: 32
     num_workers: 6
     shuffle: true
+  test:
+    batch_size: 32
+    num_workers: 6
+    shuffle: fixed

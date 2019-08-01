@@ -9,7 +9,6 @@ import torch
 from torchvision.transforms.functional import normalize, to_tensor
 
 from lib.constants import TV_MEAN, TV_STD
-from lib.constants import CONFIG_ROOT
 
 def show_gpu_info():
     """Show GPU info."""
@@ -55,33 +54,14 @@ def read_yaml_as_attrdict(path):
     return AttrDict(yaml_dict) if yaml_dict is not None else AttrDict()
 
 
-def get_setup_configs(config_name):
-    """
-    "Setup" config is only read during training, and later re-used during evaluation.
-    """
-    # Read default setup config
-    default_setup_path = os.path.join(CONFIG_ROOT, 'default_setup.yml')
-    setup_configs = read_yaml_as_attrdict(default_setup_path)
+def read_attrdict_from_default_and_specific_yaml(default_config_path, specific_config_path):
+    # Read default
+    configs = read_yaml_as_attrdict(default_config_path)
 
-    # Read experiment-specific setup config
-    experiment_setup_path = os.path.join(CONFIG_ROOT, config_name, 'setup.yml')
-    if os.path.isfile(experiment_setup_path):
-        setup_configs += read_yaml_as_attrdict(experiment_setup_path)
-    return setup_configs
-
-def get_runtime_configs(config_name):
-    """
-    "Setup" config is only read during training, and later re-used during evaluation.
-    """
-    # Read default runtime config
-    default_runtime_path = os.path.join(CONFIG_ROOT, 'default_runtime.yml')
-    runtime_configs = read_yaml_as_attrdict(default_runtime_path)
-
-    # Read experiment-specific runtime config
-    experiment_runtime_path = os.path.join(CONFIG_ROOT, config_name, 'runtime.yml')
-    if os.path.isfile(experiment_runtime_path):
-        runtime_configs += read_yaml_as_attrdict(experiment_runtime_path)
-    return runtime_configs
+    # Overwrite with specifics
+    if os.path.isfile(specific_config_path):
+        configs += read_yaml_as_attrdict(specific_config_path)
+    return configs
 
 def pillow_to_pt(image, normalize_flag=True, transform=None):
     """Pillow image to pytorch tensor."""
