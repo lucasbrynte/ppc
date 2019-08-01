@@ -115,7 +115,7 @@ class Visualizer:
 
         self._writer.add_figure('_'.join([mode, 'feature_histograms']), fig, step_index)
 
-    def calc_and_plot_signal_stats(self, signals, mode, step_index):
+    def calc_and_plot_signal_stats(self, signals, mode, step_index, target_prior_samples=None):
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_abserror'], 'feature_abserror_against_target_magnitude', mode, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], 'feature_error_against_target_magnitude', mode, step_index)
         histogram_signals = [
@@ -123,7 +123,10 @@ class Visualizer:
             'interp_pred_feat',
             'pred_feat_raw',
         ]
-        self.plot_feature_histograms({signal_name: signal for signal_name, signal in signals.items() if signal_name in histogram_signals}, mode, step_index)
+        signal_dict = {signal_name: signal for signal_name, signal in signals.items() if signal_name in histogram_signals}
+        if target_prior_samples is not None:
+            signal_dict['target_prior_samples'] = target_prior_samples
+        self.plot_feature_histograms(signal_dict, mode, step_index)
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)

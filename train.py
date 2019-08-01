@@ -25,6 +25,7 @@ class Trainer():
         self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
         self._visualizer = Visualizer(configs)
 
+        self._target_prior_samples_numpy = None
         self._target_prior_samples = None
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
             self._sinkhorn_loss = geomloss.SamplesLoss(
@@ -49,6 +50,7 @@ class Trainer():
         """Main loop."""
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
             target_prior_samples = self._sample_epoch_of_targets(TRAIN)
+            self._target_prior_samples_numpy = target_prior_samples
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
@@ -182,7 +184,7 @@ class Trainer():
         self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
 
         self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
-        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch)
+        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy)
 
         # for task_name in sorted(self._configs.tasks.keys()):
         #     tmp = np.sqrt(self._loss_handler.get_signals_numpy()['target_feat'][task_name])
