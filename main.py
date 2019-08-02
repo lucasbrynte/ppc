@@ -97,12 +97,19 @@ class Main():
         # visual_cnt = 0
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
             nn_out = self._run_model(batch.input, batch.extra_input)
+
+            # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+
+            # Apply activation, and get corresponding target features
             pred_features = self._loss_handler.apply_activation(pred_features_raw)
             target_features = self._loss_handler.get_target_features(batch.targets)
+
             if self._configs.training.clamp_predictions:
                 # Clamp features before loss computation (for the features where desired)
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
+
+            # Calculate loss
             task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
             for task_name, task_spec in self._configs.tasks.items():
                 if task_spec['prior_loss'] is not None:
@@ -110,19 +117,25 @@ class Main():
                     loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
                     task_loss_signal_vals[task_name + '_prior'] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], self._target_prior_samples[task_name].reshape(-1,1))
             loss = sum(task_loss_signal_vals.values())
+
             if self._configs.training.clamp_predictions:
                 # Clamp features after loss computation (for all features)
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=False)
+
+            # Map features to interpretable domain (degrees etc.)
             interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
             interp_target_features = self._loss_handler.calc_human_interpretable_features(target_features)
+
+            # Feature errors
             interp_feat_abserror = self._loss_handler.calc_feature_abserrors(interp_pred_features, interp_target_features)
-            interp_feat_abserror_avg = self._loss_handler.calc_batch_signal_avg(interp_feat_abserror)
             interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
 
+            # Scalar signals - will be plotted against epoch in TensorBoard
             self._loss_handler.record_scalar_signals('loss', {'loss': loss})
             self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
-            self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', interp_feat_abserror_avg)
+            self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
 
+            # Record feature values & corresponding errors
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
             self._loss_handler.record_tensor_signals('interp_pred_feat', interp_pred_features)
@@ -161,7 +174,7 @@ class Main():
         #     print('{} - global median energy: {}'.format(task_name, np.sqrt(np.median(tmp**2))))
         # assert False
 
-        score = self._loss_handler.get_scalar_averages()['loss']['loss']
+        score = self._loss_handler.get_scalar_averages()['loss']['loss'] if mode in (TRAIN, VAL) else None
         self._loss_handler._reset_signals()
         return score
 
