@@ -46,26 +46,31 @@ class Main():
         )
 
     def train(self):
-        """Main loop."""
+        # nbr_batches_prior = 4
+        nbr_batches_prior = 128
+        # nbr_batches_prior = 256
+
+        # nbr_batches_train = 1
+        nbr_batches_train = 16
+
+        nbr_batches_val = 1
+        # nbr_batches_val = 16
+
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-            target_prior_samples = self._sample_epoch_of_targets(TRAIN)
+            target_prior_samples = self._sample_epoch_of_targets(TRAIN, nbr_batches_prior)
             self._target_prior_samples_numpy = target_prior_samples
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            train_score = -self._run_epoch(epoch, TRAIN)
-            val_score = -self._run_epoch(epoch, VAL)
+            train_score = -self._run_epoch(epoch, TRAIN, nbr_batches_train)
+            val_score = -self._run_epoch(epoch, VAL, nbr_batches_val)
 
             self._lr_scheduler.step(val_score)
             self._checkpoint_handler.save(self._model, epoch, train_score)
             # self._checkpoint_handler.save(self._model, epoch, val_score)
 
-    def _sample_epoch_of_targets(self, mode):
+    def _sample_epoch_of_targets(self, mode, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
-        # nbr_batches = 4
-        nbr_batches = 128
-        # nbr_batches = 256
-
         selected_tasks = [task_name for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None]
 
         cnt = 1
@@ -83,12 +88,8 @@ class Main():
         print('Done.')
         return target_samples
 
-    def _run_epoch(self, epoch, mode):
+    def _run_epoch(self, epoch, mode, nbr_batches):
         self._model.train()
-
-        # nbr_batches = 1
-        # nbr_batches = 16
-        nbr_batches = 16 if mode == TRAIN else 1
 
         # cnt = 0
         # visual_cnt = 0
