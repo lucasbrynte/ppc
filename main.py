@@ -123,30 +123,6 @@ class Main():
             pred_feat_std = self._loss_handler.calc_batch_signal_std(pred_features)
             target_feat_std = self._loss_handler.calc_batch_signal_std(target_features)
 
-            def flatten_and_stack(tensor_list):
-                return torch.cat([x.reshape(-1) for x in tensor_list])
-
-            w_params_all, b_params_all = get_module_parameters(self._model)
-            w_params_final, b_params_final = self._model.get_last_layer_params()
-            self._loss_handler.record_scalar_signals(
-                'params/mean',
-                {
-                    'all_w_mean': flatten_and_stack(w_params_all).mean(),
-                    'all_b_mean': flatten_and_stack(b_params_all).mean(),
-                    'final_w_mean': flatten_and_stack(w_params_final).mean(),
-                    'final_b_mean': flatten_and_stack(b_params_final).mean() if self._configs.model.head_layers[-1].bias else None,
-                },
-            )
-            self._loss_handler.record_scalar_signals(
-                'params/std',
-                {
-                    'all_w_std': flatten_and_stack(w_params_all).std(),
-                    'all_b_std': flatten_and_stack(b_params_all).std(),
-                    'final_w_std': flatten_and_stack(w_params_final).std(),
-                    'final_b_std': flatten_and_stack(b_params_final).std() if self._configs.model.head_layers[-1].bias else None,
-                },
-            )
-
             self._loss_handler.record_scalar_signals('loss', {'loss': loss})
             self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
             self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', interp_feat_abserror_avg)
@@ -168,10 +144,6 @@ class Main():
                 loss.backward()
                 self._optimizer.step()
 
-            # assert len(w_params_final) == 1
-            # w_params_final[0].data.clamp_(min=0.)
-            # assert len(b_params_final) == 1
-            # b_params_final[0].data.clamp_(min=0., max=0.)
             self._loss_handler.log_batch(epoch, batch_id, mode)
 
             # for task_name in sorted(self._configs.tasks.keys()):
