@@ -41,7 +41,7 @@ class Main():
         weight_decay = self._configs.training.weight_decay if self._configs.training.weight_decay is not None else 0
         return torch.optim.Adam(
             self._model.parameters(),
-            lr=self._configs.training.learning_rate,
+            lr=self._configs.training.learning_rate * np.sqrt(self._configs.loading.train.batch_size),
             weight_decay=weight_decay,
         )
 
