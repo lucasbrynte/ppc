@@ -14,10 +14,9 @@ class LossHandler:
     def __init__(self, configs, name):
         self._configs = configs
         self._logger = logging.getLogger(name)
-        self._tensor_signals = self._reset_signals()
-        self._scalar_signals = self._reset_signals()
-        self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
 
+        self._reset_signals()
+        self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
         self._activation_dict = self._init_activations()
         self._loss_function_dict = self._init_loss_functions()
 
@@ -36,8 +35,12 @@ class LossHandler:
                 raise NotImplementedError("{} loss not implemented.".format(task_spec['activation']))
         return activation_dict
 
-    def _reset_signals(self):
+    def _get_signals_defaultdict(self):
         return defaultdict(lambda: defaultdict(list))
+
+    def _reset_signals(self):
+        self._tensor_signals = self._get_signals_defaultdict()
+        self._scalar_signals = self._get_signals_defaultdict()
 
     def _init_loss_functions(self):
         loss_function_dict = {}
@@ -242,11 +245,3 @@ class LossHandler:
                     status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
                                                                         value=value[tag][signal_name])
                 self._logger.info(status_task_loss)
-
-    def finish_epoch(self, epoch, mode):
-        """Log current epoch."""
-        mode = {TRAIN: 'Training', VAL: 'Validation'}[mode]
-        self._logger.info('%s epoch %s done!',
-                          mode, epoch)
-        self._tensor_signals = self._reset_signals()
-        self._scalar_signals = self._reset_signals()

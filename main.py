@@ -83,8 +83,7 @@ class Main():
             cnt += 1
 
         target_samples = self._loss_handler.get_signals_numpy()['target_feat_raw']
-        self._loss_handler._tensor_signals = self._loss_handler._reset_signals()
-        self._loss_handler._scalar_signals = self._loss_handler._reset_signals()
+        self._loss_handler._reset_signals()
         print('Done.')
         return target_samples
 
@@ -199,7 +198,7 @@ class Main():
         # assert False
 
         score = self._loss_handler.get_scalar_averages()['loss']['loss']
-        self._loss_handler.finish_epoch(epoch, mode)
+        self._loss_handler._reset_signals()
         return score
 
     def _run_model(self, inputs, extra_input):
