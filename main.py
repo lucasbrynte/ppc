@@ -89,7 +89,10 @@ class Main():
         return target_samples
 
     def _run_epoch(self, epoch, mode, nbr_batches):
-        self._model.train()
+        if mode == TRAIN:
+            self._model.train()
+        else:
+            self._model.eval()
 
         # cnt = 0
         # visual_cnt = 0
@@ -160,9 +163,12 @@ class Main():
             self._loss_handler.record_tensor_signals('pred_feat', pred_features)
             self._loss_handler.record_tensor_signals('target_feat', target_features)
             self._loss_handler.record_tensor_signals('pred_feat_raw', pred_features_raw)
-            self._optimizer.zero_grad()
-            loss.backward()
-            self._optimizer.step()
+
+            if mode == TRAIN:
+                self._optimizer.zero_grad()
+                loss.backward()
+                self._optimizer.step()
+
             # assert len(w_params_final) == 1
             # w_params_final[0].data.clamp_(min=0.)
             # assert len(b_params_final) == 1
