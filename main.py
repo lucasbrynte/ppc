@@ -118,18 +118,10 @@ class Main():
             interp_feat_abserror = self._loss_handler.calc_feature_abserrors(interp_pred_features, interp_target_features)
             interp_feat_abserror_avg = self._loss_handler.calc_batch_signal_avg(interp_feat_abserror)
             interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
-            pred_feat_avg = self._loss_handler.calc_batch_signal_avg(pred_features)
-            target_feat_avg = self._loss_handler.calc_batch_signal_avg(target_features)
-            pred_feat_std = self._loss_handler.calc_batch_signal_std(pred_features)
-            target_feat_std = self._loss_handler.calc_batch_signal_std(target_features)
 
             self._loss_handler.record_scalar_signals('loss', {'loss': loss})
             self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
             self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', interp_feat_abserror_avg)
-            self._loss_handler.record_scalar_signals('pred_feat_avg', pred_feat_avg)
-            self._loss_handler.record_scalar_signals('target_feat_avg', target_feat_avg)
-            self._loss_handler.record_scalar_signals('pred_feat_std', pred_feat_std)
-            self._loss_handler.record_scalar_signals('target_feat_std', target_feat_std)
 
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
