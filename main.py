@@ -4,7 +4,7 @@ import geomloss
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
-from lib.constants import TRAIN, VAL, CONFIG_ROOT
+from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
 from lib.model import Model
 from lib.utils import get_device, get_module_parameters
@@ -16,7 +16,7 @@ class Main():
     def __init__(self, configs):
         """Constructor."""
         self._configs = configs
-        self._data_loader = Loader((TRAIN, VAL), self._configs)
+        self._data_loader = Loader((TRAIN, VAL, TEST), self._configs)
         self._loss_handler = LossHandler(configs, self.__class__.__name__)
         self._checkpoint_handler = CheckpointHandler(configs)
         self._model = self._checkpoint_handler.init(self._init_model())
@@ -69,6 +69,11 @@ class Main():
             self._checkpoint_handler.save(self._model, epoch, train_score)
             # self._checkpoint_handler.save(self._model, epoch, val_score)
 
+    def eval(self):
+        nbr_batches = 3
+        epoch = 1
+        self._run_epoch(epoch, TEST, nbr_batches)
+
     def _sample_epoch_of_targets(self, mode, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
         selected_tasks = [task_name for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None]
@@ -94,7 +99,7 @@ class Main():
             self._model.eval()
 
         # cnt = 0
-        # visual_cnt = 0
+        visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
             nn_out = self._run_model(batch.input, batch.extra_input)
 
@@ -110,13 +115,14 @@ class Main():
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
 
             # Calculate loss
-            task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
-            for task_name, task_spec in self._configs.tasks.items():
-                if task_spec['prior_loss'] is not None:
-                    assert task_spec['prior_loss']['method'] == 'sinkhorn'
-                    loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
-                    task_loss_signal_vals[task_name + '_prior'] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], self._target_prior_samples[task_name].reshape(-1,1))
-            loss = sum(task_loss_signal_vals.values())
+            if mode in (TRAIN, VAL):
+                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
+                for task_name, task_spec in self._configs.tasks.items():
+                    if task_spec['prior_loss'] is not None:
+                        assert task_spec['prior_loss']['method'] == 'sinkhorn'
+                        loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
+                        task_loss_signal_vals[task_name + '_prior'] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], self._target_prior_samples[task_name].reshape(-1,1))
+                loss = sum(task_loss_signal_vals.values())
 
             if self._configs.training.clamp_predictions:
                 # Clamp features after loss computation (for all features)
@@ -131,9 +137,10 @@ class Main():
             interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
 
             # Scalar signals - will be plotted against epoch in TensorBoard
-            self._loss_handler.record_scalar_signals('loss', {'loss': loss})
-            self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
-            self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
+            if mode in (TRAIN, VAL):
+                self._loss_handler.record_scalar_signals('loss', {'loss': loss})
+                self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
+                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
 
             # Record feature values & corresponding errors
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
@@ -160,12 +167,16 @@ class Main():
             # if cnt % 10 == 0:
             #     self._visualizer.report_signals(self._loss_handler.get_scalar_averages(), mode)
 
-            # if cnt % 30 == 0:
-            #     visual_cnt += 1
-            #     self._visualizer.save_images(batch, nn_out, mode, visual_cnt, sample=-1)
-        self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
+            if mode == TEST:
+                for sample_idx in range(self._configs.loading.test.batch_size):
+                    self._visualizer.save_images(batch, pred_features, target_features, mode, visual_cnt, sample=sample_idx)
+                    visual_cnt += 1
 
-        self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
+        if mode in (TRAIN, VAL):
+            self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
+
+        if mode in (TRAIN, VAL):
+            self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
         self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy)
 
         # for task_name in sorted(self._configs.tasks.keys()):
@@ -186,16 +197,19 @@ class Main():
         return self._model((extra_input, img1, img2))
 
 
-def main(setup):
+def run(setup):
     args = setup.parse_arguments()
     setup.setup_logging(args.experiment_path, 'train')
     setup.prepare_environment()
     setup.save_settings(args)
     configs = setup.get_configs(args)
 
-    trainer = Main(configs)
-    # configs['data']['data_loader'] = trainer._data_loader
-    trainer.train()
+    main = Main(configs)
+    # configs['data']['data_loader'] = main._data_loader
+    if args.train_or_eval in 'train':
+        main.train()
+    else:
+        main.eval()
 
 if __name__ == '__main__':
-    main(lib.setup)
+    run(lib.setup)

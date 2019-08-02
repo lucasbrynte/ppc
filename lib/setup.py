@@ -30,8 +30,8 @@ def parse_arguments():
                         help='name of experiment to evaluate')
     parser.add_argument('--checkpoint-load-fname', default='best_model.pth.tar',
                         help='file name of the model weights to load before evaluation')
-    parser.add_argument('--eval-mode', action='append', default=[], type=str,
-                        help='For eval only. Example: "--eval-mode val --eval-mode train" performs evaluation on train & val sets, val set first.')
+    # parser.add_argument('--eval-mode', action='append', default=[], type=str,
+    #                     help='For eval only. Example: "--eval-mode val --eval-mode train" performs evaluation on train & val sets, val set first.')
     # parser.add_argument('--train-seqs', default=None, type=str)
     parser.add_argument('--obj-label', required=True, type=str)
 
@@ -40,14 +40,14 @@ def parse_arguments():
 
     if args.train_or_eval == 'eval':
         assert args.old_experiment_name is not None
-        assert len(args.eval_mode) > 0
+        # assert len(args.eval_mode) > 0
     else:
         assert args.old_experiment_name is None
-        assert args.eval_mode == []
+        # assert args.eval_mode == []
 
     args.experiment_path = os.path.join(args.experiment_root_path, args.experiment_name)
     if args.train_or_eval == 'eval':
-        args.old_experiment_path = os.path.join(args.old_experiment_root_path, args.old_experiment_name)
+        args.old_experiment_path = os.path.join(args.experiment_root_path, args.old_experiment_name)
 
     if args.overwrite_experiment and os.path.exists(args.experiment_path):
         shutil.rmtree(args.experiment_path)

@@ -12,7 +12,8 @@ class CheckpointHandler:
         self._logger = logging.getLogger(self.__class__.__name__)
         self._best_score = -float('Inf')
         self._checkpoint_dir = os.path.join(configs.experiment_path, 'checkpoints')
-        self._old_checkpoint_dir = os.path.join(configs.experiment_path, 'checkpoints')
+        if self._configs.train_or_eval == 'eval':
+            self._old_checkpoint_dir = os.path.join(configs.old_experiment_path, 'checkpoints')
         os.makedirs(self._checkpoint_dir, exist_ok=True)
 
     def init(self, model, force_load=False):
