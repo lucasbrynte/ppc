@@ -392,9 +392,11 @@ class DummyDataset(Dataset):
         # Minimum allowed distance between object and camera centers
         min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_specs[0].min_dist_obj_and_camera
 
+        MAX_NBR_RESAMPLINGS = 100
+
         assert self._data_sampling_specs[0].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
         # Resample pose until accepted
-        while True:
+        for j in range(MAX_NBR_RESAMPLINGS):
             # T1 corresponds to reference image (observed)
             T1 = self._sample_pose()
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
@@ -411,6 +413,8 @@ class DummyDataset(Dataset):
                 continue
 
             break
+        else:
+            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(MAX_NBR_RESAMPLINGS, MAX_NBR_RESAMPLINGS)
 
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
@@ -420,7 +424,7 @@ class DummyDataset(Dataset):
         K = H @ self._K
 
         # Resample perturbation until accepted
-        while True:
+        for j in range(MAX_NBR_RESAMPLINGS):
             # Perturb reference T1, to get proposed pose T2
             perturb_params = self._sample_perturbation_params()
             T2 = self._apply_perturbation(T1, perturb_params)
@@ -431,6 +435,8 @@ class DummyDataset(Dataset):
                 continue
 
             break
+        else:
+            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(MAX_NBR_RESAMPLINGS, MAX_NBR_RESAMPLINGS)
 
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
