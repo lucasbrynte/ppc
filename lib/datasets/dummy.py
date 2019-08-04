@@ -313,24 +313,19 @@ class DummyDataset(Dataset):
         }
 
     def _sample_object_pose_params(self):
-        table_size = self._data_sampling_specs[0].synthetic_ref.object_pose.table_size
         return {
-            # 'object_azimuth_angle': sample_param(self._data_sampling_specs[0].object_pose.object_azimuth_angle),
-            # 'xy_transl': sample_param(self._data_sampling_specs[0].object_pose.xy_transl),
-            'object_azimuth_angle': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
-            'xy_transl': np.random.uniform(low=-0.5*table_size, high=0.5*table_size, size=(2,)),
+            'object_azimuth_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.object_pose.object_azimuth_angle),
+            'xy_transl': sample_param(self._data_sampling_specs[0].synthetic_ref.object_pose.xy_transl),
         }
 
     def _sample_camera_pose_params(self):
         return {
             'hemisphere_polar_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle),
-            # 'hemisphere_azimuth_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_azimuth_angle),
-            'hemisphere_azimuth_angle': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
+            'hemisphere_azimuth_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_azimuth_angle),
             'hemisphere_radius': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_radius),
             'inplane_rot_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle),
             'principal_axis_perturb_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle),
-            # 'inplane_angle_for_axis_of_revolution_for_paxis_perturb': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_angle_for_axis_of_revolution_for_paxis_perturb),
-            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
+            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_angle_for_axis_of_revolution_for_paxis_perturb),
         }
 
     def _apply_perturbation(self, T1, perturb_params):
