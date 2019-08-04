@@ -333,13 +333,15 @@ class DummyDataset(Dataset):
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
         table_size = self._data_sampling_specs[0].synthetic_ref.object_pose.table_size
-        T_model2world = pose_sampler.sample_object_pose_on_xy_plane(up_dir, bottom_center, table_size)
-        T_world2cam = pose_sampler.sample_camera_pose(
+        obj_pose_params = pose_sampler.sample_params_object_pose_on_xy_plane(table_size)
+        T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
+        cam_pose_params = pose_sampler.sample_params_camera_pose(
             hemisphere_polar_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle_range),
             hemisphere_radius_range = self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_radius_range,
             inplane_rot_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle_range),
             principal_axis_perturb_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle_range),
         )
+        T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
         T1 = T_world2cam @ T_model2world
         return T1
 
