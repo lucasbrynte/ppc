@@ -53,7 +53,7 @@ class FixedSeededRandomSampler(RandomSampler):
 #         # getattr(self, mode).__getitem__(0)
 #         # assert False
 # 
-#         assert getattr(self._configs.loading, mode).batch_size == 1
+#         assert self._configs.runtime.loading.batch_size == 1
 #         for sample in getattr(self, mode):
 #             batch = collate_batch([sample])
 #             batch = Batch(*(val if fieldname != 'targets' else getattr(self, mode).dataset.Targets(*val) for fieldname, val in zip(Batch._fields, batch)))
@@ -74,7 +74,7 @@ class Loader:
 
     def _get_loader_config(self, mode, nbr_samples):
         self._datasets[mode].set_len(nbr_samples)
-        data_configs = getattr(self._configs.loading, mode)
+        data_configs = self._configs.runtime.loading
         loader_config = {}
         loader_config['dataset'] = self._datasets[mode]
         loader_config['collate_fn'] = collate_batch

@@ -42,7 +42,7 @@ class Main():
         weight_decay = self._configs.training.weight_decay if self._configs.training.weight_decay is not None else 0
         return torch.optim.Adam(
             self._model.parameters(),
-            lr=self._configs.training.learning_rate * np.sqrt(self._configs.loading.train.batch_size),
+            lr=self._configs.training.learning_rate * np.sqrt(self._configs.runtime.loading.batch_size),
             weight_decay=weight_decay,
         )
 
@@ -80,7 +80,7 @@ class Main():
         selected_tasks = [task_name for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None]
 
         cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.runtime.loading.batch_size)):
             target_features = self._loss_handler.get_target_features(batch.targets, selected_tasks=selected_tasks)
             target_features_raw = self._loss_handler.apply_inverse_activation(target_features)
             self._loss_handler.record_tensor_signals('target_feat_raw', target_features_raw)
@@ -101,7 +101,7 @@ class Main():
 
         # cnt = 0
         visual_cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.loading[mode]['batch_size'])):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.runtime.loading.batch_size)):
             nn_out = self._run_model(batch.input, batch.extra_input)
 
             # Raw predicted features (neural net output)
@@ -169,7 +169,7 @@ class Main():
             #     self._visualizer.report_signals(self._loss_handler.get_scalar_averages(), mode)
 
             if mode == TEST:
-                for sample_idx in range(self._configs.loading.test.batch_size):
+                for sample_idx in range(self._configs.runtime.loading.batch_size):
                     self._visualizer.save_images(batch, pred_features, target_features, mode, visual_cnt, sample=sample_idx)
                     visual_cnt += 1
 

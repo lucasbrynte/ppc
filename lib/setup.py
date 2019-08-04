@@ -105,8 +105,10 @@ def save_settings(args):
     shutil.copytree(os.path.join(CONFIG_ROOT, args.config_name), experiment_settings_path)
     shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_setup.yml'),
                     os.path.join(experiment_settings_path, 'default_setup.yml'))
-    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_runtime.yml'),
-                    os.path.join(experiment_settings_path, 'default_runtime.yml'))
+    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_runtime_train.yml'),
+                    os.path.join(experiment_settings_path, 'default_runtime_train.yml'))
+    shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_runtime_eval.yml'),
+                    os.path.join(experiment_settings_path, 'default_runtime_eval.yml'))
 
     with open(os.path.join(experiment_settings_path, 'args.yml'), 'w') as file:
         yaml.dump(vars(args), file, Dumper=yaml.CDumper)
@@ -118,6 +120,10 @@ def get_configs(args):
             os.path.join(CONFIG_ROOT, 'default_setup.yml'),
             os.path.join(CONFIG_ROOT, args.config_name, 'setup.yml'),
         )
+        configs.runtime = read_attrdict_from_default_and_specific_yaml(
+            os.path.join(CONFIG_ROOT, 'default_runtime_train.yml'),
+            os.path.join(CONFIG_ROOT, args.config_name, 'runtime_train.yml'),
+        )
     else:
         # Read from old experiment
         old_experiment_settings_path = os.path.join(args.old_experiment_path, 'settings')
@@ -125,19 +131,11 @@ def get_configs(args):
             os.path.join(old_experiment_settings_path, 'default_setup.yml'),
             os.path.join(old_experiment_settings_path, args.config_name, 'setup.yml'),
         )
-
-    configs.runtime = read_attrdict_from_default_and_specific_yaml(
-        os.path.join(CONFIG_ROOT, 'default_runtime.yml'),
-        os.path.join(CONFIG_ROOT, args.config_name, 'runtime.yml'),
-    )
+        configs.runtime = read_attrdict_from_default_and_specific_yaml(
+            os.path.join(CONFIG_ROOT, 'default_runtime_eval.yml'),
+            os.path.join(CONFIG_ROOT, args.config_name, 'runtime_eval.yml'),
+        )
 
     configs += vars(args)
-
-    if args.train_or_eval == 'eval':
-        # NOTE: The loading options for TEST is used also for TRAIN & VAL during evaluation.
-        configs['loading'][TRAIN]['shuffle'] = configs['loading'][TEST]['shuffle']
-        configs['loading'][VAL]['shuffle'] = configs['loading'][TEST]['shuffle']
-        # configs['loading'][TRAIN]['max_nbr_batches'] = configs['loading'][TEST]['max_nbr_batches']
-        # configs['loading'][VAL]['max_nbr_batches'] = configs['loading'][TEST]['max_nbr_batches']
 
     return configs
