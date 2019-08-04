@@ -390,7 +390,7 @@ class DummyDataset(Dataset):
 
     def _generate_sample(self):
         # Minimum allowed distance between object and camera centers
-        min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_specs[0].perturbation.min_dist_obj_and_camera
+        min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_specs[0].min_dist_obj_and_camera
 
         assert self._data_sampling_specs[0].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
         # Resample pose until accepted
