@@ -308,10 +308,8 @@ class DummyDataset(Dataset):
         return {
             # 'axis_of_revolution': sample_param(self._data_sampling_specs[0].perturbation.axis_of_revolution),
             'axis_of_revolution': uniform_sampling_on_S2(),
-            # Gaussian distribution
-            'angle': np.pi/180. * sample_param(self._data_sampling_specs[0].perturbation.angle),
+            'angle': sample_param(self._data_sampling_specs[0].perturbation.angle),
             'object_bias_over_extent': sample_param(self._data_sampling_specs[0].perturbation.object_bias_over_extent),
-            # Log-normal distribution
             'depth_rescale_factor': sample_param(self._data_sampling_specs[0].perturbation.depth_rescale_factor),
         }
 
@@ -320,20 +318,20 @@ class DummyDataset(Dataset):
         return {
             # 'object_azimuth_angle': sample_param(self._data_sampling_specs[0].object_pose.object_azimuth_angle),
             # 'xy_transl': sample_param(self._data_sampling_specs[0].object_pose.xy_transl),
-            'object_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
+            'object_azimuth_angle': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
             'xy_transl': np.random.uniform(low=-0.5*table_size, high=0.5*table_size, size=(2,)),
         }
 
     def _sample_camera_pose_params(self):
         return {
-            'hemisphere_polar_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle),
-            # 'hemisphere_azimuth_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_azimuth_angle),
-            'hemisphere_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
+            'hemisphere_polar_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle),
+            # 'hemisphere_azimuth_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_azimuth_angle),
+            'hemisphere_azimuth_angle': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
             'hemisphere_radius': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_radius),
-            'inplane_rot_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle),
-            'principal_axis_perturb_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle),
-            # 'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_angle_for_axis_of_revolution_for_paxis_perturb),
-            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
+            'inplane_rot_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle),
+            'principal_axis_perturb_angle': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle),
+            # 'inplane_angle_for_axis_of_revolution_for_paxis_perturb': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_angle_for_axis_of_revolution_for_paxis_perturb),
+            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.random.uniform(low=0., high=360.), # No reason to limit these perturbations - all angles allowed
         }
 
     def _apply_perturbation(self, T1, perturb_params):
@@ -341,7 +339,7 @@ class DummyDataset(Dataset):
         transl = self._get_object_dimensions() * perturb_params['object_bias_over_extent']
 
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
-        T_perturb_obj = get_translation(transl) @ get_rotation_axis_angle(perturb_params['axis_of_revolution'], perturb_params['angle'])
+        T_perturb_obj = get_translation(transl) @ get_rotation_axis_angle(perturb_params['axis_of_revolution'], np.pi/180.*perturb_params['angle'])
         T2 = T1 @ T_perturb_obj
 
         # Additional perturbation along viewing ray

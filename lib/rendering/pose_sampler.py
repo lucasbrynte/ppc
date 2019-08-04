@@ -27,7 +27,7 @@ class PoseSampler():
             T_align_up_dir = get_rotation_axis_angle(axis, angle)
 
         # Random rotation around z-axis
-        T_azimuth = get_rotation_axis_angle(np.array([0., 0., 1.]), obj_pose_params['object_azimuth_angle'])
+        T_azimuth = get_rotation_axis_angle(np.array([0., 0., 1.]), np.pi/180.*obj_pose_params['object_azimuth_angle'])
 
         # Random xy-translation (on table)
         t = np.zeros((3,))
@@ -49,9 +49,9 @@ class PoseSampler():
         #     (z-axis) projects to "up" (negative y) in the image.
         # ==========================================================================
         # Rotation around z-axis
-        T_azimuth = get_rotation_axis_angle(np.array([0., 0., 1.]), cam_pose_params['hemisphere_azimuth_angle'])
+        T_azimuth = get_rotation_axis_angle(np.array([0., 0., 1.]), np.pi/180.*cam_pose_params['hemisphere_azimuth_angle'])
         # Rotation around x-axis (might as well have been y-axis)
-        angle = np.pi - cam_pose_params['hemisphere_polar_angle'] # Pi degrees moves camera to bird's eye view. Subtract polar angle from pi.
+        angle = np.pi/180. * (180. - cam_pose_params['hemisphere_polar_angle']) # 180 degrees moves camera to bird's eye view. Subtract polar angle from 180.
         T_polar = get_rotation_axis_angle(np.array([1., 0., 0.]), angle)
         # Translation along principal axis
         T_transl_to_hemisphere = get_translation([0., 0., cam_pose_params['hemisphere_radius']])
@@ -60,15 +60,15 @@ class PoseSampler():
         # 2)  A random rotational perturbation around the principal axis is applied.
         # ==========================================================================
         # Rotation around z-axis
-        T_inplane_rot = get_rotation_axis_angle(np.array([0., 0., 1.]), cam_pose_params['inplane_rot_angle'])
+        T_inplane_rot = get_rotation_axis_angle(np.array([0., 0., 1.]), np.pi/180.*cam_pose_params['inplane_rot_angle'])
 
         # ==========================================================================
         # 3)  A random rotational perturbation of the principal axis itself is applied.
         #     A random vector in the principal plane is sampled, defining an axis
         #     around which yet another random rotational perturbation is applied.
         # ==========================================================================
-        axis_of_revolution_for_principal_axis_perturbation = np.array([np.cos(cam_pose_params['inplane_angle_for_axis_of_revolution_for_paxis_perturb']), np.sin(cam_pose_params['inplane_angle_for_axis_of_revolution_for_paxis_perturb']), 0.0])
-        T_perturb_principal_axis = get_rotation_axis_angle(axis_of_revolution_for_principal_axis_perturbation, cam_pose_params['principal_axis_perturb_angle'])
+        axis_of_revolution_for_principal_axis_perturbation = np.array([np.cos(np.pi/180.*cam_pose_params['inplane_angle_for_axis_of_revolution_for_paxis_perturb']), np.sin(np.pi/180.*cam_pose_params['inplane_angle_for_axis_of_revolution_for_paxis_perturb']), 0.0])
+        T_perturb_principal_axis = get_rotation_axis_angle(axis_of_revolution_for_principal_axis_perturbation, np.pi/180.*cam_pose_params['principal_axis_perturb_angle'])
 
         # ==========================================================================
         # Everything put together
