@@ -14,7 +14,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pflat, pillow_to_pt
-from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param
+from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -142,9 +142,16 @@ class DummyDataset(Dataset):
     def _at_epoch_start(self):
         self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at start of epoch.
         # self._renderer = self._init_renderer()
+        self._quantile_ranges = self._calc_deterministic_quantile_ranges()
 
+    def _calc_deterministic_quantile_ranges(self):
+        return {
+            'perturbation': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].perturbation.items() if sample_spec['deterministic_quantile_range']},
+            'object_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.object_pose.items() if sample_spec['deterministic_quantile_range']},
+            'camera_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.camera_pose.items() if sample_spec['deterministic_quantile_range']},
+        }
     def __getitem__(self, index):
-        data, targets, extra_input = self._generate_sample()
+        data, targets, extra_input = self._generate_sample(index)
         return Sample(targets, data, extra_input)
 
     def _render(self, K, R, t):
@@ -305,14 +312,14 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _sample_perturbation_params(self):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].perturbation.items()}
+    def _sample_perturbation_params(self, index):
+        return {param_name: self._quantile_ranges['perturbation'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].perturbation.items()}
 
-    def _sample_object_pose_params(self):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.object_pose.items()}
+    def _sample_object_pose_params(self, index):
+        return {param_name: self._quantile_ranges['object_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.object_pose.items()}
 
-    def _sample_camera_pose_params(self):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.camera_pose.items()}
+    def _sample_camera_pose_params(self, index):
+        return {param_name: self._quantile_ranges['camera_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.camera_pose.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -328,18 +335,18 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_pose(self):
+    def _sample_pose(self, index):
         pose_sampler = PoseSampler()
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
         # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
-        obj_pose_params = self._sample_object_pose_params()
+        obj_pose_params = self._sample_object_pose_params(index)
         T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
         # Sample parameters for a camera pose.
-        cam_pose_params = self._sample_camera_pose_params()
+        cam_pose_params = self._sample_camera_pose_params(index)
         T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
 
         T1 = T_world2cam @ T_model2world
@@ -387,7 +394,7 @@ class DummyDataset(Dataset):
         else:
             assert False
 
-    def _generate_sample(self):
+    def _generate_sample(self, index):
         # Minimum allowed distance between object and camera centers
         min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_specs[0].min_dist_obj_and_camera
 
@@ -397,7 +404,7 @@ class DummyDataset(Dataset):
         # Resample pose until accepted
         for j in range(MAX_NBR_RESAMPLINGS):
             # T1 corresponds to reference image (observed)
-            T1 = self._sample_pose()
+            T1 = self._sample_pose(index)
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             if T1[2,3] < min_dist_obj_and_camera_centers:
@@ -425,7 +432,7 @@ class DummyDataset(Dataset):
         # Resample perturbation until accepted
         for j in range(MAX_NBR_RESAMPLINGS):
             # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params()
+            perturb_params = self._sample_perturbation_params(index)
             T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 

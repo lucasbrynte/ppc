@@ -5,6 +5,7 @@ from attrdict import AttrDict
 import math
 import numpy as np
 from scipy.spatial.transform import Rotation
+from scipy.stats import uniform, norm
 import torch
 from torchvision.transforms.functional import normalize, to_tensor
 
@@ -136,6 +137,23 @@ def sample_param(sample_spec):
         assert False, 'Unrecognized sampling method: {}'.format(sample_spec.method)
     assert param.shape == shape
     return param
+
+def calc_param_quantile_range(sample_spec, nbr_quantiles):
+    if hasattr(sample_spec, 'shape'):
+        assert sample_spec.shape == (), 'Quantiles may only be computed for scalar params'
+    if sample_spec.method == 'uniform':
+        quantile_range = np.linspace(0., 1., nbr_quantiles)
+        quantile_range = uniform.ppf(quantile_range, loc=sample_spec.range[0], scale=sample_spec.range[1]-sample_spec.range[0])
+    elif sample_spec.method == 'normal':
+        quantile_range = np.linspace(0., 1., nbr_quantiles+2)[1:-1] # Avoid endpoints (infinite support)
+        quantile_range = norm.ppf(quantile_range, loc=sample_spec.loc, scale=sample_spec.scale)
+    elif sample_spec.method == 'lognormal':
+        quantile_range = np.linspace(0., 1., nbr_quantiles+2)[1:-1] # Avoid endpoints (infinite support)
+        quantile_range = np.exp(norm.ppf(quantile_range, loc=np.log(sample_spec.loc), scale=np.log(sample_spec.scale)))
+    else:
+        assert False, 'Sampling method does not support calculating quantile range: {}'.format(sample_spec.method)
+    assert quantile_range.shape == (nbr_quantiles,)
+    return quantile_range
 
 def get_human_interp_maps(configs, api):
     """
