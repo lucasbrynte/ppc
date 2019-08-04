@@ -138,9 +138,11 @@ class DummyDataset(Dataset):
         np.random.seed(pid)
         open(pid_path, 'w').close()
 
-    def __getitem__(self, index):
-        self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at every sampling.
+    def _at_epoch_start(self):
+        self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at start of epoch.
         # self._renderer = self._init_renderer()
+
+    def __getitem__(self, index):
         data, targets, extra_input = self._generate_sample()
         return Sample(targets, data, extra_input)
 

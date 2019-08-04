@@ -39,6 +39,33 @@ class FixedSeededRandomSampler(RandomSampler):
     def _reset_rng_state(self):
         torch.set_rng_state(self._rng_state)
 
+def apply_callback_at_start_of_epoch(SamplerClass, at_epoch_start=None):
+    """
+    Takes a sampler class, and wraps it into another sampler using inheritance.
+    When iterating over the sampler, the given callback function will first be called, and the dataset object will be passed to the callback.
+    If no callback supplied, dataset._at_epoch_start() will be called instead (if such a method exists).
+    """
+
+    def at_epoch_start_default(dataset):
+        try:
+            dataset._at_epoch_start()
+        except AttributeError:
+            pass
+    if at_epoch_start is None:
+        at_epoch_start = at_epoch_start_default
+
+    class SamplerWrapperWithStartOfEpochCallback(SamplerClass):
+        def __init__(self, *args, **kwargs):
+            dataset = args[0]
+            super().__init__(*args, **kwargs)
+            self._dataset = dataset
+
+        def __iter__(self):
+            at_epoch_start(self._dataset)
+            return super().__iter__()
+
+    return SamplerWrapperWithStartOfEpochCallback
+
 # class Loader:
 #     """docstring for Loader."""
 #     def __init__(self, modes, configs):
@@ -82,15 +109,21 @@ class Loader:
         loader_config['batch_size'] = data_configs.batch_size
         # loader_config['num_workers'] = data_configs.num_workers
         loader_config['drop_last'] = True
+
+        sampler_args = [self._datasets[mode]]
+        sampler_kwargs = {}
         if data_configs.shuffle == True:
-            loader_config['sampler'] = RandomSampler(self._datasets[mode])
+            Sampler = RandomSampler
         elif data_configs.shuffle == False:
-            loader_config['sampler'] = SequentialSampler(self._datasets[mode])
+            Sampler = SequentialSampler
         elif data_configs.shuffle == 'fixed':
-            loader_config['sampler'] = FixedSeededRandomSampler(self._datasets[mode], seed='314159')
+            Sampler = FixedSeededRandomSampler
+            sampler_kwargs['seed'] = '314159'
         else:
             # Should not happen
             assert False
+        loader_config['sampler'] = apply_callback_at_start_of_epoch(Sampler)(*sampler_args, **sampler_kwargs)
+
         return loader_config
 
     def gen_batches(self, mode, nbr_samples):
