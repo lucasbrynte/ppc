@@ -310,7 +310,7 @@ class DummyDataset(Dataset):
             'axis_of_revolution': uniform_sampling_on_S2(),
             # Gaussian distribution
             'angle': np.pi/180. * sample_param(self._data_sampling_specs[0].perturbation.angle),
-            'transl': self._get_object_dimensions() * sample_param(self._data_sampling_specs[0].perturbation.object_bias_over_extent),
+            'object_bias_over_extent': sample_param(self._data_sampling_specs[0].perturbation.object_bias_over_extent),
             # Log-normal distribution
             'depth_rescale_factor': sample_param(self._data_sampling_specs[0].perturbation.depth_rescale_factor),
         }
@@ -337,8 +337,11 @@ class DummyDataset(Dataset):
         }
 
     def _apply_perturbation(self, T1, perturb_params):
+        # Map bias / extent ratio to actual translation:
+        transl = self._get_object_dimensions() * perturb_params['object_bias_over_extent']
+
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
-        T_perturb_obj = get_translation(perturb_params['transl']) @ get_rotation_axis_angle(perturb_params['axis_of_revolution'], perturb_params['angle'])
+        T_perturb_obj = get_translation(transl) @ get_rotation_axis_angle(perturb_params['axis_of_revolution'], perturb_params['angle'])
         T2 = T1 @ T_perturb_obj
 
         # Additional perturbation along viewing ray
