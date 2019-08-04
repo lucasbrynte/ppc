@@ -126,6 +126,8 @@ def sample_param(sample_spec):
         param = np.array(sample_spec.value)
     elif sample_spec.method == 'uniform':
         param = np.random.uniform(low=sample_spec.range[0], high=sample_spec.range[1], size=shape)
+    elif sample_spec.method == 'uniform_S2':
+        param = uniform_sampling_on_S2(shape=())
     elif sample_spec.method == 'normal':
         param = np.random.normal(loc=sample_spec.loc, scale=sample_spec.scale, size=shape)
     elif sample_spec.method == 'lognormal':

@@ -306,8 +306,7 @@ class DummyDataset(Dataset):
 
     def _sample_perturbation_params(self):
         return {
-            # 'axis_of_revolution': sample_param(self._data_sampling_specs[0].perturbation.axis_of_revolution),
-            'axis_of_revolution': uniform_sampling_on_S2(),
+            'axis_of_revolution': sample_param(self._data_sampling_specs[0].perturbation.axis_of_revolution),
             'angle': sample_param(self._data_sampling_specs[0].perturbation.angle),
             'object_bias_over_extent': sample_param(self._data_sampling_specs[0].perturbation.object_bias_over_extent),
             'depth_rescale_factor': sample_param(self._data_sampling_specs[0].perturbation.depth_rescale_factor),
