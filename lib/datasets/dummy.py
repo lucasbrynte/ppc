@@ -304,26 +304,27 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _apply_perturbation(self, T1):
+    def _sample_perturbation_params(self):
         STD_ANGLE = np.pi/180. * np.array(self._data_sampling_specs[0].perturbation.std_angle)
         STD_OBJECT_BIAS = self._get_object_dimensions() * self._data_sampling_specs[0].perturbation.std_object_bias_over_extent
         STD_DEPTH_RESCALE_FACTOR = self._data_sampling_specs[0].perturbation.std_depth_rescale_factor
+        return {
+            'axis_of_revolution': uniform_sampling_on_S2(),
+            # Gaussian distribution
+            'angle': np.random.normal(loc=0.0, scale=STD_ANGLE),
+            'transl': np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS, size=(3,)),
+            # Log-normal distribution
+            'depth_rescale_factor': np.exp(np.random.normal(loc=0.0, scale=np.log(STD_DEPTH_RESCALE_FACTOR))),
+        }
 
-        random_axis = uniform_sampling_on_S2()
-
-        # Gaussian distribution
-        random_angle = np.random.normal(loc=0.0, scale=STD_ANGLE)
-        random_transl = np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS, size=(3,))
-        # Log-normal distribution
-        random_depth_rescale_factor = np.exp(np.random.normal(loc=0.0, scale=np.log(STD_DEPTH_RESCALE_FACTOR)))
-
+    def _apply_perturbation(self, T1, perturb_params):
         # Note: perturbation in object frame. We want to apply rotations around object center rather than camera center (which would be quite uncontrolled).
-        T_perturb_obj = get_translation(random_transl) @ get_rotation_axis_angle(random_axis, random_angle)
+        T_perturb_obj = get_translation(perturb_params['transl']) @ get_rotation_axis_angle(perturb_params['axis_of_revolution'], perturb_params['angle'])
         T2 = T1 @ T_perturb_obj
 
         # Additional perturbation along viewing ray
         old_depth = T2[2,3]
-        T2 = self._set_depth_by_translation_along_viewing_ray(T2, old_depth * random_depth_rescale_factor)
+        T2 = self._set_depth_by_translation_along_viewing_ray(T2, old_depth * perturb_params['depth_rescale_factor'])
 
         return T2
 
@@ -421,7 +422,8 @@ class DummyDataset(Dataset):
         # Resample perturbation until accepted
         while True:
             # Perturb reference T1, to get proposed pose T2
-            T2 = self._apply_perturbation(T1)
+            perturb_params = self._sample_perturbation_params()
+            T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
             if T2[2,3] < min_dist_obj_and_camera_centers:
