@@ -5,10 +5,11 @@ import os
 import yaml
 import shutil
 import torch
+from attrdict import AttrDict
 
 from lib.constants import PROJECT_PATH, TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.utils import show_gpu_info
-from lib.utils import read_attrdict_from_default_and_specific_yaml
+from lib.utils import read_yaml_as_attrdict, read_attrdict_from_default_and_specific_yaml
 
 
 def parse_arguments():
@@ -109,6 +110,8 @@ def save_settings(args):
                     os.path.join(experiment_settings_path, 'default_runtime_train.yml'))
     shutil.copyfile(os.path.join(CONFIG_ROOT, 'default_runtime_eval.yml'),
                     os.path.join(experiment_settings_path, 'default_runtime_eval.yml'))
+    shutil.copyfile(os.path.join(CONFIG_ROOT, 'data_sampling_specs.yml'),
+                    os.path.join(experiment_settings_path, 'data_sampling_specs.yml'))
 
     with open(os.path.join(experiment_settings_path, 'args.yml'), 'w') as file:
         yaml.dump(vars(args), file, Dumper=yaml.CDumper)
@@ -135,6 +138,15 @@ def get_configs(args):
             os.path.join(CONFIG_ROOT, 'default_runtime_eval.yml'),
             os.path.join(CONFIG_ROOT, args.config_name, 'runtime_eval.yml'),
         )
+
+    # Determine choice of data sampling specs for each mode, and store them in config
+    all_sampling_specs = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'data_sampling_specs.yml'))
+    modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
+    sampling_specs = {}
+    for mode in modes:
+        spec_refs = configs.runtime.data_sampling_def[mode] # List of elements such as {spec_name: rot_only_20deg_std}
+        sampling_specs[mode] = [all_sampling_specs[spec_ref['spec_name']] for spec_ref in spec_refs] # Map all such elements to the corresponding data sampling specs
+    configs['runtime']['data_sampling'] = AttrDict(sampling_specs)
 
     configs += vars(args)
 
