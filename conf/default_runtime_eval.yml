@@ -1,6 +1,7 @@
 loading:
   batch_size: 32
-  shuffle: fixed
+  # shuffle: fixed
+  shuffle: false
 data_sampling_def:
   test:
-    - {spec_name: rot_only_20deg_std}
+    - {spec_name: rot_only_20deg_std_quantile}
