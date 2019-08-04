@@ -15,6 +15,7 @@ WS=/tmp/ppc-ws-$TMP_SUFFIX
 rm -rf $WS
 cp -r $REPOPATH $WS
 
+# PROFILE_ARGS="-m cProfile -s cumtime"
 
 OBJECTS=(duck)
 # Discard driller (not present in validation sequence):
@@ -40,7 +41,7 @@ for OBJ in ${OBJECTS[@]}; do
         -v $WS:/workspace/ppc \
         -v /hdd/lucas/out/ppc-experiments:/workspace/ppc/experiments \
         -v $DATAPATH:/datasets/occluded-linemod-augmented \
-        $CONTAINER python main.py \
+        $CONTAINER python $PROFILE_ARGS main.py \
         eval \
         --overwrite-experiment \
         --config-name $CONFIGNAME \
