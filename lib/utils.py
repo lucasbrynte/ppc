@@ -117,6 +117,21 @@ def get_translation(translation_vec):
     T[0:3, 3] = translation_vec
     return T
 
+def sample_param(sample_spec):
+    shape = sample_spec.shape if hasattr(sample_spec, 'shape') else ()
+    if sample_spec.method == 'fixed':
+        param = np.array(sample_spec.value)
+    elif sample_spec.method == 'uniform':
+        param = np.random.uniform(low=sample_spec.range[0], high=sample_spec.range[1], size=shape)
+    elif sample_spec.method == 'normal':
+        param = np.random.normal(loc=sample_spec.loc, scale=sample_spec.scale, size=shape)
+    elif sample_spec.method == 'lognormal':
+        param = np.exp(np.random.normal(loc=np.log(sample_spec.loc), scale=np.log(sample_spec.scale), size=shape))
+    else:
+        assert False, 'Unrecognized sampling method: {}'.format(sample_spec.method)
+    assert param.shape == shape
+    return param
+
 def get_human_interp_maps(configs, api):
     """
     Determine how to map output features into human-interpretable quantities.

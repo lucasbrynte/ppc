@@ -3,20 +3,7 @@ import numpy as np
 
 from lib.utils import get_rotation_axis_angle, get_translation
 
-
 class PoseSampler():
-    def sample_params_object_pose_on_xy_plane(self, table_size):
-        """
-        Samples parameters for an object pose such that the object is placed somewhere on the xy-plane.
-
-        Arguments:
-            table_size     - Size of table on which object position is sampled
-        """
-        return {
-            'object_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
-            'xy_transl': np.random.uniform(low=-0.5*table_size, high=0.5*table_size, size=(2,)),
-        }
-
     def calc_object_pose_on_xy_plane(self, obj_pose_params, up_dir, bottom_center):
         """
         Given a set of sampled object pose parameters, returns the corresponding
@@ -49,36 +36,6 @@ class PoseSampler():
 
         T_model2world = T_transl_on_table @ T_azimuth @ T_align_up_dir @ T_bottom2origin
         return T_model2world
-
-    def sample_params_camera_pose(
-            self,
-            hemisphere_polar_angle_range = [0., np.pi/2],
-            hemisphere_radius_range = [0.7, 1.5],
-            inplane_rot_angle_range = [-np.pi/6, np.pi/6],
-            principal_axis_perturb_angle_range = [-np.pi/6, np.pi/6],
-        ):
-        """
-        Samples parameters for a camera pose such that a virtual "table" on the
-        xy-plane, centered at the origin, is seen in the camera.
-
-        Sampling will be done as follows:
-            1)  Sample camera distance & elevation angle. Initialize camera on the
-                hemisphere above the table (positive z), such that the principal
-                axis points towards the world origin, and the world's "up" direction
-                (z-axis) projects to "up" (negative y) in the image.
-            2)  A random rotational perturbation around the principal axis is applied.
-            3)  A random rotational perturbation of the principal axis itself is applied.
-                A random vector in the principal plane is sampled, defining an axis
-                around which yet another random rotational perturbation is applied.
-        """
-        return {
-            'hemisphere_polar_angle': np.random.uniform(low=hemisphere_polar_angle_range[0], high=hemisphere_polar_angle_range[1]),
-            'hemisphere_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
-            'hemisphere_radius': np.random.uniform(low=hemisphere_radius_range[0], high=hemisphere_radius_range[1]),
-            'inplane_rot_angle': np.random.uniform(low=inplane_rot_angle_range[0], high=inplane_rot_angle_range[1]),
-            'principal_axis_perturb_angle': np.random.uniform(low=principal_axis_perturb_angle_range[0], high=principal_axis_perturb_angle_range[1]),
-            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
-        }
 
     def calc_camera_pose(self, cam_pose_params):
         """

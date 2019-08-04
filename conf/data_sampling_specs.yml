@@ -4,16 +4,16 @@ rot_only_20deg_std:
     object_pose:
       table_size: 1000.0 # 1000 mm
     camera_pose:
-      hemisphere_polar_angle_range: [0., 90.] # 0-90 deg, i.e. from bird's eye to horizontal camera
-      hemisphere_radius_range: [700., 1500.] # 700 - 1500 mm
-      # inplane_rot_angle_range: [-30., 30.] # +- 30 deg
-      inplane_rot_angle_range: [-60., 60.] # +- 60 deg
-      principal_axis_perturb_angle_range: [-30., 30.] # +- 30 deg
+      hemisphere_polar_angle:          {method: uniform, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_radius:               {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
+      # inplane_rot_angle:               {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_rot_angle:               {method: uniform, range: [-60., 60.]} # +- 60 deg
+      principal_axis_perturb_angle:    {method: uniform, range: [-30., 30.]} # +- 30 deg
   perturbation:
-    std_angle: 20.
-    std_object_bias_over_extent: 0.0
-    std_depth_rescale_factor: 1.0
-    # std_angle: 90. # 90 degrees
-    # std_object_bias_over_extent: 0.2 # 20% of object size along each dimension
-    # std_depth_rescale_factor: 1.3
+    angle:                             {method: normal, loc: 0.0, scale: 20.}
+    object_bias_over_extent:           {method: normal, loc: 0.0, scale: 0.0, shape: [3]}
+    depth_rescale_factor:              {method: lognormal, loc: 1.0, scale: 1.0}
+    # angle:                             {method: normal, loc: 0.0, scale: 90. # 90 degrees}
+    # object_bias_over_extent:           {method: normal, loc: 0.0, scale: 0.2} # 20% of object size along each dimension
+    # depth_rescale_factor:              {method: lognormal, loc: 1.0, scale: 1.3}
   min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center

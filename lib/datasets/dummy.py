@@ -13,7 +13,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pflat, pillow_to_pt
-from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation
+from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -305,16 +305,35 @@ class DummyDataset(Dataset):
         return T
 
     def _sample_perturbation_params(self):
-        STD_ANGLE = np.pi/180. * np.array(self._data_sampling_specs[0].perturbation.std_angle)
-        STD_OBJECT_BIAS = self._get_object_dimensions() * self._data_sampling_specs[0].perturbation.std_object_bias_over_extent
-        STD_DEPTH_RESCALE_FACTOR = self._data_sampling_specs[0].perturbation.std_depth_rescale_factor
         return {
+            # 'axis_of_revolution': sample_param(self._data_sampling_specs[0].perturbation.axis_of_revolution),
             'axis_of_revolution': uniform_sampling_on_S2(),
             # Gaussian distribution
-            'angle': np.random.normal(loc=0.0, scale=STD_ANGLE),
-            'transl': np.random.normal(loc=0.0, scale=STD_OBJECT_BIAS, size=(3,)),
+            'angle': np.pi/180. * sample_param(self._data_sampling_specs[0].perturbation.angle),
+            'transl': self._get_object_dimensions() * sample_param(self._data_sampling_specs[0].perturbation.object_bias_over_extent),
             # Log-normal distribution
-            'depth_rescale_factor': np.exp(np.random.normal(loc=0.0, scale=np.log(STD_DEPTH_RESCALE_FACTOR))),
+            'depth_rescale_factor': sample_param(self._data_sampling_specs[0].perturbation.depth_rescale_factor),
+        }
+
+    def _sample_object_pose_params(self):
+        table_size = self._data_sampling_specs[0].synthetic_ref.object_pose.table_size
+        return {
+            # 'object_azimuth_angle': sample_param(self._data_sampling_specs[0].object_pose.object_azimuth_angle),
+            # 'xy_transl': sample_param(self._data_sampling_specs[0].object_pose.xy_transl),
+            'object_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
+            'xy_transl': np.random.uniform(low=-0.5*table_size, high=0.5*table_size, size=(2,)),
+        }
+
+    def _sample_camera_pose_params(self):
+        return {
+            'hemisphere_polar_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle),
+            # 'hemisphere_azimuth_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_azimuth_angle),
+            'hemisphere_azimuth_angle': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
+            'hemisphere_radius': sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_radius),
+            'inplane_rot_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle),
+            'principal_axis_perturb_angle': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle),
+            # 'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.pi/180. * sample_param(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_angle_for_axis_of_revolution_for_paxis_perturb),
+            'inplane_angle_for_axis_of_revolution_for_paxis_perturb': np.random.uniform(low=0., high=2.*np.pi), # No reason to limit these perturbations - all angles allowed
         }
 
     def _apply_perturbation(self, T1, perturb_params):
@@ -333,16 +352,15 @@ class DummyDataset(Dataset):
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
-        table_size = self._data_sampling_specs[0].synthetic_ref.object_pose.table_size
-        obj_pose_params = pose_sampler.sample_params_object_pose_on_xy_plane(table_size)
+
+        # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
+        obj_pose_params = self._sample_object_pose_params()
         T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
-        cam_pose_params = pose_sampler.sample_params_camera_pose(
-            hemisphere_polar_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_polar_angle_range),
-            hemisphere_radius_range = self._data_sampling_specs[0].synthetic_ref.camera_pose.hemisphere_radius_range,
-            inplane_rot_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.inplane_rot_angle_range),
-            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._data_sampling_specs[0].synthetic_ref.camera_pose.principal_axis_perturb_angle_range),
-        )
+
+        # Sample parameters for a camera pose.
+        cam_pose_params = self._sample_camera_pose_params()
         T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
+
         T1 = T_world2cam @ T_model2world
         return T1
 
