@@ -11,8 +11,8 @@ rot_only_20deg_std:
       principal_axis_perturb_angle:    {method: uniform, range: [-30., 30.]} # +- 30 deg
   perturbation:
     angle:                             {method: normal, loc: 0.0, scale: 20.}
-    object_bias_over_extent:           {method: normal, loc: 0.0, scale: 0.0, shape: [3]}
-    depth_rescale_factor:              {method: lognormal, loc: 1.0, scale: 1.0}
+    object_bias_over_extent:           {method: fixed, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:              {method: fixed, value: 1.0}
     # angle:                             {method: normal, loc: 0.0, scale: 90. # 90 degrees}
     # object_bias_over_extent:           {method: normal, loc: 0.0, scale: 0.2} # 20% of object size along each dimension
     # depth_rescale_factor:              {method: lognormal, loc: 1.0, scale: 1.3}
