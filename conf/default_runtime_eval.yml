@@ -2,15 +2,17 @@ loading:
   batch_size: 32
   shuffle: fixed
 sampling:
-  object_pose:
-    table_size: 1000.0 # 1000 mm
-  camera_pose:
-    hemisphere_polar_angle_range: [0., 90.] # 0-90 deg, i.e. from bird's eye to horizontal camera
-    hemisphere_radius_range: [700., 1500.] # 700 - 1500 mm
-    # inplane_rot_angle_range: [-30., 30.] # +- 30 deg
-    inplane_rot_angle_range: [-60., 60.] # +- 60 deg
-    principal_axis_perturb_angle_range: [-30., 30.] # +- 30 deg
-    min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
+  ref_source: synthetic
+  synthetic_ref:
+    object_pose:
+      table_size: 1000.0 # 1000 mm
+    camera_pose:
+      hemisphere_polar_angle_range: [0., 90.] # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_radius_range: [700., 1500.] # 700 - 1500 mm
+      # inplane_rot_angle_range: [-30., 30.] # +- 30 deg
+      inplane_rot_angle_range: [-60., 60.] # +- 60 deg
+      principal_axis_perturb_angle_range: [-30., 30.] # +- 30 deg
+      min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
   perturbation:
     std_angle: 20.
     std_object_bias_over_extent: 0.0

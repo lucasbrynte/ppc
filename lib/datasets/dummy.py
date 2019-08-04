@@ -327,13 +327,13 @@ class DummyDataset(Dataset):
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
-        table_size = self._configs.runtime.sampling.object_pose.table_size
+        table_size = self._configs.runtime.sampling.synthetic_ref.object_pose.table_size
         T_model2world = pose_sampler.sample_object_pose_on_xy_plane(up_dir, bottom_center, table_size)
         T_world2cam = pose_sampler.sample_camera_pose(
-            hemisphere_polar_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.hemisphere_polar_angle_range),
-            hemisphere_radius_range = self._configs.runtime.sampling.camera_pose.hemisphere_radius_range,
-            inplane_rot_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.inplane_rot_angle_range),
-            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.camera_pose.principal_axis_perturb_angle_range),
+            hemisphere_polar_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.synthetic_ref.camera_pose.hemisphere_polar_angle_range),
+            hemisphere_radius_range = self._configs.runtime.sampling.synthetic_ref.camera_pose.hemisphere_radius_range,
+            inplane_rot_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.synthetic_ref.camera_pose.inplane_rot_angle_range),
+            principal_axis_perturb_angle_range = np.pi/180. * np.array(self._configs.runtime.sampling.synthetic_ref.camera_pose.principal_axis_perturb_angle_range),
         )
         T1 = T_world2cam @ T_model2world
         return T1
@@ -383,6 +383,8 @@ class DummyDataset(Dataset):
     def _generate_sample(self):
         # Minimum allowed distance between object and camera centers
         min_dist_obj_and_camera_centers = self._get_max_extent() + self._configs.runtime.sampling.perturbation.min_dist_obj_and_camera
+
+        assert self._configs.runtime.sampling.ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
 
         # Resample pose until accepted
         while True:
