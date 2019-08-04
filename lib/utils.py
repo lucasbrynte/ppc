@@ -97,13 +97,16 @@ def pextend(x):
     sx, sy = x.shape
     return np.concatenate([x, np.ones((1,sy))], axis=0)
 
-def uniform_sampling_on_S2():
-    phi = np.random.uniform(low=0., high=2.*np.pi)
-    theta = np.arccos(np.random.uniform(low=-1., high=1.))
+def uniform_sampling_on_S2(shape=()):
+    """
+    For shape (s1, s2, ...), output shape is (s1, s2, ..., 3)
+    """
+    phi = np.random.uniform(low=0., high=2.*np.pi, size=shape)
+    theta = np.arccos(np.random.uniform(low=-1., high=1., size=shape))
     x = np.cos(phi) * np.sin(theta)
     y = np.sin(phi) * np.sin(theta)
     z = np.cos(theta)
-    return np.array([x,y,z])
+    return np.moveaxis(np.array([x,y,z]), 0, -1)
 
 def get_rotation_axis_angle(axis, angle):
     T = np.eye(4)
