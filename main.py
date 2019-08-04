@@ -16,7 +16,8 @@ class Main():
     def __init__(self, configs):
         """Constructor."""
         self._configs = configs
-        self._data_loader = Loader((TRAIN, VAL, TEST), self._configs)
+        self._modes = (TRAIN, VAL) if self._configs.train_or_eval == 'train' else (TEST,)
+        self._data_loader = Loader(self._modes, self._configs)
         self._loss_handler = LossHandler(configs, self.__class__.__name__)
         self._checkpoint_handler = CheckpointHandler(configs)
         self._model = self._checkpoint_handler.init(self._init_model())
