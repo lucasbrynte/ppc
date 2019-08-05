@@ -178,6 +178,22 @@ class LossHandler:
             feat_std_signal_vals[task_name] = torch.std(signals[task_name])
         return feat_std_signal_vals
 
+    def calc_decay_factor(self, decay_spec, decay_controlling_variable):
+        if decay_spec is None:
+            return 1.
+
+        assert len(decay_controlling_variable.shape) == 2
+        decay_controlling_variable = torch.norm(decay_controlling_variable, dim=1, keepdim=True)
+
+        if decay_spec['method'] == 'relative':
+            return 1. / (decay_controlling_variable + decay_spec['min_denominator'])
+
+        if decay_spec['method'] == 'exp_decay':
+            gamma = np.log(2.0) / decay_spec['halflife']
+            return torch.exp(-gamma * decay_controlling_variable)
+
+        assert False
+
     def calc_loss(self, pred_features, target_features):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
@@ -201,15 +217,7 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            if self._configs.tasks[task_name]['target_norm_loss_decay'] is None:
-                pass
-            elif self._configs.tasks[task_name]['target_norm_loss_decay']['method'] == 'relative':
-                assert len(target_features[task_name].shape) == 2
-                task_loss = task_loss / (torch.norm(target_features[task_name], dim=1, keepdim=True) + self._configs.tasks[task_name]['target_norm_loss_decay']['min_denominator'])
-            elif self._configs.tasks[task_name]['target_norm_loss_decay']['method'] == 'exp_decay':
-                assert len(target_features[task_name].shape) == 2
-                gamma = np.log(2.0) / self._configs.tasks[task_name]['target_norm_loss_decay']['halflife']
-                task_loss = task_loss * torch.exp(-gamma * torch.norm(target_features[task_name], dim=1, keepdim=True))
+            task_loss *= self.calc_decay_factor(self._configs.tasks[task_name]['target_norm_loss_decay'], target_features[task_name])
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss
