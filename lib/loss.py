@@ -203,7 +203,7 @@ class LossHandler:
 
         assert False
 
-    def calc_loss(self, pred_features, target_features):
+    def calc_loss(self, pred_features, target_features, pertarget_target_features):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
         # Make sure "pin_memory" in dataloader works as intended.
@@ -226,7 +226,10 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            task_loss *= self.calc_decay_factor(self._configs.tasks[task_name]['target_norm_loss_decay'], target_features[task_name])
+            if self._configs.tasks[task_name]['loss_decay'] is not None:
+                for decay_spec in self._configs.tasks[task_name]['loss_decay']:
+                    decay_controlling_variable = target_features[task_name] if not 'target' in decay_spec else pertarget_target_features[decay_spec['target']]
+                    task_loss *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss

@@ -114,7 +114,7 @@ class Main():
 
             # Calculate loss
             if mode in (TRAIN, VAL):
-                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
+                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features, pertarget_target_features)
                 loss = sum(task_loss_signal_vals.values())
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
