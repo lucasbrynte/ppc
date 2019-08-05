@@ -70,11 +70,13 @@ class Main():
 
     def _sample_epoch_of_targets(self, mode, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
-        selected_tasks = [task_name for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None]
+        selected_targets = {task_spec['target'] for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None}
 
         cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.runtime.loading.batch_size)):
-            target_features = self._loss_handler.get_target_features(batch.targets, selected_tasks=selected_tasks)
+            pertarget_target_features = self._loss_handler.get_target_features(batch.targets, selected_targets=selected_targets)
+            # Map target features to corresponding tasks:
+            target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
             target_features_raw = self._loss_handler.apply_inverse_activation(target_features)
             self._loss_handler.record_tensor_signals('target_feat_raw', target_features_raw)
             if cnt % 10 == 0:
@@ -102,7 +104,9 @@ class Main():
 
             # Apply activation, and get corresponding target features
             pred_features = self._loss_handler.apply_activation(pred_features_raw)
-            target_features = self._loss_handler.get_target_features(batch.targets)
+            pertarget_target_features = self._loss_handler.get_target_features(batch.targets)
+            # Map target features to corresponding tasks:
+            target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
 
             if self._configs.training.clamp_predictions:
                 # Clamp features before loss computation (for the features where desired)

@@ -29,17 +29,17 @@ class LossHandler:
 
     def _init_activations(self):
         activation_dict = {}
-        for task_name, task_spec in self._configs.tasks.items():
-            if task_spec['activation'] == None:
-                activation_dict[task_name] = None
-            elif task_spec['activation'] == 'square':
-                activation_dict[task_name] = lambda x: x**2
-            elif task_spec['activation'] == 'abs':
-                activation_dict[task_name] = lambda x: torch.abs(x)
-            elif task_spec['activation'] == 'sigmoid':
-                activation_dict[task_name] = nn.Sigmoid()
+        for target_name, target_spec in self._configs.targets.items():
+            if target_spec['activation'] == None:
+                activation_dict[target_name] = None
+            elif target_spec['activation'] == 'square':
+                activation_dict[target_name] = lambda x: x**2
+            elif target_spec['activation'] == 'abs':
+                activation_dict[target_name] = lambda x: torch.abs(x)
+            elif target_spec['activation'] == 'sigmoid':
+                activation_dict[target_name] = nn.Sigmoid()
             else:
-                raise NotImplementedError("{} loss not implemented.".format(task_spec['activation']))
+                raise NotImplementedError("{} loss not implemented.".format(target_spec['activation']))
         return activation_dict
 
     def _get_signals_defaultdict(self):
@@ -74,35 +74,44 @@ class LossHandler:
 
         return pred_features
 
-    def get_target_features(self, targets, selected_tasks=None):
-        if selected_tasks is None:
-            selected_tasks = self._configs.tasks.keys()
+    def get_target_features(self, targets, selected_targets=None):
+        if selected_targets is None:
+            selected_targets = self._configs.targets.keys()
         target_features = {}
-        for task_name in sorted(selected_tasks):
-            target_features[task_name] = getattr(targets, self._configs.tasks[task_name]['target']).to(get_device())
+        for target_name in sorted(selected_targets):
+            target_features[target_name] = getattr(targets, target_name).to(get_device())
         return target_features
+
+    def map_features_to_tasks(self, features):
+        pertask_features = {}
+        for task_name in self._configs.tasks.keys():
+            target_name = self._configs.tasks[task_name]['target']
+            pertask_features[task_name] = features[target_name]
+        return pertask_features
 
     def apply_activation(self, pred_features_raw):
         pred_features = pred_features_raw.copy() # Shallow copy
         for task_name in pred_features.keys():
-            if self._activation_dict[task_name] is not None:
-                pred_features[task_name] = self._activation_dict[task_name](pred_features_raw[task_name])
-                if self._configs.tasks[task_name]['activation'] == 'sigmoid':
+            target_name = self._configs.tasks[task_name]['target']
+            if self._activation_dict[target_name] is not None:
+                pred_features[task_name] = self._activation_dict[target_name](pred_features_raw[task_name])
+                if self._configs.targets[target_name]['activation'] == 'sigmoid':
                     # Linearly map sigmoid output to desired range
-                    assert self._configs.targets[self._configs.tasks[task_name]['target']]['min'] is not None and self._configs.targets[self._configs.tasks[task_name]['target']]['max'] is not None, \
+                    assert self._configs.targets[target_name]['min'] is not None and self._configs.targets[target_name]['max'] is not None, \
                         'Min/max values mandatory when sigmoid activaiton is used'
-                    pred_features[task_name] = pred_features[task_name] * (self._configs.targets[self._configs.tasks[task_name]['target']]['max'] - self._configs.targets[self._configs.tasks[task_name]['target']]['min'])
-                    pred_features[task_name] = pred_features[task_name] + self._configs.targets[self._configs.tasks[task_name]['target']]['min']
+                    pred_features[task_name] = pred_features[task_name] * (self._configs.targets[target_name]['max'] - self._configs.targets[target_name]['min'])
+                    pred_features[task_name] = pred_features[task_name] + self._configs.targets[target_name]['min']
         return pred_features
 
     def apply_inverse_activation(self, pred_features):
         pred_features_raw = pred_features.copy() # Shallow copy
         for task_name in pred_features_raw.keys():
-            if self._activation_dict[task_name] is not None:
-                if self._configs.tasks[task_name]['activation'] == 'square':
+            target_name = self._configs.tasks[task_name]['target']
+            if self._activation_dict[target_name] is not None:
+                if self._configs.targets[target_name]['activation'] == 'square':
                     sqrt_feat = torch.sqrt(pred_features[task_name])
                     pred_features_raw[task_name] = torch.cat([sqrt_feat, -sqrt_feat], dim=0)
-                elif self._configs.tasks[task_name]['activation'] == 'abs':
+                elif self._configs.targets[target_name]['activation'] == 'abs':
                     feat = pred_features[task_name]
                     pred_features_raw[task_name] = torch.cat([feat, -feat], dim=0)
                 else:
