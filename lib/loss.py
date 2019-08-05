@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 import torch
 from torch import nn, exp, clamp
+import geomloss
 
 from lib.constants import TRAIN, VAL
 from lib.utils import get_device, get_human_interp_maps
@@ -19,6 +20,12 @@ class LossHandler:
         self._human_interp_maps = get_human_interp_maps(self._configs, 'torch')
         self._activation_dict = self._init_activations()
         self._loss_function_dict = self._init_loss_functions()
+        if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
+            self._sinkhorn_loss = geomloss.SamplesLoss(
+                loss = 'sinkhorn',
+                p = 2,
+                blur = 0.05,
+            )
 
     def _init_activations(self):
         activation_dict = {}
@@ -207,6 +214,15 @@ class LossHandler:
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss
         return task_loss_signal_vals
+
+    def calc_prior_loss(self, pred_features_raw, target_prior_samples):
+        prior_loss_signal_vals = {}
+        for task_name, task_spec in self._configs.tasks.items():
+            if task_spec['prior_loss'] is not None:
+                assert task_spec['prior_loss']['method'] == 'sinkhorn'
+                loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
+                prior_loss_signal_vals[task_name] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], target_prior_samples[task_name].reshape(-1,1))
+        return prior_loss_signal_vals
 
     def record_tensor_signals(self, tag, signal_vals):
         """

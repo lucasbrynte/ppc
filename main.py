@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import geomloss
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -27,12 +26,6 @@ class Main():
 
         self._target_prior_samples_numpy = None
         self._target_prior_samples = None
-        if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-            self._sinkhorn_loss = geomloss.SamplesLoss(
-                loss = 'sinkhorn',
-                p = 2,
-                blur = 0.05,
-            )
 
     def _init_model(self):
         model = Model(self._configs)
@@ -118,12 +111,10 @@ class Main():
             # Calculate loss
             if mode in (TRAIN, VAL):
                 task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features)
-                for task_name, task_spec in self._configs.tasks.items():
-                    if task_spec['prior_loss'] is not None:
-                        assert task_spec['prior_loss']['method'] == 'sinkhorn'
-                        loss_weight = task_spec['loss_weight'] * task_spec['prior_loss']['loss_weight']
-                        task_loss_signal_vals[task_name + '_prior'] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], self._target_prior_samples[task_name].reshape(-1,1))
                 loss = sum(task_loss_signal_vals.values())
+                if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
+                    prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
+                    loss += sum(prior_loss_signal_vals.values())
 
             if self._configs.training.clamp_predictions:
                 # Clamp features after loss computation (for all features)
@@ -143,6 +134,8 @@ class Main():
             if mode in (TRAIN, VAL):
                 self._loss_handler.record_scalar_signals('loss', {'loss': loss})
                 self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
+                if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
+                    self._loss_handler.record_scalar_signals('prior_losses', prior_loss_signal_vals)
                 self._loss_handler.record_scalar_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
                 self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
 
