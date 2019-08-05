@@ -116,6 +116,7 @@ class Visualizer:
         self._writer.add_figure('_'.join([mode, 'feature_histograms']), fig, step_index)
 
     def calc_and_plot_signal_stats(self, signals, mode, step_index, target_prior_samples=None):
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['relative_feat_abserror'], 'relative_feature_abserror_against_target_magnitude', mode, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_abserror'], 'feature_abserror_against_target_magnitude', mode, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], 'feature_error_against_target_magnitude', mode, step_index)
         histogram_signals = [

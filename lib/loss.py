@@ -118,14 +118,14 @@ class LossHandler:
             interp_features[task_name] = self._human_interp_maps[task_name](features[task_name])
         return interp_features
 
-    def calc_feature_abserrors(self, pred_features, target_features):
+    def calc_norm(self, to_be_normed):
         feat_error_signal_vals = {}
         for task_name in self._configs.tasks.keys():
-            if len(pred_features[task_name].shape) == 1:
-                feat_error_signal_vals[task_name] = torch.abs(pred_features[task_name] - target_features[task_name])
+            if len(to_be_normed[task_name].shape) == 1:
+                feat_error_signal_vals[task_name] = torch.abs(to_be_normed[task_name])
             else:
-                assert len(pred_features[task_name].shape) == 2
-                feat_error_signal_vals[task_name] = torch.norm(pred_features[task_name] - target_features[task_name], dim=1)
+                assert len(to_be_normed[task_name].shape) == 2
+                feat_error_signal_vals[task_name] = torch.norm(to_be_normed[task_name], dim=1)
         return feat_error_signal_vals
 
     def calc_feature_errors(self, pred_features, target_features):
@@ -133,6 +133,31 @@ class LossHandler:
         for task_name in self._configs.tasks.keys():
             feat_resid_signal_vals[task_name] = pred_features[task_name] - target_features[task_name]
         return feat_resid_signal_vals
+
+    def normalize_interp_vals(self, interp_to_be_normalized, interp_feat_norms):
+        feat_error_signal_vals = {}
+        for task_name in self._configs.tasks.keys():
+            assert interp_to_be_normalized[task_name].shape == interp_feat_norms[task_name].shape
+
+            if self._configs.targets[self._configs.tasks[task_name]['target']]['unit'] == 'log_factor':
+                # Not sure how to handle these features here...
+                continue
+
+            # Division by norm, unless too close to zero (denominator is saturated from below).
+            MIN_DENOM_VAL = {
+                # All values are interpretable, i.e. degrees etc.
+                'angle': 0.1,
+                'cosdist': 0.1,
+                'px': 0.1,
+                # 'log_factor': 0.1,
+            }[self._configs.targets[self._configs.tasks[task_name]['target']]['unit']]
+
+            if len(interp_to_be_normalized[task_name].shape) == 1:
+                feat_error_signal_vals[task_name] = interp_to_be_normalized[task_name] / torch.abs(interp_feat_norms[task_name]).clamp(MIN_DENOM_VAL)
+            else:
+                assert len(interp_to_be_normalized[task_name].shape) == 2
+                feat_error_signal_vals[task_name] = interp_to_be_normalized[task_name] / torch.norm(interp_feat_norms[task_name], dim=1).clamp(MIN_DENOM_VAL)
+        return feat_error_signal_vals
 
     def calc_batch_signal_avg(self, signals):
         feat_avg_signal_vals = {}

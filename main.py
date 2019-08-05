@@ -134,16 +134,20 @@ class Main():
             interp_target_features = self._loss_handler.calc_human_interpretable_features(target_features)
 
             # Feature errors
-            interp_feat_abserror = self._loss_handler.calc_feature_abserrors(interp_pred_features, interp_target_features)
             interp_feat_error = self._loss_handler.calc_feature_errors(interp_pred_features, interp_target_features)
+            interp_feat_abserror = self._loss_handler.calc_norm(interp_feat_error)
+            interp_target_feat_norm = self._loss_handler.calc_norm(interp_target_features)
+            relative_feat_abserror = self._loss_handler.normalize_interp_vals(interp_feat_abserror, interp_target_feat_norm)
 
             # Scalar signals - will be plotted against epoch in TensorBoard
             if mode in (TRAIN, VAL):
                 self._loss_handler.record_scalar_signals('loss', {'loss': loss})
                 self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
+                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
                 self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
 
             # Record feature values & corresponding errors
+            self._loss_handler.record_tensor_signals('relative_feat_abserror', relative_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
             self._loss_handler.record_tensor_signals('interp_pred_feat', interp_pred_features)
