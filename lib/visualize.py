@@ -45,7 +45,8 @@ class Visualizer:
         binned_signals = defaultdict(lambda: [None]*nbr_bins)
         bin_edges = {}
 
-        for task_name in sorted(self._configs.tasks.keys()):
+        assert set(interp_target_feat.keys()) >= set(interp_feat_error.keys())
+        for task_name in sorted(interp_feat_error.keys()):
             nbr_samples = interp_target_feat[task_name].shape[0]
             target_magnitudes = np.linalg.norm(interp_target_feat[task_name].reshape(nbr_samples, -1), axis=1)
 
