@@ -8,14 +8,17 @@ training:
   clamp_predictions: false
 targets:
   # pixel_offset:                    {n_out: 2,   activation: null,      min: null, max: null, unit: px}
-  # rel_depth_error:                 {n_out: 1,   activation: null,      min: null, max: null, unit: log_factor}
-  # norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
+  rel_depth_error:                 {n_out: 1,   activation: null,      min: null, max: null, unit: log_factor}
+  norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
   # delta_angle_inplane_signed:      {n_out: 1,   activation: null,      min: null, max: null, unit: angle}
-  delta_angle_inplane_unsigned:    {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
-  delta_angle_paxis:               {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
+  # delta_angle_inplane_unsigned:    {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
+  # delta_angle_paxis:               {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
+
+  # delta_angle_total:               {n_out: 1,   activation: null,      min: 0.0, max: 1.5708, unit: angle}
   delta_angle_total:               {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
   # delta_angle_total:               {n_out: 1,   activation: square,    min: 0.0, max: 3.1416, unit: angle}
   # delta_angle_total:               {n_out: 1,   activation: abs,       min: 0.0, max: 3.1416, unit: angle}
+
   # delta_angle_inplane_cosdist:     {n_out: 1,   activation: null,      min: 0.0, max: 2.0, unit: cosdist}
   # delta_angle_paxis_cosdist:       {n_out: 1,   activation: null,      min: 0.0, max: 2.0, unit: cosdist}
   # delta_angle_total_cosdist:       {n_out: 1,   activation: null,      min: 0.0, max: 2.0, unit: cosdist}
@@ -29,10 +32,36 @@ tasks:
   # delta_angle_inplane_unsigned_L2:    {target: delta_angle_inplane_unsigned,      loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: exp_decay, halflife: 0.2}]} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 5.7deg
   # delta_angle_paxis_L2:               {target: delta_angle_paxis,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: exp_decay, halflife: 0.2}]} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 5.7deg
 
+  rel_depth_error:
+    target: rel_depth_error
+    loss_func: L2
+    loss_weight: 1.0
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay: null
+  norm_pixel_offset:
+    target: norm_pixel_offset
+    loss_func: L2
+    loss_weight: 1.e-2
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay:
+      - {method: relative, min_denominator: 0.5}
+  delta_angle_total:
+    target: delta_angle_total
+    loss_func: L2
+    loss_weight: 1.0
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay:
+      - {method: relative, min_denominator: 0.005}
+      - {method: smoothstep, target: norm_pixel_offset, x1: 20.0, x2: 40.0, y1: 1.0, y2: 0.0}
+      - {method: smoothstep, target: rel_depth_error, x1: 1.2, x2: 1.5, y1: 1.0, y2: 0.0}
+
   # delta_angle_total_L2_decay3deg:             {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: exp_decay, halflife: 0.05}]} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 5.7deg
   # delta_angle_total_L2_decay12deg:            {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: exp_decay, halflife: 0.2}]} # Decay by 0.5 after every "halflife" radians. 0.1 radians ~= 5.7deg
   # delta_angle_total_L2_relative006deg:        {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: relative, min_denominator: 0.001}]} # 0.06 deg
-  delta_angle_total_L2_relative03deg:         {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: relative, min_denominator: 0.005}]} # 0.3 deg
+  # delta_angle_total_L2_relative03deg:         {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: relative, min_denominator: 0.005}]} # 0.3 deg
   # delta_angle_total_L2_relative06deg:         {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: relative, min_denominator: 0.01}]} # 0.6 deg
   # delta_angle_total_L2_relative6deg:          {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: [{method: relative, min_denominator: 0.1}]} # 6 deg
   # delta_angle_total_L2:                       {target: delta_angle_total,                 loss_func: L2,   loss_weight: 1.0,   clamp_before_loss: false, prior_loss: null, loss_decay: null}

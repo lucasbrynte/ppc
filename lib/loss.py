@@ -201,6 +201,12 @@ class LossHandler:
             gamma = np.log(2.0) / decay_spec['halflife']
             return torch.exp(-gamma * decay_controlling_variable)
 
+        if decay_spec['method'] == 'smoothstep':
+            x1, x2, y1, y2 = decay_spec['x1'], decay_spec['x2'], decay_spec['y1'], decay_spec['y2']
+            assert x2 > x1
+            x = decay_controlling_variable.clamp(x1, x2)
+            return y1 + (y2-y1) * 0.5 * (1.0 - torch.cos((x-x1) * np.pi/(x2-x1)))
+
         assert False
 
     def calc_loss(self, pred_features, target_features, pertarget_target_features):

@@ -3,6 +3,8 @@ loading:
   shuffle: true
 data_sampling_def:
   train:
-    - {spec_name: rot_only_20deg_std}
+    - {spec_name: default}
+    # - {spec_name: rot_only_20deg_std}
   val:
-    - {spec_name: rot_only_20deg_std}
+    - {spec_name: default}
+    # - {spec_name: rot_only_20deg_std}
