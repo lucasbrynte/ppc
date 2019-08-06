@@ -209,7 +209,34 @@ class LossHandler:
 
         assert False
 
-    def calc_loss(self, pred_features, target_features, pertarget_target_features):
+    def calc_loss_decay(self, target_features, pertarget_target_features):
+        task_loss_decay_signal_vals = {}
+        task_loss_notapplied_signal_vals = {}
+        for task_name in self._configs.tasks.keys():
+
+            # Initialize decay to 1.0:
+            loss_decay = 1.0
+
+            # Assume loss applied for every sample until proven wrong:
+            task_loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.uint8)
+
+            if self._configs.tasks[task_name]['loss_decay'] is not None:
+                for decay_spec in self._configs.tasks[task_name]['loss_decay']:
+                    decay_controlling_variable = target_features[task_name] if not 'target' in decay_spec else pertarget_target_features[decay_spec['target']]
+                    loss_decay *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
+
+                    if decay_controlling_variable is not target_features[task_name]:
+                        # A target other than itself is being used to control loss decay
+                        if decay_spec['method'] == 'smoothstep':
+                            assert decay_spec['y2'] < decay_spec['y1']
+                            task_loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
+
+            task_loss_decay_signal_vals[task_name] = loss_decay
+            task_loss_notapplied_signal_vals[task_name] = task_loss_notapplied_mask
+
+        return task_loss_decay_signal_vals, task_loss_notapplied_signal_vals
+
+    def calc_loss(self, pred_features, target_features, task_loss_decay_signal_vals):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
         # Make sure "pin_memory" in dataloader works as intended.
@@ -232,10 +259,7 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            if self._configs.tasks[task_name]['loss_decay'] is not None:
-                for decay_spec in self._configs.tasks[task_name]['loss_decay']:
-                    decay_controlling_variable = target_features[task_name] if not 'target' in decay_spec else pertarget_target_features[decay_spec['target']]
-                    task_loss *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
+            task_loss = task_loss * task_loss_decay_signal_vals[task_name]
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             task_loss_signal_vals[task_name] = task_loss

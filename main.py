@@ -113,8 +113,9 @@ class Main():
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
 
             # Calculate loss
+            task_loss_decay_signal_vals, task_loss_notapplied_signal_vals = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
             if mode in (TRAIN, VAL):
-                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features, pertarget_target_features)
+                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decay_signal_vals)
                 loss = sum(task_loss_signal_vals.values())
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
