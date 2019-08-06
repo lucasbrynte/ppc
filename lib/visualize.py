@@ -184,7 +184,7 @@ class Visualizer:
             tmp = '(' + tmp + ')'
         return tmp + unit_suffix
 
-    def save_images(self, batch, pred_features, target_features, mode, step_index, sample=-1):
+    def save_images(self, batch, pred_features, target_features, task_loss_notapplied_signal_vals, mode, step_index, sample=-1):
         img1_batch, img2_batch = batch.input
         img_shape = img1_batch.shape[-2:]
         img1 = self._retrieve_input_img(img1_batch[sample])
@@ -208,6 +208,7 @@ class Visualizer:
                 task_name,
                 '{:<8s}{:<8s} {:s}'.format('-', 'pred:', self._pretty_print_feature_value(task_name, pred_features[task_name][sample].detach().cpu().numpy())),
                 '{:<8s}{:<8s} {:s}'.format('-', 'target:', self._pretty_print_feature_value(task_name, target_features[task_name][sample].detach().cpu().numpy())),
+                '{:<8s}{:<8s} {:.1f}'.format('-', 'applied:', torch.mean((~task_loss_notapplied_signal_vals[task_name][sample]).float()).detach().cpu().numpy()),
             ]
             return lines
         lines = [line for task_name in sorted(self._configs.tasks.keys()) for line in task_lines(task_name)]

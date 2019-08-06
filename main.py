@@ -172,11 +172,11 @@ class Main():
 
             if mode == TEST:
                 for sample_idx in range(self._configs.runtime.loading.batch_size):
-                    self._visualizer.save_images(batch, pred_features, target_features, mode, visual_cnt, sample=sample_idx)
+                    self._visualizer.save_images(batch, pred_features, target_features, task_loss_notapplied_signal_vals, mode, visual_cnt, sample=sample_idx)
                     visual_cnt += 1
 
         if mode in (TRAIN, VAL):
-            self._visualizer.save_images(batch, pred_features, target_features, mode, epoch, sample=-1)
+            self._visualizer.save_images(batch, pred_features, target_features, task_loss_notapplied_signal_vals, mode, epoch, sample=-1)
 
         if mode in (TRAIN, VAL):
             self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
