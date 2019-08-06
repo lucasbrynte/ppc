@@ -83,7 +83,7 @@ class Main():
                 print('{}/{}'.format(cnt, nbr_batches))
             cnt += 1
 
-        target_samples = self._loss_handler.get_signals_numpy()['target_feat_raw']
+        target_samples = self._loss_handler.get_tensor_signals_numpy()['target_feat_raw']
         self._loss_handler._reset_signals()
         print('Done.')
         return target_samples
@@ -179,10 +179,10 @@ class Main():
 
         if mode in (TRAIN, VAL):
             self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
-        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy)
+        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_tensor_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy)
 
         # for task_name in sorted(self._configs.tasks.keys()):
-        #     tmp = np.sqrt(self._loss_handler.get_signals_numpy()['target_feat'][task_name])
+        #     tmp = np.sqrt(self._loss_handler.get_tensor_signals_numpy()['target_feat'][task_name])
         #     print('{} - global std: {}'.format(task_name, np.sqrt(np.mean(tmp**2))))
         #     print('{} - global median energy: {}'.format(task_name, np.sqrt(np.median(tmp**2))))
         # assert False
