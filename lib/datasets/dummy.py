@@ -72,8 +72,8 @@ class DummyDataset(Dataset):
         #     self._aug_transform = None
         self.Targets = self._get_target_def()
 
-        self._data_sampling_specs = getattr(self._configs.runtime.data_sampling, self._mode)
-        assert len(self._data_sampling_specs) == 1, 'Mixing multiple dataset specs not supported as of yet'
+        self._data_sampling_schemes = getattr(self._configs.runtime.data_sampling_schemes, self._mode)
+        assert len(self._data_sampling_schemes) == 1, 'Mixing multiple dataset specs not supported as of yet'
 
         self._pids_path = '/tmp/sixd_kp_pids/' + self._mode
         if os.path.exists(self._pids_path):
@@ -146,9 +146,9 @@ class DummyDataset(Dataset):
 
     def _calc_deterministic_quantile_ranges(self):
         return {
-            'perturbation': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].perturbation.items() if sample_spec['deterministic_quantile_range']},
-            'object_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.object_pose.items() if sample_spec['deterministic_quantile_range']},
-            'camera_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.camera_pose.items() if sample_spec['deterministic_quantile_range']},
+            'perturbation': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_schemes[0].perturbation.items() if sample_spec['deterministic_quantile_range']},
+            'object_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_schemes[0].synthetic_ref.object_pose.items() if sample_spec['deterministic_quantile_range']},
+            'camera_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in self._data_sampling_schemes[0].synthetic_ref.camera_pose.items() if sample_spec['deterministic_quantile_range']},
         }
     def __getitem__(self, index):
         data, targets, extra_input = self._generate_sample(index)
@@ -313,13 +313,13 @@ class DummyDataset(Dataset):
         return T
 
     def _sample_perturbation_params(self, index):
-        return {param_name: self._quantile_ranges['perturbation'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].perturbation.items()}
+        return {param_name: self._quantile_ranges['perturbation'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[0].perturbation.items()}
 
     def _sample_object_pose_params(self, index):
-        return {param_name: self._quantile_ranges['object_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.object_pose.items()}
+        return {param_name: self._quantile_ranges['object_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[0].synthetic_ref.object_pose.items()}
 
     def _sample_camera_pose_params(self, index):
-        return {param_name: self._quantile_ranges['camera_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_specs[0].synthetic_ref.camera_pose.items()}
+        return {param_name: self._quantile_ranges['camera_pose'][param_name][index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[0].synthetic_ref.camera_pose.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -396,11 +396,11 @@ class DummyDataset(Dataset):
 
     def _generate_sample(self, index):
         # Minimum allowed distance between object and camera centers
-        min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_specs[0].min_dist_obj_and_camera
+        min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_schemes[0].min_dist_obj_and_camera
 
         MAX_NBR_RESAMPLINGS = 100
 
-        assert self._data_sampling_specs[0].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
+        assert self._data_sampling_schemes[0].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
         # Resample pose until accepted
         for j in range(MAX_NBR_RESAMPLINGS):
             # T1 corresponds to reference image (observed)
