@@ -78,12 +78,12 @@ class Main():
             # Map target features to corresponding tasks:
             target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
             target_features_raw = self._loss_handler.apply_inverse_activation(target_features)
-            self._loss_handler.record_tensor_signals('target_feat_raw', target_features_raw)
+            self._loss_handler.record_batch_of_persample_signals('target_feat_raw', target_features_raw)
             if cnt % 10 == 0:
                 print('{}/{}'.format(cnt, nbr_batches))
             cnt += 1
 
-        target_samples = self._loss_handler.get_tensor_signals_numpy()['target_feat_raw']
+        target_samples = self._loss_handler.get_persample_signals_numpy()['target_feat_raw']
         self._loss_handler._reset_signals()
         print('Done.')
         return target_samples
@@ -135,27 +135,27 @@ class Main():
             interp_target_feat_norm = self._loss_handler.calc_norm(interp_target_features)
             relative_feat_abserror = self._loss_handler.normalize_interp_vals(interp_feat_abserror, interp_target_feat_norm)
 
-            # Scalar signals - will be plotted against epoch in TensorBoard
+            # Per-batch signals - will be plotted against epoch in TensorBoard
             if mode in (TRAIN, VAL):
-                self._loss_handler.record_scalar_signals('loss', {'loss': loss})
-                self._loss_handler.record_scalar_signals('task_losses', task_loss_signal_vals)
+                self._loss_handler.record_batch_of_perbatch_signals('loss', {'loss': loss})
+                self._loss_handler.record_batch_of_perbatch_signals('task_losses', task_loss_signal_vals)
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-                    self._loss_handler.record_scalar_signals('prior_losses', prior_loss_signal_vals)
-                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
-                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
-                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
-                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
+                    self._loss_handler.record_batch_of_perbatch_signals('prior_losses', prior_loss_signal_vals)
+                self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
+                self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
+                self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
+                self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
 
-            # Record feature values & corresponding errors
-            self._loss_handler.record_tensor_signals('loss_notapplied', loss_notapplied_signal_vals)
-            self._loss_handler.record_tensor_signals('relative_feat_abserror', relative_feat_abserror)
-            self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
-            self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
-            self._loss_handler.record_tensor_signals('interp_pred_feat', interp_pred_features)
-            self._loss_handler.record_tensor_signals('interp_target_feat', interp_target_features)
-            self._loss_handler.record_tensor_signals('pred_feat', pred_features)
-            self._loss_handler.record_tensor_signals('target_feat', target_features)
-            self._loss_handler.record_tensor_signals('pred_feat_raw', pred_features_raw)
+            # Per-sample signals, e.g. feature values & corresponding errors
+            self._loss_handler.record_batch_of_persample_signals('loss_notapplied', loss_notapplied_signal_vals)
+            self._loss_handler.record_batch_of_persample_signals('relative_feat_abserror', relative_feat_abserror)
+            self._loss_handler.record_batch_of_persample_signals('interp_feat_abserror', interp_feat_abserror)
+            self._loss_handler.record_batch_of_persample_signals('interp_feat_error', interp_feat_error)
+            self._loss_handler.record_batch_of_persample_signals('interp_pred_feat', interp_pred_features)
+            self._loss_handler.record_batch_of_persample_signals('interp_target_feat', interp_target_features)
+            self._loss_handler.record_batch_of_persample_signals('pred_feat', pred_features)
+            self._loss_handler.record_batch_of_persample_signals('target_feat', target_features)
+            self._loss_handler.record_batch_of_persample_signals('pred_feat_raw', pred_features_raw)
 
             if mode == TRAIN:
                 self._optimizer.zero_grad()
@@ -182,9 +182,9 @@ class Main():
             self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied_signal_vals, mode, epoch, sample=-1)
 
         if mode in (TRAIN, VAL):
-            self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
+            self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
 
-        self._loss_handler.filter_tensor_signals([
+        self._loss_handler.filter_persample_signals([
             'interp_target_feat',
             'interp_pred_feat',
             'pred_feat_raw',
@@ -194,10 +194,10 @@ class Main():
         ])
         # for filtered_flag in [False]:
         for filtered_flag in [False, True]:
-            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_tensor_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
+            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_persample_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
 
         # for task_name in sorted(self._configs.tasks.keys()):
-        #     tmp = np.sqrt(self._loss_handler.get_tensor_signals_numpy()['target_feat'][task_name])
+        #     tmp = np.sqrt(self._loss_handler.get_persample_signals_numpy()['target_feat'][task_name])
         #     print('{} - global std: {}'.format(task_name, np.sqrt(np.mean(tmp**2))))
         #     print('{} - global median energy: {}'.format(task_name, np.sqrt(np.median(tmp**2))))
         # assert False
