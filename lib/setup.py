@@ -6,9 +6,10 @@ import yaml
 import shutil
 import torch
 from attrdict import AttrDict
+import numpy as np
 
 from lib.constants import PROJECT_PATH, TRAIN, VAL, TEST, CONFIG_ROOT
-from lib.utils import show_gpu_info
+from lib.utils import show_gpu_info, closeto_within
 from lib.utils import read_yaml_as_attrdict, read_attrdict_from_default_and_specific_yaml
 
 
@@ -116,6 +117,20 @@ def save_settings(args):
     with open(os.path.join(experiment_settings_path, 'args.yml'), 'w') as file:
         yaml.dump(vars(args), file, Dumper=yaml.CDumper)
 
+def infer_sampling_probs(sampling_scheme_refs):
+    nbr_schemes = len(sampling_scheme_refs)
+    nbr_schemes_with_unspecified_prob = sum(['sampling_prob' not in sampling_scheme_ref for sampling_scheme_ref in sampling_scheme_refs])
+    total_prob_specified = sum([sampling_scheme_ref['sampling_prob'] for sampling_scheme_ref in sampling_scheme_refs if 'sampling_prob' in sampling_scheme_ref])
+    assert closeto_within(total_prob_specified, low=0.0, high=1.0)
+    remaining_prob = 1.0 - total_prob_specified
+    for sampling_scheme_ref in sampling_scheme_refs:
+        if 'sampling_prob' not in sampling_scheme_ref:
+            sampling_scheme_ref['sampling_prob'] = remaining_prob / nbr_schemes_with_unspecified_prob
+    total_prob = sum([sampling_scheme_ref['sampling_prob'] for sampling_scheme_ref in sampling_scheme_refs])
+    # Should now sum up to 1.0:
+    assert np.isclose(total_prob, 1.0)
+    # NOTE: Not returning sampling_scheme_refs, in order to emphasize in-place behavior
+
 def get_configs(args):
     if args.train_or_eval == 'train':
         # Read from configuration
@@ -144,8 +159,9 @@ def get_configs(args):
     modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
     sampling_specs = {}
     for mode in modes:
-        spec_refs = configs.runtime.data_sampling_def[mode] # List of elements such as {spec_name: rot_only_20deg_std}
-        sampling_specs[mode] = [all_sampling_specs[spec_ref['spec_name']] for spec_ref in spec_refs] # Map all such elements to the corresponding data sampling specs
+        sampling_scheme_refs = configs['runtime']['data_sampling_scheme_refs'][mode] # List of elements such as {spec_name: rot_only_20deg_std}
+        infer_sampling_probs(sampling_scheme_refs) # Modified in-place
+        sampling_specs[mode] = [all_sampling_specs[sampling_scheme_ref['spec_name']] for sampling_scheme_ref in sampling_scheme_refs] # Map all such elements to the corresponding data sampling specs
     configs['runtime']['data_sampling'] = AttrDict(sampling_specs)
 
     configs += vars(args)

@@ -98,6 +98,17 @@ def pextend(x):
     sx, sy = x.shape
     return np.concatenate([x, np.ones((1,sy))], axis=0)
 
+def closeto_within(data, low=None, high=None):
+    data = np.array(data)
+    ret = np.ones_like(data, dtype=bool)
+    if low is not None:
+        undershoot = np.maximum(low - data, 0.0)
+        ret &= np.isclose(undershoot, 0.0)
+    if high is not None:
+        overshoot = np.maximum(data - high, 0.0)
+        ret &= np.isclose(overshoot, 0.0)
+    return ret
+
 def uniform_sampling_on_S2(shape=()):
     """
     For shape (s1, s2, ...), output shape is (s1, s2, ..., 3)

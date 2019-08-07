@@ -1,7 +1,7 @@
 loading:
   batch_size: 32
   shuffle: true
-data_sampling_def:
+data_sampling_scheme_refs:
   train:
     - {spec_name: default}
     # - {spec_name: rot_only_20deg_std}
