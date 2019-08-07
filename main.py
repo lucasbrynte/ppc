@@ -61,8 +61,9 @@ class Main():
             val_scores = {}
             for schemeset in self._configs.runtime.data_sampling_scheme_refs[VAL].keys():
                 val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val)
-            assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
-            val_score = next(iter(val_scores.values()))
+            # assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
+            # val_score = next(iter(val_scores.values()))
+            val_score = sum(val_scores.values()) / len(val_scores)
 
             self._lr_scheduler.step(val_score)
             self._checkpoint_handler.save(self._model, epoch, train_score)

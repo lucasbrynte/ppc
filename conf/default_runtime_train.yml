@@ -9,5 +9,7 @@ data_sampling_scheme_refs:
   val:
     default:
       - {scheme_name: default}
-    # rot_only_20deg_std:
-    #   - {scheme_name: rot_only_20deg_std}
+    rot_only_20deg_std:
+      - {scheme_name: rot_only_20deg_std}
+    rot_only_20deg_std_quantile:
+      - {scheme_name: rot_only_20deg_std_quantile}
