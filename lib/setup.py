@@ -159,9 +159,9 @@ def get_configs(args):
     modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
     sampling_schemes = {}
     for mode in modes:
-        sampling_scheme_refs = configs['runtime']['data_sampling_scheme_refs'][mode] # List of elements such as {spec_name: rot_only_20deg_std}
+        sampling_scheme_refs = configs['runtime']['data_sampling_scheme_refs'][mode] # List of elements such as {scheme_name: rot_only_20deg_std}
         infer_sampling_probs(sampling_scheme_refs) # Modified in-place
-        sampling_schemes[mode] = [all_sampling_schemes[sampling_scheme_ref['spec_name']] for sampling_scheme_ref in sampling_scheme_refs] # Map all such elements to the corresponding data sampling specs
+        sampling_schemes[mode] = [all_sampling_schemes[sampling_scheme_ref['scheme_name']] for sampling_scheme_ref in sampling_scheme_refs] # Map all such elements to the corresponding data sampling specs
     configs['runtime']['data_sampling_schemes'] = AttrDict(sampling_schemes)
 
     configs += vars(args)

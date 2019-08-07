@@ -396,7 +396,7 @@ class DummyDataset(Dataset):
             assert False
 
     def _generate_sample(self, sampling_scheme_idx, sample_index):
-        # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].spec_name
+        # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].scheme_name
 
         # Minimum allowed distance between object and camera centers
         min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera
