@@ -4,9 +4,9 @@ loading:
   shuffle: false
 data_sampling_scheme_refs:
   test:
-    default:
-      - {scheme_name: default}
-    rot_only_20deg_std:
-      - {scheme_name: rot_only_20deg_std}
-    rot_only_20deg_std_quantile:
-      - {scheme_name: rot_only_20deg_std_quantile}
+    synth_default:
+      - {scheme_name: synth_default}
+    synth_rot_only_20deg_std:
+      - {scheme_name: synth_rot_only_20deg_std}
+    synth_rot_only_20deg_std_quantile:
+      - {scheme_name: synth_rot_only_20deg_std_quantile}
