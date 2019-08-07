@@ -219,14 +219,14 @@ class LossHandler:
 
     def calc_loss_decay(self, target_features, pertarget_target_features):
         task_loss_decay_signal_vals = {}
-        task_loss_notapplied_signal_vals = {}
+        loss_notapplied_signal_vals = {}
         for task_name in self._configs.tasks.keys():
 
             # Initialize decay to 1.0:
             loss_decay = 1.0
 
             # Assume loss applied for every sample until proven wrong:
-            task_loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.uint8)
+            loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.uint8)
 
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:
@@ -237,12 +237,12 @@ class LossHandler:
                         # A target other than itself is being used to control loss decay
                         if decay_spec['method'] == 'smoothstep':
                             assert decay_spec['y2'] < decay_spec['y1']
-                            task_loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
+                            loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
 
             task_loss_decay_signal_vals[task_name] = loss_decay
-            task_loss_notapplied_signal_vals[task_name] = task_loss_notapplied_mask
+            loss_notapplied_signal_vals[task_name] = loss_notapplied_mask
 
-        return task_loss_decay_signal_vals, task_loss_notapplied_signal_vals
+        return task_loss_decay_signal_vals, loss_notapplied_signal_vals
 
     def calc_loss(self, pred_features, target_features, task_loss_decay_signal_vals):
         # ======================================================================
@@ -299,17 +299,17 @@ class LossHandler:
         for signal_name, signal_val in signal_vals.items():
             self._scalar_signals[tag][signal_name].append(signal_val)
 
-    def filter_tensor_signal(self, signal_vals, task_loss_notapplied_signal_vals):
+    def filter_tensor_signal(self, signal_vals, loss_notapplied_signal_vals):
         signal_vals_filtered = {}
         for signal_name in signal_vals.keys():
-            signal_vals_filtered[signal_name] = [sample_val for sample_val, discard_val in zip(signal_vals[signal_name], task_loss_notapplied_signal_vals[signal_name]) if not torch.any(discard_val)]
+            signal_vals_filtered[signal_name] = [sample_val for sample_val, discard_val in zip(signal_vals[signal_name], loss_notapplied_signal_vals[signal_name]) if not torch.any(discard_val)]
         return signal_vals_filtered
 
     def filter_tensor_signals(self, tag_names):
         suffix = '_filtered'
         filtered_tensor_signals = {}
         for tag in tag_names:
-            filtered_tensor_signals[tag + suffix] = self.filter_tensor_signal(self._tensor_signals[tag], self._tensor_signals['task_loss_notapplied'])
+            filtered_tensor_signals[tag + suffix] = self.filter_tensor_signal(self._tensor_signals[tag], self._tensor_signals['loss_notapplied'])
         self._tensor_signals.update(filtered_tensor_signals)
 
     def get_scalar_signals(self):

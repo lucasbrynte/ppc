@@ -113,7 +113,7 @@ class Main():
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
 
             # Calculate loss
-            task_loss_decay_signal_vals, task_loss_notapplied_signal_vals = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
+            task_loss_decay_signal_vals, loss_notapplied_signal_vals = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
             if mode in (TRAIN, VAL):
                 task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decay_signal_vals)
                 loss = sum(task_loss_signal_vals.values())
@@ -143,11 +143,11 @@ class Main():
                     self._loss_handler.record_scalar_signals('prior_losses', prior_loss_signal_vals)
                 self._loss_handler.record_scalar_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
                 self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
-                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=task_loss_notapplied_signal_vals))
-                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=task_loss_notapplied_signal_vals))
+                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
+                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
 
             # Record feature values & corresponding errors
-            self._loss_handler.record_tensor_signals('task_loss_notapplied', task_loss_notapplied_signal_vals)
+            self._loss_handler.record_tensor_signals('loss_notapplied', loss_notapplied_signal_vals)
             self._loss_handler.record_tensor_signals('relative_feat_abserror', relative_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
@@ -175,11 +175,11 @@ class Main():
 
             if mode == TEST:
                 for sample_idx in range(self._configs.runtime.loading.batch_size):
-                    self._visualizer.save_images(batch, pred_features, target_features, task_loss_notapplied_signal_vals, mode, visual_cnt, sample=sample_idx)
+                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied_signal_vals, mode, visual_cnt, sample=sample_idx)
                     visual_cnt += 1
 
         if mode in (TRAIN, VAL):
-            self._visualizer.save_images(batch, pred_features, target_features, task_loss_notapplied_signal_vals, mode, epoch, sample=-1)
+            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied_signal_vals, mode, epoch, sample=-1)
 
         if mode in (TRAIN, VAL):
             self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
