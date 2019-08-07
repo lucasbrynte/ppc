@@ -154,14 +154,20 @@ def get_configs(args):
             os.path.join(CONFIG_ROOT, args.config_name, 'runtime_eval.yml'),
         )
 
+    if args.train_or_eval == 'train':
+        # Validate config: Only VAL / TEST support multiple runs with different sets of sampling schemes
+        assert tuple(configs['runtime']['data_sampling_scheme_refs'][TRAIN].keys()) == (TRAIN,), 'For training, there may only be a single set of sampling schemes to sample from.'
+
     # Determine choice of data sampling specs for each mode, and store them in config
     all_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'data_sampling_schemes.yml'))
     modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
     sampling_schemes = {}
     for mode in modes:
-        sampling_scheme_refs = configs['runtime']['data_sampling_scheme_refs'][mode] # List of elements such as {scheme_name: rot_only_20deg_std}
-        infer_sampling_probs(sampling_scheme_refs) # Modified in-place
-        sampling_schemes[mode] = [all_sampling_schemes[sampling_scheme_ref['scheme_name']] for sampling_scheme_ref in sampling_scheme_refs] # Map all such elements to the corresponding data sampling specs
+        sampling_schemes[mode] = {}
+        for scheme_set_name in configs['runtime']['data_sampling_scheme_refs'][mode].keys():
+            sampling_scheme_refs = configs['runtime']['data_sampling_scheme_refs'][mode][scheme_set_name] # List of elements such as {scheme_name: rot_only_20deg_std}
+            infer_sampling_probs(sampling_scheme_refs) # Modified in-place
+            sampling_schemes[mode][scheme_set_name] = [all_sampling_schemes[sampling_scheme_ref['scheme_name']] for sampling_scheme_ref in sampling_scheme_refs] # Map all such elements to the corresponding data sampling specs
     configs['runtime']['data_sampling_schemes'] = AttrDict(sampling_schemes)
 
     configs += vars(args)

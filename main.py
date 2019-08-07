@@ -51,13 +51,18 @@ class Main():
         # nbr_batches_val = 16
 
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-            target_prior_samples = self._sample_epoch_of_targets(TRAIN, nbr_batches_prior)
+            target_prior_samples = self._sample_epoch_of_targets(TRAIN, TRAIN, nbr_batches_prior)
             self._target_prior_samples_numpy = target_prior_samples
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            train_score = -self._run_epoch(epoch, TRAIN, nbr_batches_train)
-            val_score = -self._run_epoch(epoch, VAL, nbr_batches_val)
+            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, nbr_batches_train)
+
+            val_scores = {}
+            for schemeset in self._configs.runtime.data_sampling_scheme_refs[VAL].keys():
+                val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val)
+            assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
+            val_score = next(iter(val_scores.values()))
 
             self._lr_scheduler.step(val_score)
             self._checkpoint_handler.save(self._model, epoch, train_score)
@@ -66,14 +71,15 @@ class Main():
     def eval(self):
         nbr_batches = 3
         epoch = 1
-        self._run_epoch(epoch, TEST, nbr_batches)
+        for schemeset in self._configs.runtime.data_sampling_scheme_refs[TEST].keys():
+            self._run_epoch(epoch, TEST, schemeset, nbr_batches)
 
-    def _sample_epoch_of_targets(self, mode, nbr_batches):
+    def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
         selected_targets = {task_spec['target'] for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None}
 
         cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.runtime.loading.batch_size)):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches * self._configs.runtime.loading.batch_size)):
             pertarget_target_features = self._loss_handler.get_target_features(batch.targets, selected_targets=selected_targets)
             # Map target features to corresponding tasks:
             target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
@@ -88,7 +94,7 @@ class Main():
         print('Done.')
         return target_samples
 
-    def _run_epoch(self, epoch, mode, nbr_batches):
+    def _run_epoch(self, epoch, mode, schemeset, nbr_batches):
         if mode == TRAIN:
             self._model.train()
         else:
@@ -96,7 +102,7 @@ class Main():
 
         # cnt = 0
         visual_cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, nbr_batches * self._configs.runtime.loading.batch_size)):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches * self._configs.runtime.loading.batch_size)):
             nn_out = self._run_model(batch.input, batch.extra_input)
 
             # Raw predicted features (neural net output)
@@ -162,7 +168,7 @@ class Main():
                 loss.backward()
                 self._optimizer.step()
 
-            self._loss_handler.log_batch(epoch, batch_id, mode)
+            self._loss_handler.log_batch(epoch, batch_id, mode, schemeset)
 
             # for task_name in sorted(self._configs.tasks.keys()):
             #     tmp = np.sqrt(target_features[task_name].detach().cpu().numpy())
@@ -175,14 +181,14 @@ class Main():
 
             if mode == TEST:
                 for sample_idx in range(self._configs.runtime.loading.batch_size):
-                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, visual_cnt, sample=sample_idx)
+                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
                     visual_cnt += 1
 
         if mode in (TRAIN, VAL):
-            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, epoch, sample=-1)
+            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, epoch, sample=-1)
 
         if mode in (TRAIN, VAL):
-            self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
+            self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, schemeset, epoch)
 
         self._loss_handler.filter_persample_signals([
             'interp_target_feat',
@@ -194,7 +200,7 @@ class Main():
         ])
         # for filtered_flag in [False]:
         for filtered_flag in [False, True]:
-            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_persample_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
+            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_persample_signals_numpy(), mode, schemeset, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
 
         # for task_name in sorted(self._configs.tasks.keys()):
         #     tmp = np.sqrt(self._loss_handler.get_persample_signals_numpy()['target_feat'][task_name])

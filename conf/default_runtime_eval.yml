@@ -4,4 +4,9 @@ loading:
   shuffle: false
 data_sampling_scheme_refs:
   test:
-    - {scheme_name: rot_only_20deg_std_quantile}
+    default:
+      - {scheme_name: default}
+    rot_only_20deg_std:
+      - {scheme_name: rot_only_20deg_std}
+    rot_only_20deg_std_quantile:
+      - {scheme_name: rot_only_20deg_std_quantile}

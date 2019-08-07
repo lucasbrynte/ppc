@@ -343,7 +343,7 @@ class LossHandler:
                 avg_signals[signal_name][task_name] = (sum(latest_samples) / len(latest_samples)).detach().cpu().numpy()
         return avg_signals
 
-    def log_batch(self, epoch, iteration, mode):
+    def log_batch(self, epoch, iteration, mode, schemeset):
         """Log current batch."""
         losses = {
             'Raw': self.get_scalar_averages(num_batches=1),
@@ -353,7 +353,7 @@ class LossHandler:
         status_total_loss = ('[{name:s}]  '
                              'Epoch:{epoch:<3d}  '
                              'Iteration:{iteration:<5d}  '.
-                             format(name=mode.upper(),
+                             format(name='{}/{}'.format(mode, schemeset).upper(),
                                     epoch=epoch,
                                     iteration=iteration))
         # for statistic, value in losses.items():

@@ -3,8 +3,11 @@ loading:
   shuffle: true
 data_sampling_scheme_refs:
   train:
-    - {scheme_name: default}
-    # - {scheme_name: rot_only_20deg_std, sampling_prob: 0.5}
+    train:
+      - {scheme_name: default}
+      # - {scheme_name: rot_only_20deg_std, sampling_prob: 0.5}
   val:
-    - {scheme_name: default}
-    # - {scheme_name: rot_only_20deg_std, sampling_prob: 0.5}
+    default:
+      - {scheme_name: default}
+    # rot_only_20deg_std:
+    #   - {scheme_name: rot_only_20deg_std}
