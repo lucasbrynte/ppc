@@ -282,22 +282,22 @@ class LossHandler:
                 prior_loss_signal_vals[task_name] = loss_weight * self._sinkhorn_loss(pred_features_raw[task_name], target_prior_samples[task_name].reshape(-1,1))
         return prior_loss_signal_vals
 
-    def record_batch_of_persample_signals(self, tag, signal_vals):
+    def record_batch_of_persample_signals(self, signal_name, signal_vals):
         """
         Takes a dict of GPU pytorch tensors, with 1st dimension over samples in batch.
         Splits the tensors into list of samples, and concatenates this list onto their corresponding signal lists
         """
-        assert tag not in self._perbatch_signals.keys()
+        assert signal_name not in self._perbatch_signals.keys()
         for task_name, signal_val in signal_vals.items():
-            self._persample_signals[tag][task_name] += list(signal_val)
+            self._persample_signals[signal_name][task_name] += list(signal_val)
 
-    def record_batch_of_perbatch_signals(self, tag, signal_vals):
+    def record_batch_of_perbatch_signals(self, signal_name, signal_vals):
         """
         Takes a dict of GPU pytorch scalars, and appends them to their corresponding signal lists
         """
-        assert tag not in self._persample_signals.keys()
+        assert signal_name not in self._persample_signals.keys()
         for task_name, signal_val in signal_vals.items():
-            self._perbatch_signals[tag][task_name].append(signal_val)
+            self._perbatch_signals[signal_name][task_name].append(signal_val)
 
     def filter_tensor_signal(self, signal_vals, loss_notapplied):
         signal_vals_filtered = {}
@@ -305,11 +305,11 @@ class LossHandler:
             signal_vals_filtered[task_name] = [sample_val for sample_val, discard_val in zip(signal_vals[task_name], loss_notapplied[task_name]) if not torch.any(discard_val)]
         return signal_vals_filtered
 
-    def filter_persample_signals(self, tag_names):
+    def filter_persample_signals(self, signal_names):
         suffix = '_filtered'
         filtered_persample_signals = {}
-        for tag in tag_names:
-            filtered_persample_signals[tag + suffix] = self.filter_tensor_signal(self._persample_signals[tag], self._persample_signals['loss_notapplied'])
+        for signal_name in signal_names:
+            filtered_persample_signals[signal_name + suffix] = self.filter_tensor_signal(self._persample_signals[signal_name], self._persample_signals['loss_notapplied'])
         self._persample_signals.update(filtered_persample_signals)
 
     def get_perbatch_signals(self):
@@ -318,29 +318,29 @@ class LossHandler:
     def get_persample_signals(self):
         return self._persample_signals
 
-    def get_signals_numpy(self, signal_dict, tag_filter=None):
+    def get_signals_numpy(self, signal_dict, signal_name_filter=None):
         numpy_signals = defaultdict(lambda: defaultdict(float))
-        for tag in signal_dict:
-            if tag_filter is not None and tag != tag_filter:
+        for signal_name in signal_dict:
+            if signal_name_filter is not None and signal_name != signal_name_filter:
                 continue
-            for task_name, samples_list in signal_dict[tag].items():
-                numpy_signals[tag][task_name] = torch.tensor(samples_list).detach().cpu().numpy()
+            for task_name, samples_list in signal_dict[signal_name].items():
+                numpy_signals[signal_name][task_name] = torch.tensor(samples_list).detach().cpu().numpy()
         return numpy_signals
 
-    def get_perbatch_signals_numpy(self, tag_filter=None):
-        return self.get_signals_numpy(self._perbatch_signals, tag_filter=tag_filter)
+    def get_perbatch_signals_numpy(self, signal_name_filter=None):
+        return self.get_signals_numpy(self._perbatch_signals, signal_name_filter=signal_name_filter)
 
-    def get_persample_signals_numpy(self, tag_filter=None):
-        return self.get_signals_numpy(self._persample_signals, tag_filter=tag_filter)
+    def get_persample_signals_numpy(self, signal_name_filter=None):
+        return self.get_signals_numpy(self._persample_signals, signal_name_filter=signal_name_filter)
 
-    def get_scalar_averages(self, num_batches=0, tag_filter=None):
+    def get_scalar_averages(self, num_batches=0, signal_name_filter=None):
         avg_signals = defaultdict(lambda: defaultdict(float))
-        for tag in self._perbatch_signals:
-            if tag_filter is not None and tag != tag_filter:
+        for signal_name in self._perbatch_signals:
+            if signal_name_filter is not None and signal_name != signal_name_filter:
                 continue
-            for task_name, samples_list in self._perbatch_signals[tag].items():
+            for task_name, samples_list in self._perbatch_signals[signal_name].items():
                 latest_samples = samples_list[-num_batches:]
-                avg_signals[tag][task_name] = (sum(latest_samples) / len(latest_samples)).detach().cpu().numpy()
+                avg_signals[signal_name][task_name] = (sum(latest_samples) / len(latest_samples)).detach().cpu().numpy()
         return avg_signals
 
     def log_batch(self, epoch, iteration, mode):
@@ -361,10 +361,10 @@ class LossHandler:
         #                                                              value=sum(value.values()))
         self._logger.info(status_total_loss)
 
-        for tag in self._perbatch_signals:
-            for task_name, samples_list in self._perbatch_signals[tag].items():
-                status_task_loss = '{name:<45s}'.format(name=tag+'/'+task_name)
+        for signal_name in self._perbatch_signals:
+            for task_name, samples_list in self._perbatch_signals[signal_name].items():
+                status_task_loss = '{name:<45s}'.format(name=signal_name+'/'+task_name)
                 for statistic, value in losses.items():
                     status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
-                                                                        value=value[tag][task_name])
+                                                                        value=value[signal_name][task_name])
                 self._logger.info(status_task_loss)
