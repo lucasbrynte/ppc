@@ -113,10 +113,10 @@ class Main():
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
 
             # Calculate loss
-            task_loss_decay_signal_vals, loss_notapplied_signal_vals = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
+            task_loss_decays, loss_notapplied = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
             if mode in (TRAIN, VAL):
-                task_loss_signal_vals = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decay_signal_vals)
-                loss = sum(task_loss_signal_vals.values())
+                task_losses = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decays)
+                loss = sum(task_losses.values())
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
                     loss += sum(prior_loss_signal_vals.values())
@@ -138,16 +138,16 @@ class Main():
             # Per-batch signals - will be plotted against epoch in TensorBoard
             if mode in (TRAIN, VAL):
                 self._loss_handler.record_batch_of_perbatch_signals('loss', {'loss': loss})
-                self._loss_handler.record_batch_of_perbatch_signals('task_losses', task_loss_signal_vals)
+                self._loss_handler.record_batch_of_perbatch_signals('task_losses', task_losses)
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     self._loss_handler.record_batch_of_perbatch_signals('prior_losses', prior_loss_signal_vals)
                 self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
                 self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
-                self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
-                self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=loss_notapplied_signal_vals))
+                self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal=loss_notapplied))
+                self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal=loss_notapplied))
 
             # Per-sample signals, e.g. feature values & corresponding errors
-            self._loss_handler.record_batch_of_persample_signals('loss_notapplied', loss_notapplied_signal_vals)
+            self._loss_handler.record_batch_of_persample_signals('loss_notapplied', loss_notapplied)
             self._loss_handler.record_batch_of_persample_signals('relative_feat_abserror', relative_feat_abserror)
             self._loss_handler.record_batch_of_persample_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_batch_of_persample_signals('interp_feat_error', interp_feat_error)
@@ -175,11 +175,11 @@ class Main():
 
             if mode == TEST:
                 for sample_idx in range(self._configs.runtime.loading.batch_size):
-                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied_signal_vals, mode, visual_cnt, sample=sample_idx)
+                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, visual_cnt, sample=sample_idx)
                     visual_cnt += 1
 
         if mode in (TRAIN, VAL):
-            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied_signal_vals, mode, epoch, sample=-1)
+            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, epoch, sample=-1)
 
         if mode in (TRAIN, VAL):
             self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, epoch)

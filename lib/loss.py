@@ -175,24 +175,24 @@ class LossHandler:
                 feat_error_signal_vals[task_name] = interp_to_be_normalized[task_name] / torch.norm(interp_feat_norms[task_name], dim=1).clamp(MIN_DENOM_VAL)
         return feat_error_signal_vals
 
-    def calc_batch_signal_avg(self, signals, discard_signal_vals=None):
+    def calc_batch_signal_avg(self, signals, discard_signal=None):
         feat_avg_signal_vals = {}
         for task_name in signals:
-            if discard_signal_vals is None:
+            if discard_signal is None:
                 feat_avg_signal_vals[task_name] = torch.mean(signals[task_name])
             else:
-                assert discard_signal_vals[task_name].squeeze(1).shape == signals[task_name].shape
-                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name][~discard_signal_vals[task_name].squeeze(1)])
+                assert discard_signal[task_name].squeeze(1).shape == signals[task_name].shape
+                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name][~discard_signal[task_name].squeeze(1)])
         return feat_avg_signal_vals
 
-    def calc_batch_signal_std(self, signals, discard_signal_vals=None):
+    def calc_batch_signal_std(self, signals, discard_signal=None):
         feat_std_signal_vals = {}
         for task_name in signals:
-            if discard_signal_vals is None:
+            if discard_signal is None:
                 feat_std_signal_vals[task_name] = torch.std(signals[task_name])
             else:
-                assert discard_signal_vals[task_name].squeeze(1).shape == signals[task_name].shape
-                feat_std_signal_vals[task_name] = torch.std(signals[task_name][~discard_signal_vals[task_name].squeeze(1)])
+                assert discard_signal[task_name].squeeze(1).shape == signals[task_name].shape
+                feat_std_signal_vals[task_name] = torch.std(signals[task_name][~discard_signal[task_name].squeeze(1)])
         return feat_std_signal_vals
 
     def calc_decay_factor(self, decay_spec, decay_controlling_variable):
@@ -218,8 +218,8 @@ class LossHandler:
         assert False
 
     def calc_loss_decay(self, target_features, pertarget_target_features):
-        task_loss_decay_signal_vals = {}
-        loss_notapplied_signal_vals = {}
+        task_loss_decays = {}
+        loss_notapplied = {}
         for task_name in self._configs.tasks.keys():
 
             # Initialize decay to 1.0:
@@ -239,19 +239,19 @@ class LossHandler:
                             assert decay_spec['y2'] < decay_spec['y1']
                             loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
 
-            task_loss_decay_signal_vals[task_name] = loss_decay
-            loss_notapplied_signal_vals[task_name] = loss_notapplied_mask
+            task_loss_decays[task_name] = loss_decay
+            loss_notapplied[task_name] = loss_notapplied_mask
 
-        return task_loss_decay_signal_vals, loss_notapplied_signal_vals
+        return task_loss_decays, loss_notapplied
 
-    def calc_loss(self, pred_features, target_features, task_loss_decay_signal_vals):
+    def calc_loss(self, pred_features, target_features, task_loss_decays):
         # ======================================================================
         # TODO: Make sure CPU->GPU overhead is not too much.
         # Make sure "pin_memory" in dataloader works as intended.
         # Ideally custom batch & targets classes with pin_memory methods should be used, see: https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader
         # ======================================================================
 
-        task_loss_signal_vals = {}
+        task_losses = {}
         for task_name in self._configs.tasks.keys():
             assert pred_features[task_name].shape == target_features[task_name].shape
             if self._configs.tasks[task_name]['loss_func'] == 'BCE' and self._configs.tasks[task_name]['activation'] == 'sigmoid':
@@ -267,11 +267,11 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            task_loss = task_loss * task_loss_decay_signal_vals[task_name]
+            task_loss = task_loss * task_loss_decays[task_name]
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
-            task_loss_signal_vals[task_name] = task_loss
-        return task_loss_signal_vals
+            task_losses[task_name] = task_loss
+        return task_losses
 
     def calc_prior_loss(self, pred_features_raw, target_prior_samples):
         prior_loss_signal_vals = {}
@@ -299,10 +299,10 @@ class LossHandler:
         for task_name, signal_val in signal_vals.items():
             self._perbatch_signals[tag][task_name].append(signal_val)
 
-    def filter_tensor_signal(self, signal_vals, loss_notapplied_signal_vals):
+    def filter_tensor_signal(self, signal_vals, loss_notapplied):
         signal_vals_filtered = {}
         for task_name in signal_vals.keys():
-            signal_vals_filtered[task_name] = [sample_val for sample_val, discard_val in zip(signal_vals[task_name], loss_notapplied_signal_vals[task_name]) if not torch.any(discard_val)]
+            signal_vals_filtered[task_name] = [sample_val for sample_val, discard_val in zip(signal_vals[task_name], loss_notapplied[task_name]) if not torch.any(discard_val)]
         return signal_vals_filtered
 
     def filter_persample_signals(self, tag_names):
