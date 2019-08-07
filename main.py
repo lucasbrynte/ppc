@@ -143,8 +143,11 @@ class Main():
                     self._loss_handler.record_scalar_signals('prior_losses', prior_loss_signal_vals)
                 self._loss_handler.record_scalar_signals('relative_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror))
                 self._loss_handler.record_scalar_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
+                self._loss_handler.record_scalar_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal_vals=task_loss_notapplied_signal_vals))
+                self._loss_handler.record_scalar_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal_vals=task_loss_notapplied_signal_vals))
 
             # Record feature values & corresponding errors
+            self._loss_handler.record_tensor_signals('task_loss_notapplied', task_loss_notapplied_signal_vals)
             self._loss_handler.record_tensor_signals('relative_feat_abserror', relative_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_abserror', interp_feat_abserror)
             self._loss_handler.record_tensor_signals('interp_feat_error', interp_feat_error)
@@ -180,7 +183,18 @@ class Main():
 
         if mode in (TRAIN, VAL):
             self._visualizer.report_scalar_signals(self._loss_handler.get_scalar_averages(), mode, epoch)
-        self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_tensor_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy)
+
+        self._loss_handler.filter_tensor_signals([
+            'interp_target_feat',
+            'interp_pred_feat',
+            'pred_feat_raw',
+            'relative_feat_abserror',
+            'interp_feat_abserror',
+            'interp_feat_error',
+        ])
+        # for filtered_flag in [False]:
+        for filtered_flag in [False, True]:
+            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_tensor_signals_numpy(), mode, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
 
         # for task_name in sorted(self._configs.tasks.keys()):
         #     tmp = np.sqrt(self._loss_handler.get_tensor_signals_numpy()['target_feat'][task_name])

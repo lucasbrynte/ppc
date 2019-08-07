@@ -175,16 +175,24 @@ class LossHandler:
                 feat_error_signal_vals[task_name] = interp_to_be_normalized[task_name] / torch.norm(interp_feat_norms[task_name], dim=1).clamp(MIN_DENOM_VAL)
         return feat_error_signal_vals
 
-    def calc_batch_signal_avg(self, signals):
+    def calc_batch_signal_avg(self, signals, discard_signal_vals=None):
         feat_avg_signal_vals = {}
         for task_name in signals:
-            feat_avg_signal_vals[task_name] = torch.mean(signals[task_name])
+            if discard_signal_vals is None:
+                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name])
+            else:
+                assert discard_signal_vals[task_name].squeeze(1).shape == signals[task_name].shape
+                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name][~discard_signal_vals[task_name].squeeze(1)])
         return feat_avg_signal_vals
 
-    def calc_batch_signal_std(self, signals):
+    def calc_batch_signal_std(self, signals, discard_signal_vals=None):
         feat_std_signal_vals = {}
         for task_name in signals:
-            feat_std_signal_vals[task_name] = torch.std(signals[task_name])
+            if discard_signal_vals is None:
+                feat_std_signal_vals[task_name] = torch.std(signals[task_name])
+            else:
+                assert discard_signal_vals[task_name].squeeze(1).shape == signals[task_name].shape
+                feat_std_signal_vals[task_name] = torch.std(signals[task_name][~discard_signal_vals[task_name].squeeze(1)])
         return feat_std_signal_vals
 
     def calc_decay_factor(self, decay_spec, decay_controlling_variable):
@@ -290,6 +298,19 @@ class LossHandler:
         assert tag not in self._tensor_signals.keys()
         for signal_name, signal_val in signal_vals.items():
             self._scalar_signals[tag][signal_name].append(signal_val)
+
+    def filter_tensor_signal(self, signal_vals, task_loss_notapplied_signal_vals):
+        signal_vals_filtered = {}
+        for signal_name in signal_vals.keys():
+            signal_vals_filtered[signal_name] = [sample_val for sample_val, discard_val in zip(signal_vals[signal_name], task_loss_notapplied_signal_vals[signal_name]) if not torch.any(discard_val)]
+        return signal_vals_filtered
+
+    def filter_tensor_signals(self, tag_names):
+        suffix = '_filtered'
+        filtered_tensor_signals = {}
+        for tag in tag_names:
+            filtered_tensor_signals[tag + suffix] = self.filter_tensor_signal(self._tensor_signals[tag], self._tensor_signals['task_loss_notapplied'])
+        self._tensor_signals.update(filtered_tensor_signals)
 
     def get_scalar_signals(self):
         return self._scalar_signals

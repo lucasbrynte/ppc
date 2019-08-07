@@ -96,7 +96,7 @@ class Visualizer:
             axes_array[j,1].set_ylabel('Feature error - std')
         self._writer.add_figure('_'.join([mode, tag]), fig, step_index)
 
-    def plot_feature_histograms(self, signals, mode, step_index):
+    def plot_feature_histograms(self, signals, tag, mode, step_index):
         fig, axes_array = plt.subplots(
             nrows=len(self._configs.tasks),
             ncols=len(signals),
@@ -114,21 +114,23 @@ class Visualizer:
                 )
                 axes_array[j,k].set_title('/\n'.join([signal_name, task_name]))
 
-        self._writer.add_figure('_'.join([mode, 'feature_histograms']), fig, step_index)
+        self._writer.add_figure('_'.join([mode, tag]), fig, step_index)
 
-    def calc_and_plot_signal_stats(self, signals, mode, step_index, target_prior_samples=None):
-        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['relative_feat_abserror'], 'relative_feature_abserror_against_target_magnitude', mode, step_index)
-        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_abserror'], 'feature_abserror_against_target_magnitude', mode, step_index)
-        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'], signals['interp_feat_error'], 'feature_error_against_target_magnitude', mode, step_index)
+    def calc_and_plot_signal_stats(self, signals, mode, step_index, target_prior_samples=None, filtered_flag=False):
+        suffix = '' if not filtered_flag else '_filtered'
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['relative_feat_abserror'+suffix], 'relative_feature_abserror_against_target_magnitude'+suffix, mode, step_index)
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['interp_feat_abserror'+suffix], 'feature_abserror_against_target_magnitude'+suffix, mode, step_index)
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['interp_feat_error'+suffix], 'feature_error_against_target_magnitude'+suffix, mode, step_index)
+
         histogram_signals = [
-            'interp_target_feat',
-            'interp_pred_feat',
-            'pred_feat_raw',
+            'interp_target_feat'+suffix,
+            'interp_pred_feat'+suffix,
+            'pred_feat_raw'+suffix,
         ]
         signal_dict = {signal_name: signal for signal_name, signal in signals.items() if signal_name in histogram_signals}
         if target_prior_samples is not None:
             signal_dict['target_prior_samples'] = target_prior_samples
-        self.plot_feature_histograms(signal_dict, mode, step_index)
+        self.plot_feature_histograms(signal_dict, 'feature_histograms'+suffix, mode, step_index)
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
