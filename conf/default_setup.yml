@@ -46,7 +46,10 @@ tasks:
     clamp_before_loss: false
     prior_loss: null
     loss_decay:
-      - {method: relative, min_denominator: 0.5}
+      # - {method: relative, min_denominator: 0.5}
+      # - {method: relative, min_denominator: 0.1}
+      # - {method: relative, min_denominator: 0.05}
+      - {method: relative, min_denominator: 0.01}
   delta_angle_total:
     target: delta_angle_total
     loss_func: L2
