@@ -59,7 +59,7 @@ class Main():
             train_score = -self._run_epoch(epoch, TRAIN, TRAIN, nbr_batches_train)
 
             val_scores = {}
-            for schemeset in self._configs.runtime.data_sampling_scheme_refs[VAL].keys():
+            for schemeset in self._configs.runtime.data_sampling_scheme_defs[VAL].keys():
                 val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val)
             # assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
             # val_score = next(iter(val_scores.values()))
@@ -72,7 +72,7 @@ class Main():
     def eval(self):
         nbr_batches = 3
         epoch = 1
-        for schemeset in self._configs.runtime.data_sampling_scheme_refs[TEST].keys():
+        for schemeset in self._configs.runtime.data_sampling_scheme_defs[TEST].keys():
             self._run_epoch(epoch, TEST, schemeset, nbr_batches)
 
     def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):

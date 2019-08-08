@@ -72,8 +72,9 @@ class DummyDataset(Dataset):
         #     self._aug_transform = None
         self.Targets = self._get_target_def()
 
-        self._data_sampling_scheme_refs = getattr(getattr(self._configs.runtime.data_sampling_scheme_refs, self._mode), scheme_set_name)
-        self._data_sampling_schemes = getattr(getattr(self._configs.runtime.data_sampling_schemes, self._mode), scheme_set_name)
+        self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), scheme_set_name)
+        self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), scheme_set_name)
+        self._query_sampling_scheme = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), scheme_set_name)
 
         self._pids_path = '/tmp/sixd_kp_pids/' + self._mode
         if os.path.exists(self._pids_path):
@@ -145,17 +146,14 @@ class DummyDataset(Dataset):
         self._deterministic_perturbation_ranges = self._calc_deterministic_perturbation_ranges()
 
     def _calc_deterministic_perturbation_ranges(self):
-        return [
-            {
-                param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self))
-                for param_name, sample_spec in sampling_spec.perturbation.items()
-                if sample_spec['deterministic_quantile_range']
-            }
-            for sampling_spec in self._data_sampling_schemes
-        ]
+        return {
+            param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self))
+            for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()
+            if sample_spec['deterministic_quantile_range']
+        }
     def __getitem__(self, sample_index):
-        sampling_scheme_idx = np.random.choice(len(self._data_sampling_scheme_refs), p=[scheme_ref.sampling_prob for scheme_ref in self._data_sampling_scheme_refs])
-        data, targets, extra_input = self._generate_sample(sampling_scheme_idx, sample_index)
+        ref_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.ref_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.ref_schemeset])
+        data, targets, extra_input = self._generate_sample(ref_scheme_idx, sample_index)
         return Sample(targets, data, extra_input)
 
     def _render(self, K, R, t):
@@ -316,14 +314,14 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _sample_perturbation_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: self._deterministic_perturbation_ranges[sampling_scheme_idx][param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].perturbation.items()}
+    def _sample_perturbation_params(self, ref_scheme_idx, sample_index):
+        return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
 
-    def _sample_object_pose_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.object_pose.items()}
+    def _sample_object_pose_params(self, ref_scheme_idx, sample_index):
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.object_pose.items()}
 
-    def _sample_camera_pose_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.camera_pose.items()}
+    def _sample_camera_pose_params(self, ref_scheme_idx, sample_index):
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.camera_pose.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -339,18 +337,18 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_pose(self, sampling_scheme_idx, sample_index):
+    def _sample_pose(self, ref_scheme_idx, sample_index):
         pose_sampler = PoseSampler()
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
         # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
-        obj_pose_params = self._sample_object_pose_params(sampling_scheme_idx, sample_index)
+        obj_pose_params = self._sample_object_pose_params(ref_scheme_idx, sample_index)
         T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
         # Sample parameters for a camera pose.
-        cam_pose_params = self._sample_camera_pose_params(sampling_scheme_idx, sample_index)
+        cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx, sample_index)
         T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
 
         T1 = T_world2cam @ T_model2world
@@ -398,11 +396,11 @@ class DummyDataset(Dataset):
         else:
             assert False
 
-    def _generate_synthetic_pose(self, sampling_scheme_idx, sample_index):
+    def _generate_synthetic_pose(self, ref_scheme_idx, sample_index):
         # Resample pose until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
-            T1 = self._sample_pose(sampling_scheme_idx, sample_index)
+            T1 = self._sample_pose(ref_scheme_idx, sample_index)
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
@@ -423,11 +421,11 @@ class DummyDataset(Dataset):
 
         return T1, crop_box
 
-    def _generate_perturbation(self, sampling_scheme_idx, sample_index, T1):
+    def _generate_perturbation(self, ref_scheme_idx, sample_index, T1):
         # Resample perturbation until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params(sampling_scheme_idx, sample_index)
+            perturb_params = self._sample_perturbation_params(ref_scheme_idx, sample_index)
             T2 = self._apply_perturbation(T1, perturb_params)
 
             # Minimum allowed distance between object and camera centers
@@ -441,16 +439,17 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _generate_sample(self, sampling_scheme_idx, sample_index):
+    def _generate_sample(self, ref_scheme_idx, sample_index):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index,
         # which only controls the perturbation, and thus the query image
         # ======================================================================
 
-        # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].scheme_name
+        # ref_scheme = self._data_sampling_scheme_defs.ref_schemeset[ref_scheme_idx].scheme_name
+        # query_scheme = self._data_sampling_scheme_defs.query_scheme
 
-        assert self._data_sampling_schemes[sampling_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
-        T1, crop_box = self._generate_synthetic_pose(sampling_scheme_idx, sample_index)
+        assert self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
+        T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx, sample_index)
         R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
         # print("raw", crop_box)
@@ -460,7 +459,7 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        T2 = self._generate_perturbation(sampling_scheme_idx, sample_index, T1)
+        T2 = self._generate_perturbation(ref_scheme_idx, sample_index, T1)
         R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
         # Last rows expected to remain unchanged:

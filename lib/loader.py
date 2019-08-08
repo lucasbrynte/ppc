@@ -92,7 +92,7 @@ class Loader:
     def __init__(self, modes, configs):
         self._configs = configs
         self._dataset_module = import_module('lib.datasets.%s' % configs.data.dataformat)
-        self._datasets = {mode: {scheme_set_name: self._dataset_module.get_dataset(self._configs, mode, scheme_set_name) for scheme_set_name in getattr(self._configs.runtime.data_sampling_scheme_refs, mode).keys()} for mode in modes}
+        self._datasets = {mode: {scheme_set_name: self._dataset_module.get_dataset(self._configs, mode, scheme_set_name) for scheme_set_name in getattr(self._configs.runtime.data_sampling_scheme_defs, mode).keys()} for mode in modes}
 
     def _init_loader(self, mode, scheme_set_name, nbr_samples):
         loader_configs = self._get_loader_config(mode, scheme_set_name, nbr_samples)

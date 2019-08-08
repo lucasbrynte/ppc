@@ -4,15 +4,22 @@ loading:
 data:
   min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
   max_nbr_resamplings: 100
-data_sampling_scheme_refs:
+data_sampling_scheme_defs:
   train:
     train:
-      - {scheme_name: synth_default}
-      # - {scheme_name: synth_rot_only_20deg_std, sampling_prob: 0.5}
+      ref_schemeset:
+        - {ref_scheme: synth_default}
+      query_scheme: default
   val:
     synth_default:
-      - {scheme_name: synth_default}
+      ref_schemeset:
+        - {ref_scheme: synth_default}
+      query_scheme: default
     synth_rot_only_20deg_std:
-      - {scheme_name: synth_rot_only_20deg_std}
+      ref_schemeset:
+        - {ref_scheme: synth_default}
+      query_scheme: rot_only_20deg_std
     synth_rot_only_20deg_std_quantile:
-      - {scheme_name: synth_rot_only_20deg_std_quantile}
+      ref_schemeset:
+        - {ref_scheme: synth_default}
+      query_scheme: rot_only_20deg_std_quantile
