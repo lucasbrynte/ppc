@@ -270,6 +270,7 @@ class LossHandler:
             task_loss = task_loss * task_loss_decays[task_name]
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
+            assert torch.isfinite(task_loss)
             task_losses[task_name] = task_loss
         return task_losses
 

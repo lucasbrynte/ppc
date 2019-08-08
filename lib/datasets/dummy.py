@@ -427,6 +427,7 @@ class DummyDataset(Dataset):
             gt = random.choice(gts)
 
             T1 = np.eye(4)
+            T1[:3,:3] = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
             T1[:3,:3] = np.array(gt['cam_R_m2c']).reshape((3, 3))
             T1[:3,3] = np.array(gt['cam_t_m2c'])
 
@@ -548,22 +549,24 @@ class DummyDataset(Dataset):
         # NOTE ON RELATIVE DEPTH:
         # Actual depth is impossible to determine from image alone due to cropping effects on calibration.
 
-        pixel_offset = pflat(K @ t2)[:2,0] - pflat(K @ t1)[:2,0]
-        delta_angle_inplane = self._calc_delta_angle_inplane(R21_global)
-        delta_angle_total = self._angle_from_rotmat(R21_global)
+        # Raise error instead of returning nan when calling arccos(x) for x outside of [-1, 1]
+        with np.errstate(invalid='raise'):
+            pixel_offset = pflat(K @ t2)[:2,0] - pflat(K @ t1)[:2,0]
+            delta_angle_inplane = self._calc_delta_angle_inplane(R21_global)
+            delta_angle_total = self._angle_from_rotmat(R21_global)
 
-        all_target_vals = {
-            'pixel_offset': pixel_offset,
-            'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
-            'norm_pixel_offset': np.linalg.norm(pixel_offset),
-            'delta_angle_inplane_signed': delta_angle_inplane,
-            'delta_angle_inplane_unsigned': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
-            'delta_angle_paxis': np.arccos(R21_global[2,2]),
-            'delta_angle_total': delta_angle_total,
-            'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
-            'delta_angle_paxis_cosdist': 1.0 - R21_global[2,2],
-            'delta_angle_total_cosdist': 1.0 - np.cos(delta_angle_total),
-        }
+            all_target_vals = {
+                'pixel_offset': pixel_offset,
+                'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
+                'norm_pixel_offset': np.linalg.norm(pixel_offset),
+                'delta_angle_inplane_signed': delta_angle_inplane,
+                'delta_angle_inplane_unsigned': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
+                'delta_angle_paxis': np.arccos(R21_global[2,2]),
+                'delta_angle_total': delta_angle_total,
+                'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
+                'delta_angle_paxis_cosdist': 1.0 - R21_global[2,2],
+                'delta_angle_total_cosdist': 1.0 - np.cos(delta_angle_total),
+            }
 
         target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.targets.keys()}
 
