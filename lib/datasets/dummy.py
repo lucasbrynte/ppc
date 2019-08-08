@@ -544,7 +544,7 @@ class DummyDataset(Dataset):
         data = img1, img2
 
         # How to rotate 2nd global frame, to align it with 1st global frame
-        R21_global = R1 @ R2.T
+        R21_global = closest_rotmat(R1 @ R2.T)
 
         # NOTE ON RELATIVE DEPTH:
         # Actual depth is impossible to determine from image alone due to cropping effects on calibration.
