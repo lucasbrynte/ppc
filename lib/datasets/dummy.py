@@ -394,18 +394,19 @@ class DummyDataset(Dataset):
         else:
             assert False
 
-    def _read_img(self, ref_scheme_idx, crop_box, frame_idx):
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
         dir_path = os.path.join(self._configs.data.path, seq)
-        path = os.path.join(dir_path, 'rgb', str(frame_idx).zfill(6) + '.png')
-        full_img = Image.open(path)
 
-        # (x1, y1, x2, y2) = crop_box
-        # img1 = full_img[y1:y2, x1:x2]
-
-        img1 = full_img.crop(crop_box).resize(self._configs.data.crop_dims)
-
-        return img1
+        rgb_path = os.path.join(dir_path, 'rgb', str(frame_idx).zfill(6) + '.png')
+        img = Image.open(rgb_path).crop(crop_box).resize(self._configs.data.crop_dims)
+        if self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+            seg_path = os.path.join(dir_path, 'instance_seg', str(frame_idx).zfill(6) + '.png')
+            seg = np.array(Image.open(seg_path).crop(crop_box).resize(self._configs.data.crop_dims))
+            silhouette = np.array(img)
+            silhouette[seg != instance_idx+1] = 0
+            img = Image.fromarray(silhouette, mode=img.mode)
+        return img
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         NBR_ATTEMPTS = 10
@@ -418,13 +419,11 @@ class DummyDataset(Dataset):
             gts_in_frame = all_gts[frame_idx]
 
             # Filter annotated instances on object id
-            gts = [gt for gt in gts_in_frame if gt['obj_id'] == self._obj_id]
-            nbr_instances = len(gts)
-
+            enumerated_and_filtered_gts = [(instance_idx, gt) for instance_idx, gt in enumerate(gts_in_frame) if gt['obj_id'] == self._obj_id]
+            nbr_instances = len(enumerated_and_filtered_gts)
             if nbr_instances == 0:
                 continue
-
-            gt = random.choice(gts)
+            instance_idx, gt = random.choice(enumerated_and_filtered_gts)
 
             T1 = np.eye(4)
             T1[:3,:3] = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
@@ -447,7 +446,7 @@ class DummyDataset(Dataset):
         else:
             assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
 
-        return T1, crop_box, frame_idx
+        return T1, crop_box, frame_idx, instance_idx
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
@@ -508,7 +507,7 @@ class DummyDataset(Dataset):
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            T1, crop_box, frame_idx = self._read_pose_from_anno(ref_scheme_idx)
+            T1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
         R1 = T1[:3,:3]; t1 = T1[:3,[3]]
@@ -532,7 +531,7 @@ class DummyDataset(Dataset):
         assert T2[2,3] > 0, "Center of object pose 2 behind camera"
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx)
+            img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             img1 = Image.fromarray(self._render(K, R1, t1))
         img2 = Image.fromarray(self._render(K, R2, t2))

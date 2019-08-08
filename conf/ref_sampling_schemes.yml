@@ -2,14 +2,17 @@ real_unoccl_duck:
   ref_source: real
   real_opts:
     linemod_seq: train_unoccl/duck
+    mask_silhouette: true
 real_occl_val:
   ref_source: real
   real_opts:
     linemod_seq: train_occl/ape
+    mask_silhouette: true
 real_occl_test:
   ref_source: real
   real_opts:
     linemod_seq: test_occl/benchviseblue
+    mask_silhouette: true
 synth_default:
   ref_source: synthetic
   synth_opts:
