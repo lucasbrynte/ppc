@@ -395,22 +395,15 @@ class DummyDataset(Dataset):
         else:
             assert False
 
-    def _generate_sample(self, sampling_scheme_idx, sample_index):
-        # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].scheme_name
-
-        # Minimum allowed distance between object and camera centers
-        min_dist_obj_and_camera_centers = self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera
-
-        MAX_NBR_RESAMPLINGS = 100
-
-        assert self._data_sampling_schemes[sampling_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
+    def _generate_synthetic_pose(self, sampling_scheme_idx, sample_index):
         # Resample pose until accepted
-        for j in range(MAX_NBR_RESAMPLINGS):
+        for j in range(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
             T1 = self._sample_pose(sampling_scheme_idx, sample_index)
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
-            if T1[2,3] < min_dist_obj_and_camera_centers:
+            # Minimum allowed distance between object and camera centers
+            if T1[2,3] < self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera:
                 # print("Rejected T1, due to small depth", T1)
                 continue
 
@@ -423,7 +416,34 @@ class DummyDataset(Dataset):
 
             break
         else:
-            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(MAX_NBR_RESAMPLINGS, MAX_NBR_RESAMPLINGS)
+            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings, self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings)
+
+        return T1, crop_box
+
+    def _generate_perturbation(self, sampling_scheme_idx, sample_index, T1):
+        # Resample perturbation until accepted
+        for j in range(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings):
+            # Perturb reference T1, to get proposed pose T2
+            perturb_params = self._sample_perturbation_params(sampling_scheme_idx, sample_index)
+            T2 = self._apply_perturbation(T1, perturb_params)
+
+            # Minimum allowed distance between object and camera centers
+            if T2[2,3] < self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera:
+                # print("Rejected T2, due to small depth", T2)
+                continue
+
+            break
+        else:
+            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings, self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings)
+
+        return T2
+
+    def _generate_sample(self, sampling_scheme_idx, sample_index):
+        # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].scheme_name
+
+        assert self._data_sampling_schemes[sampling_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
+        T1, crop_box = self._generate_synthetic_pose(sampling_scheme_idx, sample_index)
+        R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
@@ -432,20 +452,8 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        # Resample perturbation until accepted
-        for j in range(MAX_NBR_RESAMPLINGS):
-            # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params(sampling_scheme_idx, sample_index)
-            T2 = self._apply_perturbation(T1, perturb_params)
-            R2 = T2[:3,:3]; t2 = T2[:3,[3]]
-
-            if T2[2,3] < min_dist_obj_and_camera_centers:
-                # print("Rejected T2, due to small depth", T2)
-                continue
-
-            break
-        else:
-            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(MAX_NBR_RESAMPLINGS, MAX_NBR_RESAMPLINGS)
+        T2 = self._generate_perturbation(sampling_scheme_idx, sample_index, T1)
+        R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
@@ -457,9 +465,6 @@ class DummyDataset(Dataset):
 
         img1 = pillow_to_pt(Image.fromarray(self._render(K, R1, t1)), normalize_flag=True, transform=self._aug_transform)
         img2 = pillow_to_pt(Image.fromarray(self._render(K, R2, t2)), normalize_flag=True, transform=self._aug_transform)
-        # Dummy data:
-        # img1 = torch.zeros([3] + list(self._configs.data.crop_dims))
-        # img2 = torch.ones([3] + list(self._configs.data.crop_dims))
 
         data = img1, img2
 
