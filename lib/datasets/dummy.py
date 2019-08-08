@@ -15,7 +15,7 @@ from torch import Tensor
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pflat, pillow_to_pt
-from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range
+from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -378,9 +378,8 @@ class DummyDataset(Dataset):
         of the ellipse.
         """
         assert A.shape == (2, 2)
-        assert np.linalg.det(A) > 0
-        U,_,VT = np.linalg.svd(A)
-        return self._angle_from_rotmat(U @ VT)
+        R = closest_rotmat(A)
+        return self._angle_from_rotmat(R)
 
     def _angle_from_rotmat(self, R):
         assert R.shape in [(2, 2), (3, 3)]

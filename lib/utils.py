@@ -120,6 +120,16 @@ def uniform_sampling_on_S2(shape=()):
     z = np.cos(theta)
     return np.moveaxis(np.array([x,y,z]), 0, -1)
 
+def closest_rotmat(A):
+    """
+    Finds the rotation matrix which is "closest" to the given linear transformation.
+    Returns UV^T, where USV^T is the SVD of A.
+    det(A) is assumed to be > 0.
+    """
+    assert np.linalg.det(A) > 0
+    U,_,VT = np.linalg.svd(A)
+    return U @ VT
+
 def get_rotation_axis_angle(axis, angle):
     T = np.eye(4)
     axis = axis / np.linalg.norm(axis)
