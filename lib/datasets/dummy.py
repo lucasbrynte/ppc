@@ -439,6 +439,11 @@ class DummyDataset(Dataset):
         return T2
 
     def _generate_sample(self, sampling_scheme_idx, sample_index):
+        # ======================================================================
+        # NOTE: The reference pose / image is independent from the sample_index,
+        # which only controls the perturbation, and thus the query image
+        # ======================================================================
+
         # scheme_name = self._data_sampling_scheme_refs[sampling_scheme_idx].scheme_name
 
         assert self._data_sampling_schemes[sampling_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
