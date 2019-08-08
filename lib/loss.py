@@ -290,7 +290,7 @@ class LossHandler:
         """
         assert signal_name not in self._perbatch_signals.keys()
         for task_name, signal_val in signal_vals.items():
-            self._persample_signals[signal_name][task_name] += list(signal_val)
+            self._persample_signals[signal_name][task_name] += list(signal_val.detach().cpu())
 
     def record_batch_of_perbatch_signals(self, signal_name, signal_vals):
         """
@@ -298,7 +298,7 @@ class LossHandler:
         """
         assert signal_name not in self._persample_signals.keys()
         for task_name, signal_val in signal_vals.items():
-            self._perbatch_signals[signal_name][task_name].append(signal_val)
+            self._perbatch_signals[signal_name][task_name].append(signal_val.detach().cpu())
 
     def filter_tensor_signal(self, signal_vals, loss_notapplied):
         signal_vals_filtered = {}
@@ -325,7 +325,7 @@ class LossHandler:
             if signal_name_filter is not None and signal_name != signal_name_filter:
                 continue
             for task_name, samples_list in signal_dict[signal_name].items():
-                numpy_signals[signal_name][task_name] = torch.tensor(samples_list).detach().cpu().numpy()
+                numpy_signals[signal_name][task_name] = torch.tensor(samples_list).numpy()
         return numpy_signals
 
     def get_perbatch_signals_numpy(self, signal_name_filter=None):
