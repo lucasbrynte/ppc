@@ -361,9 +361,10 @@ class LossHandler:
         #                                                              value=sum(value.values()))
         self._logger.info(status_total_loss)
 
+        nbr_chars = 4 + max([len(signal_name+'/'+task_name) for signal_name in self._perbatch_signals for task_name in self._perbatch_signals[signal_name].keys()])
         for signal_name in self._perbatch_signals:
             for task_name, samples_list in self._perbatch_signals[signal_name].items():
-                status_task_loss = '{name:<45s}'.format(name=signal_name+'/'+task_name)
+                status_task_loss = ('{name:<'+str(nbr_chars)+'s}').format(name=signal_name+'/'+task_name)
                 for statistic, value in losses.items():
                     status_task_loss += '{stat:s}: {value:>7.7f}   '.format(stat=statistic,
                                                                         value=value[signal_name][task_name])
