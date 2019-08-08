@@ -1,6 +1,10 @@
 loading:
   batch_size: 32
   shuffle: true
+visualization:
+  save_imgs_interval: 1
+  plot_signals_interval: 1
+  plot_signal_stats_interval: 5
 data:
   min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
   max_nbr_resamplings: 100

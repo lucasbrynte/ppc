@@ -56,11 +56,15 @@ class Main():
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, nbr_batches_train)
+            save_imgs_flag = epoch % self._configs.runtime.visualization.save_imgs_interval == 0
+            plot_signals_flag = epoch % self._configs.runtime.visualization.plot_signals_interval == 0
+            plot_signal_stats_flag = epoch % self._configs.runtime.visualization.plot_signal_stats_interval == 0
+
+            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, nbr_batches_train, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
 
             val_scores = {}
             for schemeset in self._configs.runtime.data_sampling_scheme_defs[VAL].keys():
-                val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val)
+                val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
             # assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
             # val_score = next(iter(val_scores.values()))
             val_score = sum(val_scores.values()) / len(val_scores)
@@ -73,7 +77,7 @@ class Main():
         nbr_batches = 3
         epoch = 1
         for schemeset in self._configs.runtime.data_sampling_scheme_defs[TEST].keys():
-            self._run_epoch(epoch, TEST, schemeset, nbr_batches)
+            self._run_epoch(epoch, TEST, schemeset, nbr_batches, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True)
 
     def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
@@ -95,7 +99,7 @@ class Main():
         print('Done.')
         return target_samples
 
-    def _run_epoch(self, epoch, mode, schemeset, nbr_batches):
+    def _run_epoch(self, epoch, mode, schemeset, nbr_batches, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True):
         if mode == TRAIN:
             self._model.train()
         else:
@@ -181,27 +185,38 @@ class Main():
             #     self._visualizer.report_signals(self._loss_handler.get_scalar_averages(), mode)
 
             if mode == TEST:
-                for sample_idx in range(self._configs.runtime.loading.batch_size):
-                    self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
-                    visual_cnt += 1
+                if save_imgs_flag:
+                    print('Saving images...')
+                    for sample_idx in range(self._configs.runtime.loading.batch_size):
+                        self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
+                        visual_cnt += 1
 
-        if mode in (TRAIN, VAL):
-            self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, epoch, sample=-1)
+        if save_imgs_flag:
+            print('Saving images...')
+            if mode in (TRAIN, VAL):
+                self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, epoch, sample=-1)
 
-        if mode in (TRAIN, VAL):
-            self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, schemeset, epoch)
+        if plot_signals_flag:
+            print('Plotting signals...')
+            if mode in (TRAIN, VAL):
+                self._visualizer.report_perbatch_signals(self._loss_handler.get_scalar_averages(), mode, schemeset, epoch)
 
-        self._loss_handler.filter_persample_signals([
-            'interp_target_feat',
-            'interp_pred_feat',
-            'pred_feat_raw',
-            'relative_feat_abserror',
-            'interp_feat_abserror',
-            'interp_feat_error',
-        ])
-        # for filtered_flag in [False]:
-        for filtered_flag in [False, True]:
-            self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_persample_signals_numpy(), mode, schemeset, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
+        if plot_signal_stats_flag:
+            print('Filtering samples where loss not applied...')
+            self._loss_handler.filter_persample_signals([
+                'interp_target_feat',
+                'interp_pred_feat',
+                'pred_feat_raw',
+                'relative_feat_abserror',
+                'interp_feat_abserror',
+                'interp_feat_error',
+            ])
+            print('Plotting signal stats...')
+            # for filtered_flag in [False]:
+            for filtered_flag in [True]:
+            # for filtered_flag in [False, True]:
+                self._visualizer.calc_and_plot_signal_stats(self._loss_handler.get_persample_signals_numpy(), mode, schemeset, epoch, target_prior_samples=self._target_prior_samples_numpy, filtered_flag=filtered_flag)
+        print('Visualization done.')
 
         # for task_name in sorted(self._configs.tasks.keys()):
         #     tmp = np.sqrt(self._loss_handler.get_persample_signals_numpy()['target_feat'][task_name])
