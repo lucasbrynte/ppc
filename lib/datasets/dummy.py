@@ -77,7 +77,7 @@ class DummyDataset(Dataset):
         self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), scheme_set_name)
         self._query_sampling_scheme = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), scheme_set_name)
 
-        self._pids_path = '/tmp/sixd_kp_pids/' + self._mode
+        self._pids_path = '/tmp/sixd_kp_pids/{}_{}'.format(self._mode, scheme_set_name)
         if os.path.exists(self._pids_path):
             shutil.rmtree(self._pids_path)
             print("Removing " + self._pids_path)
