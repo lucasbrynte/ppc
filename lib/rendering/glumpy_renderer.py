@@ -345,16 +345,15 @@ class Renderer():
 
         mat_proj = self._compute_calib_proj(K, 0, 0, self._shape[1], self._shape[0], clip_near, clip_far)
 
-        self._prepare_rendering()
-
         self._program['u_light_eye_pos'] = [0, 0, 0] # Camera origin
         self._program['u_light_ambient_w'] = ambient_weight
 
         self._fbo.activate()
+        self._prepare_rendering() # Could alternatively be done in on_draw()
 
         @self._window.event
         def on_draw(dt):
-            self._window.clear()
+            # self._window.clear() # Instead of gl.glClear(...)
             instance_id = 0
             for R, t, obj_id in zip(R_list, t_list, obj_id_list):
                 instance_id += 1
