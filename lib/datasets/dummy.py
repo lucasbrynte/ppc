@@ -317,10 +317,10 @@ class DummyDataset(Dataset):
     def _sample_perturbation_params(self, ref_scheme_idx, sample_index):
         return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
 
-    def _sample_object_pose_params(self, ref_scheme_idx, sample_index):
+    def _sample_object_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.object_pose.items()}
 
-    def _sample_camera_pose_params(self, ref_scheme_idx, sample_index):
+    def _sample_camera_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.camera_pose.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
@@ -337,18 +337,18 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_pose(self, ref_scheme_idx, sample_index):
+    def _sample_pose(self, ref_scheme_idx):
         pose_sampler = PoseSampler()
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
         # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
-        obj_pose_params = self._sample_object_pose_params(ref_scheme_idx, sample_index)
+        obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
         T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
         # Sample parameters for a camera pose.
-        cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx, sample_index)
+        cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx)
         T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
 
         T1 = T_world2cam @ T_model2world
@@ -396,11 +396,11 @@ class DummyDataset(Dataset):
         else:
             assert False
 
-    def _generate_synthetic_pose(self, ref_scheme_idx, sample_index):
+    def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
-            T1 = self._sample_pose(ref_scheme_idx, sample_index)
+            T1 = self._sample_pose(ref_scheme_idx)
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
@@ -449,7 +449,7 @@ class DummyDataset(Dataset):
         # query_scheme = self._data_sampling_scheme_defs.query_scheme
 
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
-        T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx, sample_index)
+        T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
         R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
         # print("raw", crop_box)
