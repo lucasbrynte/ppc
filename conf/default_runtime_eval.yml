@@ -7,6 +7,12 @@ data:
   max_nbr_resamplings: 100
 data_sampling_scheme_defs:
   test:
+    real_unoccl_duck:
+      - {scheme_name: real_unoccl_duck}
+    real_occl_val:
+      - {scheme_name: real_occl_val}
+    # real_occl_test:
+    #   - {scheme_name: real_occl_test}
     synth_default:
       ref_schemeset:
         - {ref_scheme: synth_default}

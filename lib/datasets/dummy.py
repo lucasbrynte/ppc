@@ -5,6 +5,7 @@ import shutil
 import yaml
 from attrdict import AttrDict
 
+import random
 import math
 import numpy as np
 from PIL import Image
@@ -384,7 +385,7 @@ class DummyDataset(Dataset):
     def _angle_from_rotmat(self, R):
         assert R.shape in [(2, 2), (3, 3)]
         dim = R.shape[0]
-        eps = 1e-4
+        eps = 1e-3
         assert np.all(np.isclose(R.T @ R, np.eye(dim), rtol=0.0, atol=eps))
         assert np.linalg.det(R) > 0
         if dim == 2:
@@ -393,6 +394,60 @@ class DummyDataset(Dataset):
             return np.arccos(0.5 * (np.trace(R) - 1.0))
         else:
             assert False
+
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx):
+        seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        dir_path = os.path.join(self._configs.data.path, seq)
+        path = os.path.join(dir_path, 'rgb', str(frame_idx).zfill(6) + '.png')
+        full_img = Image.open(path)
+
+        # (x1, y1, x2, y2) = crop_box
+        # img1 = full_img[y1:y2, x1:x2]
+
+        img1 = full_img.crop(crop_box).resize(self._configs.data.crop_dims)
+
+        return img1
+
+    def _read_pose_from_anno(self, ref_scheme_idx):
+        NBR_ATTEMPTS = 10
+        for j in range(NBR_ATTEMPTS):
+            seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+            dir_path = os.path.join(self._configs.data.path, seq)
+            all_gts = self._read_yaml(os.path.join(dir_path, 'gt.yml'))
+            nbr_frames = len(all_gts)
+            frame_idx = np.random.choice(nbr_frames)
+            gts_in_frame = all_gts[frame_idx]
+
+            # Filter annotated instances on object id
+            gts = [gt for gt in gts_in_frame if gt['obj_id'] == self._obj_id]
+            nbr_instances = len(gts)
+
+            if nbr_instances == 0:
+                continue
+
+            gt = random.choice(gts)
+
+            T1 = np.eye(4)
+            T1[:3,:3] = np.array(gt['cam_R_m2c']).reshape((3, 3))
+            T1[:3,3] = np.array(gt['cam_t_m2c'])
+
+            crop_box = np.array(gt['obj_bb'])
+            crop_box[2:] += crop_box[:2]  # x,y,w,h, -> x1,y1,x2,y2
+
+            # crop_box = self._expand_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
+            # crop_box = self._truncate_bbox(crop_box)
+
+            width = crop_box[2] - crop_box[0]
+            height = crop_box[3] - crop_box[1]
+            if width < 50 or height < 50:
+                # print("Rejected T1, due to crop_box", crop_box)
+                continue
+
+            break
+        else:
+            assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
+
+        return T1, crop_box, frame_idx
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
@@ -450,8 +505,12 @@ class DummyDataset(Dataset):
         # ref_scheme = self._data_sampling_scheme_defs.ref_schemeset[ref_scheme_idx].scheme_name
         # query_scheme = self._data_sampling_scheme_defs.query_scheme
 
-        assert self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic', 'Only synthetic ref images supported as of yet.'
-        T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
+        assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
+
+        if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
+            T1, crop_box, frame_idx = self._read_pose_from_anno(ref_scheme_idx)
+        elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
+            T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
         R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
         # print("raw", crop_box)
@@ -472,8 +531,15 @@ class DummyDataset(Dataset):
         assert T1[2,3] > 0, "Center of object pose 1 behind camera"
         assert T2[2,3] > 0, "Center of object pose 2 behind camera"
 
-        img1 = pillow_to_pt(Image.fromarray(self._render(K, R1, t1)), normalize_flag=True, transform=self._aug_transform)
-        img2 = pillow_to_pt(Image.fromarray(self._render(K, R2, t2)), normalize_flag=True, transform=self._aug_transform)
+        if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
+            img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx)
+        elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
+            img1 = Image.fromarray(self._render(K, R1, t1))
+        img2 = Image.fromarray(self._render(K, R2, t2))
+
+        # Augmentation + numpy -> pytorch conversion
+        img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
+        img2 = pillow_to_pt(img2, normalize_flag=True, transform=self._aug_transform)
 
         data = img1, img2
 
