@@ -50,12 +50,12 @@ class Visualizer:
             nbr_samples = interp_target_feat[task_name].shape[0]
             target_magnitudes = np.linalg.norm(interp_target_feat[task_name].reshape(nbr_samples, -1), axis=1)
 
-            nbr_bins = 30
-            bin_edges[task_name] = np.sort(target_magnitudes)[np.linspace(0, len(target_magnitudes)-1, nbr_bins+1, dtype=int)]
+            max_nbr_bins = 30
+            bin_edges[task_name] = np.unique(np.sort(target_magnitudes)[np.linspace(0, len(target_magnitudes)-1, max_nbr_bins+1, dtype=int)])
             # bin_edges[task_name] = np.histogram_bin_edges(target_magnitudes, bins=30)
-            bin_indices = np.digitize(target_magnitudes, bin_edges[task_name])
+            bin_indices = np.digitize(target_magnitudes, bin_edges[task_name]) - 1
 
-            # nbr_bins = len(bin_edges[task_name]) - 1
+            nbr_bins = len(bin_edges[task_name]) - 1
             for bin_idx in range(nbr_bins):
                 mask = bin_indices == bin_idx
                 binned_signals[task_name][bin_idx] = interp_feat_error[task_name][mask]
