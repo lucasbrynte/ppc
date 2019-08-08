@@ -1,4 +1,5 @@
 loading:
+  nbr_batches_test: 3
   batch_size: 32
   # shuffle: fixed
   shuffle: false

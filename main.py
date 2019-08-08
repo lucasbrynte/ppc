@@ -40,18 +40,8 @@ class Main():
         )
 
     def train(self):
-        # nbr_batches_prior = 4
-        nbr_batches_prior = 128
-        # nbr_batches_prior = 256
-
-        # nbr_batches_train = 1
-        nbr_batches_train = 16
-
-        nbr_batches_val = 1
-        # nbr_batches_val = 16
-
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-            target_prior_samples = self._sample_epoch_of_targets(TRAIN, TRAIN, nbr_batches_prior)
+            target_prior_samples = self._sample_epoch_of_targets(TRAIN, TRAIN, self._configs.runtime.loading.nbr_batches_prior)
             self._target_prior_samples_numpy = target_prior_samples
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
@@ -60,11 +50,11 @@ class Main():
             plot_signals_flag = epoch % self._configs.runtime.visualization.plot_signals_interval == 0
             plot_signal_stats_flag = epoch % self._configs.runtime.visualization.plot_signal_stats_interval == 0
 
-            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, nbr_batches_train, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
+            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, self._configs.runtime.loading.nbr_batches_train, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
 
             val_scores = {}
             for schemeset in self._configs.runtime.data_sampling_scheme_defs[VAL].keys():
-                val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, nbr_batches_val, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
+                val_scores[schemeset] = -self._run_epoch(epoch, VAL, schemeset, self._configs.runtime.loading.nbr_batches_val, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
             # assert len(val_scores) == 1, 'Multiple validation schemes not supported as of yet (no rule for how to determine val score)'
             # val_score = next(iter(val_scores.values()))
             val_score = sum(val_scores.values()) / len(val_scores)
@@ -74,10 +64,9 @@ class Main():
             # self._checkpoint_handler.save(self._model, epoch, val_score)
 
     def eval(self):
-        nbr_batches = 3
         epoch = 1
         for schemeset in self._configs.runtime.data_sampling_scheme_defs[TEST].keys():
-            self._run_epoch(epoch, TEST, schemeset, nbr_batches, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True)
+            self._run_epoch(epoch, TEST, schemeset, self._configs.runtime.loading.nbr_batches_test, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True)
 
     def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
