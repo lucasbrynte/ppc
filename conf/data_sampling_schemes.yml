@@ -17,8 +17,6 @@ synth_default:
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 90.} # 90 degrees}
     object_bias_over_extent:                                    {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 0.2} # 20% of object size along each dimension
     depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.3}
-  min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
-  max_nbr_resamplings: 100
 synth_rot_only_20deg_std:
   ref_source: synthetic
   synthetic_ref:
@@ -38,8 +36,6 @@ synth_rot_only_20deg_std:
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 20.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
-  min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
-  max_nbr_resamplings: 100
 synth_rot_only_20deg_std_quantile:
   ref_source: synthetic
   synthetic_ref:
@@ -59,5 +55,3 @@ synth_rot_only_20deg_std_quantile:
     angle:                                                      {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 20.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
-  min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
-  max_nbr_resamplings: 100

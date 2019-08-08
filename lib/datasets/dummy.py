@@ -397,13 +397,13 @@ class DummyDataset(Dataset):
 
     def _generate_synthetic_pose(self, sampling_scheme_idx, sample_index):
         # Resample pose until accepted
-        for j in range(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings):
+        for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
             T1 = self._sample_pose(sampling_scheme_idx, sample_index)
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
-            if T1[2,3] < self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera:
+            if T1[2,3] < self._get_max_extent() + self._configs.runtime.data.min_dist_obj_and_camera:
                 # print("Rejected T1, due to small depth", T1)
                 continue
 
@@ -416,25 +416,25 @@ class DummyDataset(Dataset):
 
             break
         else:
-            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings, self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings)
+            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
 
         return T1, crop_box
 
     def _generate_perturbation(self, sampling_scheme_idx, sample_index, T1):
         # Resample perturbation until accepted
-        for j in range(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings):
+        for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # Perturb reference T1, to get proposed pose T2
             perturb_params = self._sample_perturbation_params(sampling_scheme_idx, sample_index)
             T2 = self._apply_perturbation(T1, perturb_params)
 
             # Minimum allowed distance between object and camera centers
-            if T2[2,3] < self._get_max_extent() + self._data_sampling_schemes[sampling_scheme_idx].min_dist_obj_and_camera:
+            if T2[2,3] < self._get_max_extent() + self._configs.runtime.data.min_dist_obj_and_camera:
                 # print("Rejected T2, due to small depth", T2)
                 continue
 
             break
         else:
-            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings, self._data_sampling_schemes[sampling_scheme_idx].max_nbr_resamplings)
+            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
 
         return T2
 

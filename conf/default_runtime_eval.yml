@@ -2,6 +2,9 @@ loading:
   batch_size: 32
   # shuffle: fixed
   shuffle: false
+data:
+  min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
+  max_nbr_resamplings: 100
 data_sampling_scheme_refs:
   test:
     synth_default:
