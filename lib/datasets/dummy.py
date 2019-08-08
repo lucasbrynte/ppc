@@ -220,8 +220,6 @@ class DummyDataset(Dataset):
         x1, y1 = np.min(keypoints_2d, axis=1)
         x2, y2 = np.max(keypoints_2d, axis=1)
         bbox = (x1, y1, x2, y2)
-        bbox = self._expand_bbox(bbox, 1.5) # Expand bbox slightly, in order to include all of object (not just the keypoints)
-        bbox = self._truncate_bbox(bbox)
         return bbox
 
     def _wrap_bbox_in_squarebox(self, bbox):
@@ -409,6 +407,10 @@ class DummyDataset(Dataset):
                 continue
 
             crop_box = self._bbox_from_projected_keypoints(R1, t1)
+
+            crop_box = self._expand_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
+            crop_box = self._truncate_bbox(crop_box)
+
             width = crop_box[2] - crop_box[0]
             height = crop_box[3] - crop_box[1]
             if width < 50 or height < 50:
