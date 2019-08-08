@@ -142,14 +142,17 @@ class DummyDataset(Dataset):
     def _at_epoch_start(self):
         self._init_worker_seed() # Cannot be called in constructor, since it is only executed by main process. Workaround: call at start of epoch.
         # self._renderer = self._init_renderer()
-        self._quantile_ranges = self._calc_deterministic_quantile_ranges()
+        self._deterministic_perturbation_ranges = self._calc_deterministic_perturbation_ranges()
 
-    def _calc_deterministic_quantile_ranges(self):
-        return [{
-            'perturbation': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in sampling_spec.perturbation.items() if sample_spec['deterministic_quantile_range']},
-            'object_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in sampling_spec.synthetic_ref.object_pose.items() if sample_spec['deterministic_quantile_range']},
-            'camera_pose': {param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self)) for param_name, sample_spec in sampling_spec.synthetic_ref.camera_pose.items() if sample_spec['deterministic_quantile_range']},
-        } for sampling_spec in self._data_sampling_schemes]
+    def _calc_deterministic_perturbation_ranges(self):
+        return [
+            {
+                param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self))
+                for param_name, sample_spec in sampling_spec.perturbation.items()
+                if sample_spec['deterministic_quantile_range']
+            }
+            for sampling_spec in self._data_sampling_schemes
+        ]
     def __getitem__(self, sample_index):
         sampling_scheme_idx = np.random.choice(len(self._data_sampling_scheme_refs), p=[scheme_ref.sampling_prob for scheme_ref in self._data_sampling_scheme_refs])
         data, targets, extra_input = self._generate_sample(sampling_scheme_idx, sample_index)
@@ -314,13 +317,13 @@ class DummyDataset(Dataset):
         return T
 
     def _sample_perturbation_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: self._quantile_ranges[sampling_scheme_idx]['perturbation'][param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].perturbation.items()}
+        return {param_name: self._deterministic_perturbation_ranges[sampling_scheme_idx][param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].perturbation.items()}
 
     def _sample_object_pose_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: self._quantile_ranges[sampling_scheme_idx]['object_pose'][param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.object_pose.items()}
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.object_pose.items()}
 
     def _sample_camera_pose_params(self, sampling_scheme_idx, sample_index):
-        return {param_name: self._quantile_ranges[sampling_scheme_idx]['camera_pose'][param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.camera_pose.items()}
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._data_sampling_schemes[sampling_scheme_idx].synthetic_ref.camera_pose.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:

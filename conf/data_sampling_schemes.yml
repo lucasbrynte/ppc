@@ -2,16 +2,16 @@ synth_default:
   ref_source: synthetic
   synthetic_ref:
     object_pose:
-      object_azimuth_angle:                                     {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      xy_transl:                                                {method: uniform, deterministic_quantile_range: false, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
+      object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
+      xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
     camera_pose:
-      hemisphere_polar_angle:                                   {method: uniform, deterministic_quantile_range: false, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
-      hemisphere_azimuth_angle:                                 {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      hemisphere_radius:                                        {method: uniform, deterministic_quantile_range: false, range: [700., 1500.]} # 700 - 1500 mm
-      # inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-60., 60.]} # +- 60 deg
-      principal_axis_perturb_angle:                             {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
+      hemisphere_polar_angle:                                   {method: uniform, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
+      hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
+      # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
+      principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
   perturbation:
     axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 90.} # 90 degrees}
@@ -21,16 +21,16 @@ synth_rot_only_20deg_std:
   ref_source: synthetic
   synthetic_ref:
     object_pose:
-      object_azimuth_angle:                                     {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      xy_transl:                                                {method: uniform, deterministic_quantile_range: false, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
+      object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
+      xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
     camera_pose:
-      hemisphere_polar_angle:                                   {method: uniform, deterministic_quantile_range: false, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
-      hemisphere_azimuth_angle:                                 {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      hemisphere_radius:                                        {method: uniform, deterministic_quantile_range: false, range: [700., 1500.]} # 700 - 1500 mm
-      # inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-60., 60.]} # +- 60 deg
-      principal_axis_perturb_angle:                             {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
+      hemisphere_polar_angle:                                   {method: uniform, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
+      hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
+      # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
+      principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
   perturbation:
     axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 20.}
@@ -40,16 +40,16 @@ synth_rot_only_20deg_std_quantile:
   ref_source: synthetic
   synthetic_ref:
     object_pose:
-      object_azimuth_angle:                                     {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      xy_transl:                                                {method: uniform, deterministic_quantile_range: false, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
+      object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
+      xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
     camera_pose:
-      hemisphere_polar_angle:                                   {method: uniform, deterministic_quantile_range: false, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
-      hemisphere_azimuth_angle:                                 {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
-      hemisphere_radius:                                        {method: uniform, deterministic_quantile_range: false, range: [700., 1500.]} # 700 - 1500 mm
-      # inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_rot_angle:                                        {method: uniform, deterministic_quantile_range: false, range: [-60., 60.]} # +- 60 deg
-      principal_axis_perturb_angle:                             {method: uniform, deterministic_quantile_range: false, range: [-30., 30.]} # +- 30 deg
-      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, deterministic_quantile_range: false, range: [0., 360.]}
+      hemisphere_polar_angle:                                   {method: uniform, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
+      hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
+      # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
+      principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
   perturbation:
     axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
     angle:                                                      {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 20.}
