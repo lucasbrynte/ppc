@@ -22,16 +22,30 @@ class SiameseUnit(nn.Module):
     Takes a pair of siamese inputs.
     Siamese inputs are fed separately to the same conv operation, resulting in corresponding siamese outputs.
     """
-    def __init__(self, configs, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1):
+    def __init__(self, configs, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, domain_specific_params=False):
         super().__init__()
         self._configs = configs
+        self._domain_specific_params = domain_specific_params
+        if self._domain_specific_params:
+            self.conv_real = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
         self.conv = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
     def forward(self, x):
+        extra_input = x[0]
+        x = x[1:]
         y = []
         for i in range(2):
             z = x[i]
-            z = self.conv(z)
+            if i == 0 and self._domain_specific_params:
+                # NOTE: Convolutions applied for all samples in both branches.
+                # Might be slightly more efficient if this is avoided.
+                z = torch.where(
+                    extra_input.real_ref.reshape(-1, 1, 1, 1), # Singleton dimensions C,H,W will be broadcasted
+                    self.conv_real(z),
+                    self.conv(z),
+                )
+            else:
+                z = self.conv(z)
             y.append(z)
         return y
 
@@ -124,7 +138,7 @@ class SemiSiameseCNN(nn.Module):
             stride = layer_spec.stride
             padding = (layer_spec.kernel_size // 2) * layer_spec.dilation
             if i < len(self.cnn_layers) - 1:
-                siamese_units_list.append(SiameseUnit(self._configs, in_channels_siamese, out_channels, kernel_size, stride=stride, padding=padding))
+                siamese_units_list.append(SiameseUnit(self._configs, in_channels_siamese, out_channels, kernel_size, stride=stride, padding=padding, domain_specific_params=layer_spec.domain_specific_params))
             if layer_spec.merge:
                 # if in_channels_merged is None:
                 #     tmp = [in_channels_siamese]*2
@@ -150,7 +164,7 @@ class SemiSiameseCNN(nn.Module):
 
         # Loop through layers
         for i in range(len(self.cnn_layers) - 1):
-            s1_next, s2_next = self.siamese_units[i]([s1, s2])
+            s1_next, s2_next = self.siamese_units[i]([extra_input, s1, s2])
             mrg_next = self.merge_units[i]([extra_input, s1, s2, mrg])
             s1, s2, mrg = s1_next, s2_next, mrg_next
 

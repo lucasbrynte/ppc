@@ -24,6 +24,7 @@ from lib.rendering.pose_sampler import PoseSampler
 
 ExtraInput = namedtuple('ExtraInput', [
     'crop_box_normalized',
+    'real_ref',
 ])
 
 def get_metadata(configs):
@@ -581,6 +582,7 @@ class DummyDataset(Dataset):
 
         extra_input = ExtraInput(
             crop_box_normalized = torch.tensor(crop_box_normalized).float(),
+            real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
         )
 
         return data, targets, extra_input
