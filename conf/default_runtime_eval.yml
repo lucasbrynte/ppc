@@ -1,8 +1,6 @@
 loading:
   nbr_batches_test: 3
   batch_size: 32
-  # shuffle: fixed
-  shuffle: false
 data:
   min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
   max_nbr_resamplings: 100
@@ -12,28 +10,35 @@ data_sampling_scheme_defs:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_duck}
     #   query_scheme: default
+    #   shuffle: false
     # real_occl_val_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val}
     #   query_scheme: default
+    #   shuffle: false
     # synth_default:
     #   ref_schemeset:
     #     - {ref_scheme: synth_default}
     #   query_scheme: default
+    #   shuffle: false
 
     real_unoccl_duck_rot_only_20deg_std_sorted:
       ref_schemeset:
         - {ref_scheme: real_unoccl_duck}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false
     real_occl_val_20drot_only_eg_std_sorted:
       ref_schemeset:
         - {ref_scheme: real_occl_val}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false
     # synth_rot_only_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_default}
     #   query_scheme: rot_only_20deg_std
+    #   shuffle: false
     synth_rot_only_20deg_std_sorted:
       ref_schemeset:
         - {ref_scheme: synth_default}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false

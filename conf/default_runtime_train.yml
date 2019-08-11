@@ -5,7 +5,6 @@ loading:
   nbr_batches_val: 5
   nbr_batches_prior: 128
   batch_size: 32
-  shuffle: true
 visualization:
   save_imgs_interval: 1
   plot_signals_interval: 1
@@ -22,33 +21,41 @@ data_sampling_scheme_defs:
         # - {ref_scheme: real_unoccl_duck}
       # query_scheme: default
       query_scheme: rot_only_20deg_std
+      shuffle: true
   val:
     # real_unoccl_duck_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_duck}
     #   query_scheme: default
+    #   shuffle: false
     # real_occl_val_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val}
     #   query_scheme: default
+    #   shuffle: false
     # synth_default:
     #   ref_schemeset:
     #     - {ref_scheme: synth_default}
     #   query_scheme: default
+    #   shuffle: false
 
     real_unoccl_duck_rot_only_20deg_std_sorted:
       ref_schemeset:
         - {ref_scheme: real_unoccl_duck}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false
     real_occl_val_20drot_only_eg_std_sorted:
       ref_schemeset:
         - {ref_scheme: real_occl_val}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false
     # synth_rot_only_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_default}
     #   query_scheme: rot_only_20deg_std
+    #   shuffle: false
     synth_rot_only_20deg_std_sorted:
       ref_schemeset:
         - {ref_scheme: synth_default}
       query_scheme: rot_only_20deg_std_sorted
+      shuffle: false

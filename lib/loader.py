@@ -1,5 +1,6 @@
 """Load batches for training."""
 from collections import namedtuple
+from attrdict import AttrDict
 from importlib import import_module
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, RandomSampler
@@ -102,6 +103,7 @@ class Loader:
     def _get_loader_config(self, mode, scheme_set_name, nbr_samples):
         self._datasets[mode][scheme_set_name].set_len(nbr_samples)
         data_configs = self._configs.runtime.loading
+        scheme_def = AttrDict(self._configs.runtime.data_sampling_scheme_defs[mode][scheme_set_name])
         loader_config = {}
         loader_config['dataset'] = self._datasets[mode][scheme_set_name]
         loader_config['collate_fn'] = collate_batch
@@ -112,11 +114,11 @@ class Loader:
 
         sampler_args = [self._datasets[mode][scheme_set_name]]
         sampler_kwargs = {}
-        if data_configs.shuffle == True:
+        if scheme_def.shuffle == True:
             Sampler = RandomSampler
-        elif data_configs.shuffle == False:
+        elif scheme_def.shuffle == False:
             Sampler = SequentialSampler
-        elif data_configs.shuffle == 'fixed':
+        elif scheme_def.shuffle == 'fixed':
             Sampler = FixedSeededRandomSampler
             sampler_kwargs['seed'] = '314159'
         else:
