@@ -428,7 +428,6 @@ class DummyDataset(Dataset):
 
             T1 = np.eye(4)
             T1[:3,:3] = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
-            T1[:3,:3] = np.array(gt['cam_R_m2c']).reshape((3, 3))
             T1[:3,3] = np.array(gt['cam_t_m2c'])
 
             crop_box = np.array(gt['obj_bb'])
