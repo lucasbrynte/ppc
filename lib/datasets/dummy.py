@@ -153,9 +153,9 @@ class DummyDataset(Dataset):
             for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()
             if sample_spec['deterministic_quantile_range']
         }
-    def __getitem__(self, sample_index):
+    def __getitem__(self, sample_index_in_epoch):
         ref_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.ref_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.ref_schemeset])
-        data, targets, extra_input = self._generate_sample(ref_scheme_idx, sample_index)
+        data, targets, extra_input = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input)
 
     def _render(self, K, R, t, shading_params, T_world2cam=None):
@@ -322,8 +322,8 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _sample_perturbation_params(self, sample_index):
-        return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
+    def _sample_perturbation_params(self, sample_index_in_epoch):
+        return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index_in_epoch, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
 
     def _sample_object_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.object_pose.items()}
@@ -495,7 +495,7 @@ class DummyDataset(Dataset):
 
         return T_model2world, T_world2cam, R1, t1, crop_box
 
-    def _generate_perturbation(self, ref_scheme_idx, sample_index, R1, t1):
+    def _generate_perturbation(self, ref_scheme_idx, sample_index_in_epoch, R1, t1):
         T1 = np.eye(4)
         T1[:3,:3] = R1
         T1[:3,[3]] = t1
@@ -503,7 +503,7 @@ class DummyDataset(Dataset):
         # Resample perturbation until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params(sample_index)
+            perturb_params = self._sample_perturbation_params(sample_index_in_epoch)
             T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
@@ -522,9 +522,9 @@ class DummyDataset(Dataset):
 
         return R2, t2
 
-    def _generate_sample(self, ref_scheme_idx, sample_index):
+    def _generate_sample(self, ref_scheme_idx, sample_index_in_epoch):
         # ======================================================================
-        # NOTE: The reference pose / image is independent from the sample_index,
+        # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
         # which only controls the perturbation, and thus the query image
         # ======================================================================
 
@@ -545,7 +545,7 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index, R1, t1)
+        R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
