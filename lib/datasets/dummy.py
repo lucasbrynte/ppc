@@ -351,8 +351,7 @@ class DummyDataset(Dataset):
         cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx)
         T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
 
-        T1 = T_world2cam @ T_model2world
-        return T1
+        return T_model2world, T_world2cam
 
     def _calc_delta_angle_inplane(self, R):
         # NOTE: Perturbation of R33 element from 1 determines to what extent the rotation deviates from an inplane rotation
@@ -427,9 +426,8 @@ class DummyDataset(Dataset):
                 continue
             instance_idx, gt = random.choice(enumerated_and_filtered_gts)
 
-            T1 = np.eye(4)
-            T1[:3,:3] = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
-            T1[:3,3] = np.array(gt['cam_t_m2c'])
+            R1 = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
+            t1 = np.array(gt['cam_t_m2c']).reshape((3,1))
 
             crop_box = np.array(gt['obj_bb'])
             crop_box[2:] += crop_box[:2]  # x,y,w,h, -> x1,y1,x2,y2
@@ -447,13 +445,14 @@ class DummyDataset(Dataset):
         else:
             assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
 
-        return T1, crop_box, frame_idx, instance_idx
+        return R1, t1, crop_box, frame_idx, instance_idx
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
-            T1 = self._sample_pose(ref_scheme_idx)
+            T_model2world, T_world2cam = self._sample_pose(ref_scheme_idx)
+            T1 = T_world2cam @ T_model2world
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
@@ -476,14 +475,23 @@ class DummyDataset(Dataset):
         else:
             assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
 
-        return T1, crop_box
+        # Last rows expected to remain unchanged:
+        assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
+        assert T1[2,3] > 0, "Center of object pose 1 behind camera"
 
-    def _generate_perturbation(self, ref_scheme_idx, sample_index, T1):
+        return T_model2world, T_world2cam, R1, t1, crop_box
+
+    def _generate_perturbation(self, ref_scheme_idx, sample_index, R1, t1):
+        T1 = np.eye(4)
+        T1[:3,:3] = R1
+        T1[:3,[3]] = t1
+
         # Resample perturbation until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # Perturb reference T1, to get proposed pose T2
             perturb_params = self._sample_perturbation_params(ref_scheme_idx, sample_index)
             T2 = self._apply_perturbation(T1, perturb_params)
+            R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
             if T2[2,3] < self._get_max_extent() + self._configs.runtime.data.min_dist_obj_and_camera:
@@ -494,7 +502,11 @@ class DummyDataset(Dataset):
         else:
             assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
 
-        return T2
+        # Last rows expected to remain unchanged:
+        assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
+        assert T2[2,3] > 0, "Center of object pose 2 behind camera"
+
+        return R2, t2
 
     def _generate_sample(self, ref_scheme_idx, sample_index):
         # ======================================================================
@@ -508,10 +520,9 @@ class DummyDataset(Dataset):
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            T1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx)
+            R1, t1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            T1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
-        R1 = T1[:3,:3]; t1 = T1[:3,[3]]
+            T1_model2world, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
 
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
@@ -520,16 +531,7 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        T2 = self._generate_perturbation(ref_scheme_idx, sample_index, T1)
-        R2 = T2[:3,:3]; t2 = T2[:3,[3]]
-
-        # Last rows expected to remain unchanged:
-        assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
-        # Last rows expected to remain unchanged:
-        assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))
-
-        assert T1[2,3] > 0, "Center of object pose 1 behind camera"
-        assert T2[2,3] > 0, "Center of object pose 2 behind camera"
+        R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
