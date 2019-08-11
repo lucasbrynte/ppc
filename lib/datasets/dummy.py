@@ -314,7 +314,7 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _sample_perturbation_params(self, ref_scheme_idx, sample_index):
+    def _sample_perturbation_params(self, sample_index):
         return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
 
     def _sample_object_pose_params(self, ref_scheme_idx):
@@ -489,7 +489,7 @@ class DummyDataset(Dataset):
         # Resample perturbation until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params(ref_scheme_idx, sample_index)
+            perturb_params = self._sample_perturbation_params(sample_index)
             T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
