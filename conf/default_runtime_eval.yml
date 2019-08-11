@@ -8,21 +8,32 @@ data:
   max_nbr_resamplings: 100
 data_sampling_scheme_defs:
   test:
-    real_unoccl_duck:
-      - {scheme_name: real_unoccl_duck}
-    real_occl_val:
-      - {scheme_name: real_occl_val}
-    # real_occl_test:
-    #   - {scheme_name: real_occl_test}
-    synth_default:
+    # real_unoccl_duck_default:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_unoccl_duck}
+    #   query_scheme: default
+    # real_occl_val_default:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val}
+    #   query_scheme: default
+    # synth_default:
+    #   ref_schemeset:
+    #     - {ref_scheme: synth_default}
+    #   query_scheme: default
+
+    real_unoccl_duck_rot_only_20deg_std_sorted:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_duck}
+      query_scheme: rot_only_20deg_std_sorted
+    real_occl_val_20drot_only_eg_std_sorted:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val}
+      query_scheme: rot_only_20deg_std_sorted
+    # synth_rot_only_20deg_std:
+    #   ref_schemeset:
+    #     - {ref_scheme: synth_default}
+    #   query_scheme: rot_only_20deg_std
+    synth_rot_only_20deg_std_sorted:
       ref_schemeset:
         - {ref_scheme: synth_default}
-      query_scheme: default
-    synth_rot_only_20deg_std:
-      ref_schemeset:
-        - {ref_scheme: synth_default}
-      query_scheme: rot_only_20deg_std
-    synth_rot_only_20deg_std_quantile:
-      ref_schemeset:
-        - {ref_scheme: synth_default}
-      query_scheme: rot_only_20deg_std_quantile
+      query_scheme: rot_only_20deg_std_sorted

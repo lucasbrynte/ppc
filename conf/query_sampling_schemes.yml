@@ -10,7 +10,7 @@ rot_only_20deg_std:
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 20.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
-rot_only_20deg_std_quantile:
+rot_only_20deg_std_sorted:
   perturbation:
     axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
     angle:                                                      {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 20.}
