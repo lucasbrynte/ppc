@@ -157,8 +157,11 @@ def get_configs(args):
         )
 
     if args.train_or_eval == 'train':
+        assert tuple(configs['runtime']['data_sampling_scheme_defs'].keys()) == (TRAIN, VAL)
         # Validate config: Only VAL / TEST support multiple runs with different sets of sampling schemes
         assert tuple(configs['runtime']['data_sampling_scheme_defs'][TRAIN].keys()) == (TRAIN,), 'For training, there may only be a single set of sampling schemes to sample from.'
+    else:
+        assert tuple(configs['runtime']['data_sampling_scheme_defs'].keys()) == (TEST,)
 
     # Determine choice of data sampling specs for each mode, and store them in config
     all_ref_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'ref_sampling_schemes.yml'))

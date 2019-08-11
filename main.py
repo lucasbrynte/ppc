@@ -227,7 +227,7 @@ class Main():
 
 def run(setup):
     args = setup.parse_arguments()
-    setup.setup_logging(args.experiment_path, 'train')
+    setup.setup_logging(args.experiment_path, args.train_or_eval)
     setup.prepare_environment()
     setup.save_settings(args)
     configs = setup.get_configs(args)
