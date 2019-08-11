@@ -410,12 +410,13 @@ class DummyDataset(Dataset):
         return img
 
     def _read_pose_from_anno(self, ref_scheme_idx):
-        NBR_ATTEMPTS = 10
+        seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        dir_path = os.path.join(self._configs.data.path, seq)
+        all_gts = self._read_yaml(os.path.join(dir_path, 'gt.yml'))
+        nbr_frames = len(all_gts)
+
+        NBR_ATTEMPTS = 50
         for j in range(NBR_ATTEMPTS):
-            seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
-            dir_path = os.path.join(self._configs.data.path, seq)
-            all_gts = self._read_yaml(os.path.join(dir_path, 'gt.yml'))
-            nbr_frames = len(all_gts)
             frame_idx = np.random.choice(nbr_frames)
             gts_in_frame = all_gts[frame_idx]
 
