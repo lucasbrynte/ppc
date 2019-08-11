@@ -3,16 +3,22 @@ real_unoccl_duck:
   real_opts:
     linemod_seq: train_unoccl/duck
     mask_silhouette: true
+    static_frame_idx: null
+    # static_frame_idx: 100
 real_occl_val:
   ref_source: real
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
+    static_frame_idx: null
+    # static_frame_idx: 100
 real_occl_test:
   ref_source: real
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
+    static_frame_idx: null
+    # static_frame_idx: 100
 synth_default:
   ref_source: synthetic
   synth_opts:

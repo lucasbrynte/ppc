@@ -202,7 +202,10 @@ class Visualizer:
             tight_layout=True,
             gridspec_kw={'height_ratios': [1, 2]},
         )
-        self._plot_img(axes_array[0,0], img1, 'Ref. image')
+        ref_img_title = 'Ref. image'
+        if batch.meta_data[sample].ref_img_path is not None:
+            ref_img_title += '\n' + batch.meta_data[sample].ref_img_path
+        self._plot_img(axes_array[0,0], img1, ref_img_title)
         self._plot_img(axes_array[0,1], img2, 'Query image')
 
         def task_lines(task_name):

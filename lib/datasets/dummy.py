@@ -27,6 +27,10 @@ ExtraInput = namedtuple('ExtraInput', [
     'real_ref',
 ])
 
+SampleMetaData = namedtuple('SampleMetaData', [
+    'ref_img_path',
+])
+
 def get_metadata(configs):
     path = os.path.join(configs.data.path, 'models', 'models_info.yml')
     with open(path, 'r') as file:
@@ -155,8 +159,8 @@ class DummyDataset(Dataset):
         }
     def __getitem__(self, sample_index_in_epoch):
         ref_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.ref_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.ref_schemeset])
-        data, targets, extra_input = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
-        return Sample(targets, data, extra_input)
+        data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
+        return Sample(targets, data, extra_input, meta_data)
 
     def _render(self, K, R, t, shading_params, T_world2cam=None):
         if 'light_pos_worldframe' in shading_params:
@@ -410,27 +414,29 @@ class DummyDataset(Dataset):
 
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
-        dir_path = os.path.join(self._configs.data.path, seq)
 
-        rgb_path = os.path.join(dir_path, 'rgb', str(frame_idx).zfill(6) + '.png')
+        rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
+        rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = Image.open(rgb_path).crop(crop_box).resize(self._configs.data.crop_dims)
         if self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
-            seg_path = os.path.join(dir_path, 'instance_seg', str(frame_idx).zfill(6) + '.png')
+            seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
             seg = np.array(Image.open(seg_path).crop(crop_box).resize(self._configs.data.crop_dims))
             silhouette = np.array(img)
             silhouette[seg != instance_idx+1] = 0
             img = Image.fromarray(silhouette, mode=img.mode)
-        return img
+        return img, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
-        dir_path = os.path.join(self._configs.data.path, seq)
-        all_gts = self._read_yaml(os.path.join(dir_path, 'gt.yml'))
+        all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
         nbr_frames = len(all_gts)
 
         NBR_ATTEMPTS = 50
         for j in range(NBR_ATTEMPTS):
-            frame_idx = np.random.choice(nbr_frames)
+            if self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx is not None:
+                frame_idx = self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx
+            else:
+                frame_idx = np.random.choice(nbr_frames)
             gts_in_frame = all_gts[frame_idx]
 
             # Filter annotated instances on object id
@@ -548,7 +554,7 @@ class DummyDataset(Dataset):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
+            img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
             img1 = Image.fromarray(self._render(K, R1, t1, ref_shading_params, T_world2cam=T_world2cam))
@@ -603,4 +609,8 @@ class DummyDataset(Dataset):
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
         )
 
-        return data, targets, extra_input
+        meta_data = SampleMetaData(
+            ref_img_path = ref_img_path if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real' else None,
+        )
+
+        return data, targets, extra_input, meta_data
