@@ -337,6 +337,7 @@ class Renderer():
         R_list,
         t_list,
         obj_id_list,
+        light_pos = [0, 0, 0], # Camera origin
         ambient_weight = 0.5,
         clip_near = 100,
         clip_far = 10000,
@@ -345,7 +346,10 @@ class Renderer():
 
         mat_proj = self._compute_calib_proj(K, 0, 0, self._shape[1], self._shape[0], clip_near, clip_far)
 
-        self._program['u_light_eye_pos'] = [0, 0, 0] # Camera origin
+        light_pos = np.concatenate([np.array(light_pos).squeeze(), [1.]])
+        light_pos = np.squeeze(self._mat_view @ light_pos) # self._mat_view represents cam frame -> openGL cam frame transformation. (Camera assumed to be in origin)
+        light_pos = light_pos[:3] / light_pos[3] # Perspective divide
+        self._program['u_light_eye_pos'] = light_pos
         self._program['u_light_ambient_w'] = ambient_weight
 
         self._fbo.activate()

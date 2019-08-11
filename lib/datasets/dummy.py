@@ -14,7 +14,7 @@ from torch import Tensor
 # from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
-from lib.utils import read_yaml_and_pickle, pflat, pillow_to_pt
+from lib.utils import read_yaml_and_pickle, pextend, pflat, pillow_to_pt
 from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
@@ -158,13 +158,21 @@ class DummyDataset(Dataset):
         data, targets, extra_input = self._generate_sample(ref_scheme_idx, sample_index)
         return Sample(targets, data, extra_input)
 
-    def _render(self, K, R, t):
+    def _render(self, K, R, t, shading_params, T_world2cam=None):
+        if 'light_pos_worldframe' in shading_params:
+            assert T_world2cam is not None
+            light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
+        else:
+            # Default: camera origin
+            light_pos_camframe = np.zeros((3,))
+        assert light_pos_camframe.shape == (3,)
         rgb, depth, seg, instance_seg, normal_map, corr_map = self._renderer.render(
             K,
             [R],
             [t],
             [self._obj_id],
-            ambient_weight = 0.8,
+            light_pos = light_pos_camframe,
+            ambient_weight = shading_params['ambient_weight'],
             clip_near = 100, # mm
             clip_far = 10000, # mm
         )
@@ -322,6 +330,12 @@ class DummyDataset(Dataset):
 
     def _sample_camera_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.camera_pose.items()}
+
+    def _sample_ref_shading_params(self, ref_scheme_idx):
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.shading.items()}
+
+    def _sample_query_shading_params(self):
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.shading.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -536,8 +550,10 @@ class DummyDataset(Dataset):
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             img1 = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            img1 = Image.fromarray(self._render(K, R1, t1))
-        img2 = Image.fromarray(self._render(K, R2, t2))
+            ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
+            img1 = Image.fromarray(self._render(K, R1, t1, ref_shading_params, T_world2cam=T_world2cam))
+        query_shading_params = self._sample_query_shading_params()
+        img2 = Image.fromarray(self._render(K, R2, t2, query_shading_params))
 
         # Augmentation + numpy -> pytorch conversion
         img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
