@@ -117,8 +117,8 @@ model:
     viewing_ray_dependent_coordinates: True
     preserve_scale: False
     # NOTE: Different tasks might desire different format on coord maps. Maybe supply coord maps in multiple formats?
-  siamese_net: true
-  # siamese_net: false
+  # siamese_net: true
+  siamese_net: false
   cnn_layers:
     - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
     - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
