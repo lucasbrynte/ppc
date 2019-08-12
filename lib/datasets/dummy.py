@@ -412,8 +412,15 @@ class DummyDataset(Dataset):
         else:
             assert False
 
+    def _check_seq_has_annotations_of_interest(self, root_path, sequence):
+        global_info_path = os.path.join(root_path, sequence, 'global_info.yml')
+        assert os.path.exists(global_info_path)
+        global_info_yaml = self._read_yaml(global_info_path)
+        return self._obj_label in global_info_yaml['obj_annotated_and_present']
+
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
@@ -428,6 +435,8 @@ class DummyDataset(Dataset):
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
+
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
         nbr_frames = len(all_gts)
 
