@@ -1,6 +1,14 @@
-real_unoccl_duck:
+real_unoccl_duck_nyud:
   ref_source: real
   sample_nyud_bg: true
+  real_opts:
+    linemod_seq: train_unoccl/<OBJ_LABEL>
+    mask_silhouette: false
+    static_frame_idx: null
+    # static_frame_idx: 100
+real_unoccl_duck:
+  ref_source: real
+  sample_nyud_bg: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
