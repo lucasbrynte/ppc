@@ -418,8 +418,14 @@ class DummyDataset(Dataset):
         global_info_yaml = self._read_yaml(global_info_path)
         return self._obj_label in global_info_yaml['obj_annotated_and_present']
 
-    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+    def _get_seq(self, ref_scheme_idx):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        if '<OBJ_LABEL>' in seq:
+            seq = seq.replace('<OBJ_LABEL>', self._obj_label)
+        return seq
+
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+        seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
@@ -434,7 +440,7 @@ class DummyDataset(Dataset):
         return img, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
-        seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
+        seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))

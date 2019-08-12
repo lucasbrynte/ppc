@@ -1,7 +1,7 @@
 real_unoccl_duck:
   ref_source: real
   real_opts:
-    linemod_seq: train_unoccl/duck
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
     static_frame_idx: null
     # static_frame_idx: 100
