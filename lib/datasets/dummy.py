@@ -562,9 +562,9 @@ class DummyDataset(Dataset):
         return R2, t2
 
     def _sample_crop_box(self, img_height, img_width):
-        x1 = np.random.randint(img_height - self._configs.data.crop_dims[1])
+        x1 = np.random.randint(img_width - self._configs.data.crop_dims[1])
         x2 = x1 + self._configs.data.crop_dims[1]
-        y1 = np.random.randint(img_width - self._configs.data.crop_dims[0])
+        y1 = np.random.randint(img_height - self._configs.data.crop_dims[0])
         y2 = y1 + self._configs.data.crop_dims[0]
         return (x1, y1, x2, y2)
 
