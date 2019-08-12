@@ -28,7 +28,9 @@ class SiameseUnit(nn.Module):
         self._domain_specific_params = domain_specific_params
         if self._domain_specific_params:
             self.conv_real = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
-        self.conv = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
+            self.conv_synth = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
+        else:
+            self.conv = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
     def forward(self, x):
         extra_input = x[0]
@@ -36,14 +38,17 @@ class SiameseUnit(nn.Module):
         y = []
         for i in range(2):
             z = x[i]
-            if i == 0 and self._domain_specific_params:
-                # NOTE: Convolutions applied for all samples in both branches.
-                # Might be slightly more efficient if this is avoided.
-                z = torch.where(
-                    extra_input.real_ref.reshape(-1, 1, 1, 1), # Singleton dimensions C,H,W will be broadcasted
-                    self.conv_real(z),
-                    self.conv(z),
-                )
+            if self._domain_specific_params:
+                if i == 0:
+                    # NOTE: Convolutions applied for all samples in both branches.
+                    # Might be slightly more efficient if this is avoided.
+                    z = torch.where(
+                        extra_input.real_ref.reshape(-1, 1, 1, 1), # Singleton dimensions C,H,W will be broadcasted
+                        self.conv_real(z),
+                        self.conv_synth(z),
+                    )
+                else:
+                    z = self.conv_synth(z)
             else:
                 z = self.conv(z)
             y.append(z)
