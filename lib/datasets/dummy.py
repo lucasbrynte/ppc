@@ -21,7 +21,7 @@ from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
 from lib.rendering.glumpy_renderer import Renderer
-from lib.rendering.pose_sampler import PoseSampler
+from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_camera_pose
 
 ExtraInput = namedtuple('ExtraInput', [
     'crop_box_normalized',
@@ -360,18 +360,17 @@ class DummyDataset(Dataset):
         return T2
 
     def _sample_pose(self, ref_scheme_idx):
-        pose_sampler = PoseSampler()
         up_dir = np.array([0., 0., 1.])
         zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
         # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
         obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
-        T_model2world = pose_sampler.calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
+        T_model2world = calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
         # Sample parameters for a camera pose.
         cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx)
-        T_world2cam = pose_sampler.calc_camera_pose(cam_pose_params)
+        T_world2cam = calc_camera_pose(cam_pose_params)
 
         return T_model2world, T_world2cam
 
