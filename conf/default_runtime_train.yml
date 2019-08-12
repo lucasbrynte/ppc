@@ -39,23 +39,18 @@ data_sampling_scheme_defs:
     #   query_scheme: default
     #   shuffle: false
 
-    real_unoccl_duck_gradual_rot:
+    real_unoccl_duck_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_unoccl_duck}
-      query_scheme: gradual_rot
+      query_scheme: rot_only_20deg_std
       shuffle: false
-    real_occl_val_gradual_rot:
+    real_occl_val_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_occl_val}
-      query_scheme: gradual_rot
+      query_scheme: rot_only_20deg_std
       shuffle: false
-    # synth_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - {ref_scheme: synth_default}
-    #   query_scheme: rot_only_20deg_std
-    #   shuffle: false
-    synth_gradual_rot:
+    synth_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: synth_default}
-      query_scheme: gradual_rot
+      query_scheme: rot_only_20deg_std
       shuffle: false
