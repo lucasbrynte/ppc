@@ -38,7 +38,7 @@ synth_default:
       object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
       xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
     camera_pose:
-      hemisphere_polar_angle:                                   {method: uniform, range: [0., 90.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_polar_angle:                                   {method: uniform, range: [0., 75.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
       hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
       hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
       # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
