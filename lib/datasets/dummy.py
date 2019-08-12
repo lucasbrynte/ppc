@@ -169,7 +169,7 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None):
+    def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None, min_nbr_unoccluded_pixels=0):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -187,6 +187,9 @@ class DummyDataset(Dataset):
             clip_near = 100, # mm
             clip_far = 10000, # mm
         )
+
+        if np.sum(seg == self._obj_id) < min_nbr_unoccluded_pixels:
+            return None
 
         if apply_bg is not None:
             if np.random.random() < 0.5:
@@ -700,7 +703,11 @@ class DummyDataset(Dataset):
                 R_list1.append(T[:3,:3])
                 t_list1.append(T[:3,[3]])
                 instance_id_list1.append(self._determine_obj_id(obj_label))
-            img1 = Image.fromarray(self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg))
+            img1 = self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg, min_nbr_unoccluded_pixels=200)
+            if img1 is None:
+                print('Too few visible pixels - resampling via recursive call.')
+                return self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
+            img1 = Image.fromarray(img1)
         query_shading_params = self._sample_query_shading_params()
         img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params))
 
