@@ -2,6 +2,7 @@
 from collections import namedtuple
 import os
 import shutil
+import glob
 import yaml
 from attrdict import AttrDict
 
@@ -162,7 +163,7 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _render(self, K, R, t, shading_params, T_world2cam=None):
+    def _render(self, K, R, t, shading_params, T_world2cam=None, apply_bg=None):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -180,6 +181,9 @@ class DummyDataset(Dataset):
             clip_near = 100, # mm
             clip_far = 10000, # mm
         )
+
+        if apply_bg is not None:
+            rgb[seg != self._obj_id] = apply_bg[seg != self._obj_id, :]
 
         return rgb
 
@@ -424,19 +428,26 @@ class DummyDataset(Dataset):
             seq = seq.replace('<OBJ_LABEL>', self._obj_label)
         return seq
 
-    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=None):
         seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = Image.open(rgb_path).crop(crop_box).resize(self._configs.data.crop_dims)
-        if self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
-            seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-            seg = np.array(Image.open(seg_path).crop(crop_box).resize(self._configs.data.crop_dims))
-            silhouette = np.array(img)
-            silhouette[seg != instance_idx+1] = 0
-            img = Image.fromarray(silhouette, mode=img.mode)
+        if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+            return img, rel_rgb_path
+        seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
+        seg = np.array(Image.open(seg_path).crop(crop_box).resize(self._configs.data.crop_dims))
+        img_array = np.array(img)
+        if apply_bg is not None:
+            assert not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette
+            img_array[seg != instance_idx+1] = apply_bg[seg != instance_idx+1, :]
+        elif self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+            img_array[seg != instance_idx+1] = 0
+        else:
+            assert False
+        img = Image.fromarray(img_array, mode=img.mode)
         return img, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
@@ -543,6 +554,32 @@ class DummyDataset(Dataset):
 
         return R2, t2
 
+    def _sample_crop_box(self, img_height, img_width):
+        x1 = np.random.randint(img_height - self._configs.data.crop_dims[1])
+        x2 = x1 + self._configs.data.crop_dims[1]
+        y1 = np.random.randint(img_width - self._configs.data.crop_dims[0])
+        y2 = y1 + self._configs.data.crop_dims[0]
+        return (x1, y1, x2, y2)
+
+    def _sample_nyud_patch(self):
+        NBR_ATTEMPTS = 100
+        for j in range(NBR_ATTEMPTS):
+            seq = random.choice(os.listdir(os.path.join(self._configs.data.nyud_path, 'data')))
+            path_candidates = glob.glob(os.path.join(self._configs.data.nyud_path, 'data', seq, 'r-*.ppm'))
+            if not len(path_candidates) > 0:
+                continue
+            img_path = random.choice(path_candidates)
+            # img_path = os.path.join(self._configs.data.nyud_path, 'data/library_0005/r-1300707945.014378-1644637693.ppm')
+            try:
+                # NOTE: Some NYUD images are truncated, and for some reason this seems to cause an issue at crop rather than open
+                full_img = Image.open(img_path)
+                img_width, img_height = full_img.size
+                return full_img.crop(self._sample_crop_box(img_height, img_width))
+            except:
+                continue
+        else:
+            assert False, 'No proper NYU-D background image found'
+
     def _generate_sample(self, ref_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
@@ -568,11 +605,16 @@ class DummyDataset(Dataset):
 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
 
+        if self._ref_sampling_schemes[ref_scheme_idx].sample_nyud_bg:
+            ref_bg = np.array(self._sample_nyud_patch())
+        else:
+            ref_bg = None
+
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
+            img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=ref_bg)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
-            img1 = Image.fromarray(self._render(K, R1, t1, ref_shading_params, T_world2cam=T_world2cam))
+            img1 = Image.fromarray(self._render(K, R1, t1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg))
         query_shading_params = self._sample_query_shading_params()
         img2 = Image.fromarray(self._render(K, R2, t2, query_shading_params))
 

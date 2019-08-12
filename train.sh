@@ -5,6 +5,7 @@ EXPERIMENT_PREFIX=$1
 
 REPOPATH=/home/lucas/research/ppc
 DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented3_format06
+NYUDPATH=/home/lucas/datasets/nyud
 CONTAINER=ppc
 CONFIGNAME=dummy
 
@@ -40,6 +41,7 @@ for OBJ in ${OBJECTS[@]}; do
         -v $WS:/workspace/ppc \
         -v /hdd/lucas/out/ppc-experiments:/workspace/ppc/experiments \
         -v $DATAPATH:/datasets/occluded-linemod-augmented \
+        -v $NYUDPATH:/datasets/nyud \
         $CONTAINER python $PROFILE_ARGS main.py \
         train \
         --overwrite-experiment \
