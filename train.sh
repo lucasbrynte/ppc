@@ -18,6 +18,7 @@ cp -r $REPOPATH $WS
 # PROFILE_ARGS="-m cProfile -s cumtime"
 
 OBJECTS=(duck)
+# OBJECTS=(can cat eggbox glue holepuncher)
 # Discard driller (not present in validation sequence):
 # OBJECTS=(duck can cat eggbox glue holepuncher ape)
 # OBJECTS=(duck can cat driller eggbox glue holepuncher ape)
