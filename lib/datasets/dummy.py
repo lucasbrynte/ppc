@@ -219,6 +219,10 @@ class DummyDataset(Dataset):
         y1, y2 = y1+yshift, y2+yshift
 
         shifted_bbox = (x1, y1, x2, y2)
+        assert x1 >= 0 and x1 <= self._configs.data.img_dims[1]
+        assert x2 >= 0 and x2 <= self._configs.data.img_dims[1]
+        assert x1 >= 0 and y1 <= self._configs.data.img_dims[0]
+        assert x2 >= 0 and y2 <= self._configs.data.img_dims[0]
         return shifted_bbox
 
     def _expand_bbox(self, bbox, resize_factor):
