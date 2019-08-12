@@ -153,3 +153,4 @@ data:
   path: /datasets/occluded-linemod-augmented
   img_dims: [480, 480]
   crop_dims: [128, 128]
+  ref_colorjitter_during_train: true

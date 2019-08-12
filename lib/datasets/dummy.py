@@ -11,7 +11,7 @@ import numpy as np
 from PIL import Image
 import torch
 from torch import Tensor
-# from torchvision.transforms import ColorJitter
+from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pextend, pflat, pillow_to_pt
@@ -71,11 +71,11 @@ class DummyDataset(Dataset):
         self._model = self._init_model()
         self._renderer = self._init_renderer()
         self._aug_transform = None
-        # if self._mode == TRAIN:
-        #     self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
-        #     # self._aug_transform = ColorJitter(brightness=(0.7, 1.5), contrast=(0.7, 1.5), saturation=(0.7, 1.5), hue=(-0.03, 0.03))
-        # else:
-        #     self._aug_transform = None
+        if self._mode == TRAIN and self._configs.data.ref_colorjitter_during_train:
+            self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
+            # self._aug_transform = ColorJitter(brightness=(0.7, 1.5), contrast=(0.7, 1.5), saturation=(0.7, 1.5), hue=(-0.03, 0.03))
+        else:
+            self._aug_transform = None
         self.Targets = self._get_target_def()
 
         self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), scheme_set_name)
@@ -578,7 +578,7 @@ class DummyDataset(Dataset):
 
         # Augmentation + numpy -> pytorch conversion
         img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
-        img2 = pillow_to_pt(img2, normalize_flag=True, transform=self._aug_transform)
+        img2 = pillow_to_pt(img2, normalize_flag=True, transform=None)
 
         data = img1, img2
 
