@@ -359,20 +359,25 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_pose(self, ref_scheme_idx):
+    def _sample_object_pose(self, ref_scheme_idx, obj_label=None):
+        if obj_label is None:
+            obj_label = self._obj_label
         up_dir = np.array([0., 0., 1.])
-        zmin = self._metadata['objects'][self._obj_label]['bbox3d'][2,0]
+        zmin = self._metadata['objects'][obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
         # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
         obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
         T_model2world = calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
+        return T_model2world
+
+    def _sample_camera_pose(self, ref_scheme_idx):
         # Sample parameters for a camera pose.
         cam_pose_params = self._sample_camera_pose_params(ref_scheme_idx)
         T_world2cam = calc_camera_pose(cam_pose_params)
 
-        return T_model2world, T_world2cam
+        return T_world2cam
 
     def _calc_delta_angle_inplane(self, R):
         # NOTE: Perturbation of R33 element from 1 determines to what extent the rotation deviates from an inplane rotation
@@ -496,7 +501,8 @@ class DummyDataset(Dataset):
         # Resample pose until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
-            T_model2world, T_world2cam = self._sample_pose(ref_scheme_idx)
+            T_model2world = self._sample_object_pose(ref_scheme_idx)
+            T_world2cam = self._sample_camera_pose(ref_scheme_idx)
             T1 = T_world2cam @ T_model2world
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
