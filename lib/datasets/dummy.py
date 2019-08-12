@@ -57,8 +57,9 @@ def get_dataset(configs, mode, scheme_set_name):
     return DummyDataset(configs, mode, scheme_set_name)
 
 
-global global_renderer
+global global_renderer, global_nyud_img_paths
 global_renderer = None
+global_nyud_img_paths = None
 
 class DummyDataset(Dataset):
     def __init__(self, configs, mode, scheme_set_name):
@@ -71,6 +72,7 @@ class DummyDataset(Dataset):
         self._obj_id = self._determine_obj_id()
         self._model = self._init_model()
         self._renderer = self._init_renderer()
+        self._nyud_img_paths = self._init_nyud_img_paths()
         self._aug_transform = None
         if self._mode == TRAIN and self._configs.data.ref_colorjitter_during_train:
             self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
@@ -566,14 +568,21 @@ class DummyDataset(Dataset):
         y2 = y1 + self._configs.data.crop_dims[0]
         return (x1, y1, x2, y2)
 
+    def _init_nyud_img_paths(self):
+        global global_nyud_img_paths
+        if global_nyud_img_paths is not None:
+            print('Reusing nyud_img_paths')
+            return global_nyud_img_paths
+        nyud_img_paths = glob.glob(os.path.join(self._configs.data.nyud_path, 'data', '**', 'r-*.ppm'))
+        print('Not reusing nyud_img_paths')
+        global_nyud_img_paths = nyud_img_paths
+        return nyud_img_paths
+
     def _sample_nyud_patch(self):
         NBR_ATTEMPTS = 100
         for j in range(NBR_ATTEMPTS):
-            seq = random.choice(os.listdir(os.path.join(self._configs.data.nyud_path, 'data')))
-            path_candidates = glob.glob(os.path.join(self._configs.data.nyud_path, 'data', seq, 'r-*.ppm'))
-            if not len(path_candidates) > 0:
-                continue
-            img_path = random.choice(path_candidates)
+            path_idx = np.random.randint(len(self._nyud_img_paths))
+            img_path = self._nyud_img_paths[path_idx]
             # img_path = os.path.join(self._configs.data.nyud_path, 'data/library_0005/r-1300707945.014378-1644637693.ppm')
             try:
                 # NOTE: Some NYUD images are truncated, and for some reason this seems to cause an issue at crop rather than open
@@ -581,6 +590,9 @@ class DummyDataset(Dataset):
                 img_width, img_height = full_img.size
                 return full_img.crop(self._sample_crop_box(img_height, img_width))
             except:
+                # Not ideal to keep removing elements from long list...
+                # Set would be tempting, but not straightforward to sample from
+                del self._nyud_img_paths[path_idx]
                 continue
         else:
             assert False, 'No proper NYU-D background image found'
