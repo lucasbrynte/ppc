@@ -438,17 +438,29 @@ class DummyDataset(Dataset):
             seq = seq.replace('<OBJ_LABEL>', self._obj_label)
         return seq
 
+    def _crop_as_array(self, img, crop_box):
+        (x1, y1, x2, y2) = crop_box
+        img_mode = img.mode
+        img = np.array(img)
+        if len(img.shape) == 2:
+            img = img[y1:y2, x1:x2]
+        else:
+            assert len(img.shape) == 3
+            img = img[y1:y2, x1:x2, :]
+        img = Image.fromarray(img, mode=img_mode)
+        return img
+
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=None):
         seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
-        img = Image.open(rgb_path).crop(crop_box).resize(self._configs.data.crop_dims)
+        img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
         if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
             return img, rel_rgb_path
         seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        seg = np.array(Image.open(seg_path).crop(crop_box).resize(self._configs.data.crop_dims))
+        seg = np.array(self._crop_as_array(Image.open(seg_path), crop_box).resize(self._configs.data.crop_dims))
         img_array = np.array(img)
         if apply_bg is not None:
             assert not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette
@@ -589,10 +601,11 @@ class DummyDataset(Dataset):
             img_path = self._nyud_img_paths[path_idx]
             # img_path = os.path.join(self._configs.data.nyud_path, 'data/library_0005/r-1300707945.014378-1644637693.ppm')
             try:
-                # NOTE: Some NYUD images are truncated, and for some reason this seems to cause an issue at crop rather than open
+                # NOTE: Some NYUD images are truncated, and for some reason this seems to cause an issue at Pillow crop
+                # Unsure what will happen when cropping these iamges as numpy array, but try / catch kept as of now.
                 full_img = Image.open(img_path)
                 img_width, img_height = full_img.size
-                return full_img.crop(self._sample_crop_box(img_height, img_width))
+                return self._crop_as_array(full_img, self._sample_crop_box(img_height, img_width))
             except:
                 # Not ideal to keep removing elements from long list...
                 # Set would be tempting, but not straightforward to sample from
