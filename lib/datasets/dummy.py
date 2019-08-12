@@ -48,6 +48,7 @@ def get_metadata(configs):
     return {
         'objects': {obj_anno['readable_label']: {
             'bbox3d': get_bbox3d(rows2array(obj_anno, 'min'), rows2array(obj_anno, 'size')),
+            'up_dir': np.array([0., 0., 1.]),
             'keypoints': rows2array(obj_anno, 'kp'),
             'kp_normals': rows2array(obj_anno, 'kp_normals'),
         } for obj_label, obj_anno in models_info.items()},
@@ -69,8 +70,8 @@ class DummyDataset(Dataset):
         self._K = self._read_calibration()
         self._models_info = self._init_models_info()
         self._obj_label = self._configs.obj_label
-        self._obj_id = self._determine_obj_id()
-        self._model = self._init_model()
+        self._obj_id = self._determine_obj_id(self._obj_label)
+        self._models = self._init_models()
         self._renderer = self._init_renderer()
         self._nyud_img_paths = self._init_nyud_img_paths()
         self._aug_transform = None
@@ -110,17 +111,19 @@ class DummyDataset(Dataset):
     def _init_models_info(self):
         return self._read_yaml(os.path.join(self._configs.data.path, 'models', 'models_info.yml'))
 
-    def _determine_obj_id(self):
-        filtered_obj_ids = [obj_id for obj_id, model_spec in self._models_info.items() if model_spec['readable_label'] == self._obj_label]
+    def _determine_obj_id(self, obj_label):
+        filtered_obj_ids = [obj_id for obj_id, model_spec in self._models_info.items() if model_spec['readable_label'] == obj_label]
         assert len(filtered_obj_ids) == 1
         obj_id = filtered_obj_ids[0]
         return obj_id
 
-    def _init_model(self):
-        print("Loading model...")
-        model = inout.load_ply(os.path.join(self._configs.data.path, 'models', 'obj_{:02}.ply'.format(self._obj_id)))
+    def _init_models(self):
+        print("Loading models...")
+        models = {}
+        for obj_id in self._models_info:
+            models[obj_id] = inout.load_ply(os.path.join(self._configs.data.path, 'models', 'obj_{:02}.ply'.format(obj_id)))
         print("Done.")
-        return model
+        return models
 
     def _init_renderer(self):
         global global_renderer
@@ -130,7 +133,8 @@ class DummyDataset(Dataset):
         renderer = Renderer(
             self._configs.data.crop_dims,
         )
-        renderer._preprocess_object_model(self._obj_id, self._model)
+        for obj_id, model in self._models.items():
+            renderer._preprocess_object_model(obj_id, model)
         print('Not reusing renderer')
         global_renderer = renderer
         return renderer
@@ -165,7 +169,7 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _render(self, K, R, t, shading_params, T_world2cam=None, apply_bg=None):
+    def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -175,9 +179,9 @@ class DummyDataset(Dataset):
         assert light_pos_camframe.shape == (3,)
         rgb, depth, seg, instance_seg, normal_map, corr_map = self._renderer.render(
             K,
-            [R],
-            [t],
-            [self._obj_id],
+            R_list,
+            t_list,
+            instance_id_list,
             light_pos = light_pos_camframe,
             ambient_weight = shading_params['ambient_weight'],
             clip_near = 100, # mm
@@ -185,7 +189,12 @@ class DummyDataset(Dataset):
         )
 
         if apply_bg is not None:
-            rgb[seg != self._obj_id] = apply_bg[seg != self._obj_id, :]
+            if np.random.random() < 0.5:
+                # On BG & occluders:
+                rgb[seg != self._obj_id] = apply_bg[seg != self._obj_id, :]
+            else:
+                # On BG only:
+                rgb[seg == 0] = apply_bg[seg == 0, :]
 
         return rgb
 
@@ -336,11 +345,38 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
+    def _get_object_max_extent(self, obj_label, plane_normal=None):
+        """
+        Computes the distance between object center and the bounding box corner farthest away from the object center.
+        If plane_normal is supplied, bbox corners will be projected to the corresponding plane before determining the maximum extent.
+        """
+        min_max_corners = self._metadata['objects'][obj_label]['bbox3d'].copy() # 2 columns, representing opposite corners
+        if plane_normal is not None:
+            plane_normal = plane_normal / np.linalg.norm(plane_normal)
+            parallel_component = np.sum(min_max_corners * plane_normal[:,None], axis=0, keepdims=True) * plane_normal[:,None]
+            min_max_corners -= parallel_component
+        max_extent = np.max(np.linalg.norm(min_max_corners, axis=0))
+        return max_extent
+
     def _sample_perturbation_params(self, sample_index_in_epoch):
         return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index_in_epoch, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
 
     def _sample_object_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.object_pose.items()}
+
+    def _perturb_object_pose_params_for_occluder(self, base_params, obj_label_occluder, perturb_dir_angle_range=[0., 2*np.pi]):
+        phi = np.random.uniform(low=perturb_dir_angle_range[0], high=perturb_dir_angle_range[1])
+        xy_perturb_dir = np.array([np.cos(phi), np.sin(phi)])
+        min_safe_cc_dist = self._get_object_max_extent(self._obj_label, plane_normal=self._metadata['objects'][self._obj_label]['up_dir']) + self._get_object_max_extent(obj_label_occluder, plane_normal=self._metadata['objects'][obj_label_occluder]['up_dir'])
+
+        xy_perturb_magnitude = np.random.uniform(low=0.8*min_safe_cc_dist, high=1.1*min_safe_cc_dist)
+        # xy_perturb_magnitude = min_safe_cc_dist
+
+        xy_perturb = xy_perturb_dir * xy_perturb_magnitude
+        return {
+            'xy_transl': base_params['xy_transl'] + xy_perturb,
+            'object_azimuth_angle': np.random.uniform(low=0, high=2*np.pi),
+        }
 
     def _sample_camera_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.camera_pose.items()}
@@ -365,15 +401,16 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _sample_object_pose(self, ref_scheme_idx, obj_label=None):
-        if obj_label is None:
+    def _generate_object_pose(self, obj_pose_params, obj_label=None, occluder=False):
+        if occluder:
+            assert obj_label is not None
+        elif obj_label is None:
             obj_label = self._obj_label
-        up_dir = np.array([0., 0., 1.])
+        obj_label = self._obj_label
+        up_dir = self._metadata['objects'][obj_label]['up_dir']
         zmin = self._metadata['objects'][obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
-        # Sample parameters for an object pose such that the object is placed somewhere on the xy-plane.
-        obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
         T_model2world = calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
 
         return T_model2world
@@ -519,7 +556,8 @@ class DummyDataset(Dataset):
         # Resample pose until accepted
         for j in range(self._configs.runtime.data.max_nbr_resamplings):
             # T1 corresponds to reference image (observed)
-            T_model2world = self._sample_object_pose(ref_scheme_idx)
+            obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
+            T_model2world = self._generate_object_pose(obj_pose_params)
             T_world2cam = self._sample_camera_pose(ref_scheme_idx)
             T1 = T_world2cam @ T_model2world
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
@@ -540,6 +578,15 @@ class DummyDataset(Dataset):
                 # print("Rejected T1, due to crop_box", crop_box)
                 continue
 
+            obj_labels_possible_occluders = [model_spec['readable_label'] for obj_id, model_spec in self._models_info.items() if obj_id != self._obj_id]
+            T_occluders = {}
+            nbr_occluders = 4
+            for k, obj_label in enumerate(np.random.choice(obj_labels_possible_occluders, size=(nbr_occluders,), replace=False)):
+                bin_size = 2*np.pi/nbr_occluders
+                margin = 0.15 * bin_size
+                perturb_dir_angle_range = k*bin_size + np.array([margin, bin_size - margin])
+                T_occluders[obj_label] = T_world2cam @ self._generate_object_pose(self._perturb_object_pose_params_for_occluder(obj_pose_params, obj_label, perturb_dir_angle_range=perturb_dir_angle_range), obj_label=obj_label, occluder=True)
+
             break
         else:
             assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
@@ -548,7 +595,7 @@ class DummyDataset(Dataset):
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
         assert T1[2,3] > 0, "Center of object pose 1 behind camera"
 
-        return T_model2world, T_world2cam, R1, t1, crop_box
+        return T_model2world, T_occluders, T_world2cam, R1, t1, crop_box
 
     def _generate_perturbation(self, ref_scheme_idx, sample_index_in_epoch, R1, t1):
         T1 = np.eye(4)
@@ -628,7 +675,7 @@ class DummyDataset(Dataset):
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             R1, t1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            T1_model2world, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
+            T1_model2world, T1_occluders, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
 
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
@@ -648,9 +695,14 @@ class DummyDataset(Dataset):
             img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=ref_bg)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
-            img1 = Image.fromarray(self._render(K, R1, t1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg))
+            R_list1, t_list1, instance_id_list1 = [R1], [t1], [self._obj_id]
+            for obj_label, T in T1_occluders.items():
+                R_list1.append(T[:3,:3])
+                t_list1.append(T[:3,[3]])
+                instance_id_list1.append(self._determine_obj_id(obj_label))
+            img1 = Image.fromarray(self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg))
         query_shading_params = self._sample_query_shading_params()
-        img2 = Image.fromarray(self._render(K, R2, t2, query_shading_params))
+        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params))
 
         # Augmentation + numpy -> pytorch conversion
         img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
