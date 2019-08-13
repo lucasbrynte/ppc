@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from numbers import Number
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -32,11 +33,31 @@ class Main():
         return model
 
     def _setup_optimizer(self):
-        weight_decay = self._configs.training.weight_decay if self._configs.training.weight_decay is not None else 0
+        weight_decay = self._configs.training.weight_decay if self._configs.training.weight_decay is not None else {'cnn': 0, 'head': 0}
+        assert all(isinstance(val, Number) for val in weight_decay.values())
+        param_groups = []
+        param_groups.append({
+            'params': [param for name, param in self._model.semi_siamese_cnn.named_parameters() if name.endswith('weight') and param.requires_grad],
+            'weight_decay': self._configs.training.weight_decay['cnn'],
+        })
+        param_groups.append({
+            'params': [param for name, param in self._model.semi_siamese_cnn.named_parameters() if name.endswith('bias') and param.requires_grad],
+            'weight_decay': 0,
+        })
+        param_groups.append({
+            'params': [param for name, param in self._model.head.named_parameters() if name.endswith('weight') and param.requires_grad],
+            'weight_decay': self._configs.training.weight_decay['head'],
+        })
+        param_groups.append({
+            'params': [param for name, param in self._model.head.named_parameters() if name.endswith('bias') and param.requires_grad],
+            'weight_decay': 0,
+        })
+        nbr_params = sum([len(param_group['params']) for param_group in param_groups])
+        total_nbr_params = len([param for param in self._model.parameters() if param.requires_grad])
+        assert nbr_params == total_nbr_params
         return torch.optim.Adam(
-            self._model.parameters(),
+            param_groups,
             lr=self._configs.training.learning_rate * np.sqrt(self._configs.runtime.loading.batch_size),
-            weight_decay=weight_decay,
         )
 
     def train(self):
