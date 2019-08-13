@@ -204,7 +204,7 @@ class Head(nn.Module):
             if relu_flag:
                 units.append(nn.ReLU(inplace=True))
             if dropout_factor is not None:
-                units.append(nn.Dropout2d(p=dropout_factor, inplace=True))
+                units.append(nn.Dropout(p=dropout_factor))
             in_features = out_features
         self.sequential = nn.Sequential(*units)
 
