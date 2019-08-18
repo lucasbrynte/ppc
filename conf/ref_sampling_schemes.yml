@@ -1,23 +1,23 @@
 real_unoccl_duck_nyud:
   ref_source: real
-  sample_nyud_bg: true
+  sample_nyud_bg: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: null
 real_unoccl_duck:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: null
 real_unoccl_val_frame100:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 100
 
 
@@ -26,28 +26,28 @@ real_occl_val:
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_occl/ape
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: null
 real_occl_val_frame100:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_occl/ape
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 100
 real_occl_val_frame228:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_occl/ape
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 228
 real_occl_val_frame327:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: train_occl/ape
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 327
 
 
@@ -56,13 +56,13 @@ real_occl_test:
   sample_nyud_bg: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: null
 
 
 synth_default:
   ref_source: synthetic
-  sample_nyud_bg: true
+  sample_nyud_bg: false
   synth_opts:
     object_pose:
       object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
