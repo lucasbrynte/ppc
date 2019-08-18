@@ -24,40 +24,40 @@ data_sampling_scheme_defs:
       query_scheme: rot_only_20deg_std
       shuffle: true
   val:
-    real_unoccl_duck_default:
-      ref_schemeset:
-        - {ref_scheme: real_unoccl_duck}
-      query_scheme: default
-      shuffle: false
-      use_for_val_score: false
-    real_occl_val_default:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val}
-      query_scheme: default
-      shuffle: false
-      use_for_val_score: true
-    synth_default:
-      ref_schemeset:
-        - {ref_scheme: synth_default}
-      query_scheme: default
-      shuffle: false
-      use_for_val_score: false
-
-    # real_unoccl_duck_rot_only_20deg_std:
+    # real_unoccl_duck_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_duck}
-    #   query_scheme: rot_only_20deg_std
+    #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: false
-    # real_occl_val_rot_only_20deg_std:
+    # real_occl_val_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val}
-    #   query_scheme: rot_only_20deg_std
+    #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: true
-    # synth_rot_only_20deg_std:
+    # synth_default:
     #   ref_schemeset:
     #     - {ref_scheme: synth_default}
-    #   query_scheme: rot_only_20deg_std
+    #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: false
+
+    real_unoccl_duck_rot_only_20deg_std:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_duck}
+      query_scheme: rot_only_20deg_std
+      shuffle: false
+      use_for_val_score: false
+    real_occl_val_rot_only_20deg_std:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val}
+      query_scheme: rot_only_20deg_std
+      shuffle: false
+      use_for_val_score: true
+    synth_rot_only_20deg_std:
+      ref_schemeset:
+        - {ref_scheme: synth_default}
+      query_scheme: rot_only_20deg_std
+      shuffle: false
+      use_for_val_score: false
