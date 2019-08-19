@@ -236,8 +236,10 @@ class LossHandler:
                     if decay_controlling_variable is not target_features[task_name]:
                         # A target other than itself is being used to control loss decay
                         if decay_spec['method'] == 'smoothstep':
-                            assert decay_spec['y2'] < decay_spec['y1']
-                            loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
+                            if decay_spec['y2'] < decay_spec['y1']:
+                                loss_notapplied_mask |= (decay_controlling_variable > 0.5*(decay_spec['x1']+decay_spec['x2']))
+                            else:
+                                loss_notapplied_mask |= (decay_controlling_variable < 0.5*(decay_spec['x1']+decay_spec['x2']))
 
             task_loss_decays[task_name] = loss_decay
             loss_notapplied[task_name] = loss_notapplied_mask
