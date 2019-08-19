@@ -63,21 +63,21 @@ real_occl_test_frame109:
   sample_nyud_bg: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 109
 real_occl_test_frame112:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 112
 real_occl_test_frame159:
   ref_source: real
   sample_nyud_bg: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
-    mask_silhouette: false
+    mask_silhouette: true
     static_frame_idx: 159
 
 
