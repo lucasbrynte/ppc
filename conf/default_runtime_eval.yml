@@ -32,16 +32,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_unoccl_val_frame100}
       query_scheme: gradual_rot
       shuffle: false
-    real_unoccl_val_frame100_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_unoccl_val_frame100}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_unoccl_val_frame100_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_unoccl_val_frame100}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_unoccl_val_frame100_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_unoccl_val_frame100}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_unoccl_val_frame100_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_unoccl_val_frame100}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 
 
@@ -55,16 +55,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_val_frame100}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_val_frame100_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame100}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_val_frame100_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame100}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_val_frame100_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame100}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_val_frame100_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame100}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 # ==============================================================================
 # real_occl_val FRAME 228
@@ -74,16 +74,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_val_frame228}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_val_frame228_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame228}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_val_frame228_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame228}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_val_frame228_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame228}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_val_frame228_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame228}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 # ==============================================================================
 # real_occl_val FRAME 327
@@ -93,16 +93,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_val_frame327}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_val_frame327_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame327}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_val_frame327_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_val_frame327}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_val_frame327_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame327}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_val_frame327_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_val_frame327}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 
 
@@ -116,16 +116,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_test_frame109}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_test_frame109_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame109}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_test_frame109_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame109}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_test_frame109_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame109}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_test_frame109_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame109}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 # ==============================================================================
 # real_occl_test FRAME 112
@@ -135,16 +135,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_test_frame112}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_test_frame112_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame112}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_test_frame112_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame112}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_test_frame112_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame112}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_test_frame112_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame112}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 # ==============================================================================
 # real_occl_test FRAME 159
@@ -154,16 +154,16 @@ data_sampling_scheme_defs:
         - {ref_scheme: real_occl_test_frame159}
       query_scheme: gradual_rot
       shuffle: false
-    real_occl_test_frame159_gradual_transl:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame159}
-      query_scheme: gradual_transl
-      shuffle: false
-    real_occl_test_frame159_gradual_depth:
-      ref_schemeset:
-        - {ref_scheme: real_occl_test_frame159}
-      query_scheme: gradual_depth
-      shuffle: false
+    # real_occl_test_frame159_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame159}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_occl_test_frame159_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_occl_test_frame159}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
 
 
 
