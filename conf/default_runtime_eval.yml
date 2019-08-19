@@ -25,6 +25,29 @@ data_sampling_scheme_defs:
 
 
 # ==============================================================================
+# real_unoccl_val_whitesilhouette FRAME 100
+# ==============================================================================
+    real_unoccl_val_whitesilhouette_frame100_gradual_rot:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_val_whitesilhouette_frame100}
+      query_scheme: gradual_rot
+      shuffle: false
+    # real_unoccl_val_whitesilhouette_frame100_gradual_transl:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_unoccl_val_whitesilhouette_frame100}
+    #   query_scheme: gradual_transl
+    #   shuffle: false
+    # real_unoccl_val_whitesilhouette_frame100_gradual_depth:
+    #   ref_schemeset:
+    #     - {ref_scheme: real_unoccl_val_whitesilhouette_frame100}
+    #   query_scheme: gradual_depth
+    #   shuffle: false
+
+
+
+
+
+# ==============================================================================
 # real_unoccl_val FRAME 100
 # ==============================================================================
     real_unoccl_val_frame100_gradual_rot:

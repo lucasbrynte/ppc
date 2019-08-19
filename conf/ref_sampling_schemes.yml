@@ -14,6 +14,14 @@ real_unoccl_duck:
     mask_silhouette: true
     white_silhouette: false
     static_frame_idx: null
+real_unoccl_val_whitesilhouette_frame100:
+  ref_source: real
+  sample_nyud_bg: false
+  real_opts:
+    linemod_seq: train_unoccl/<OBJ_LABEL>
+    mask_silhouette: true
+    white_silhouette: true
+    static_frame_idx: 100
 real_unoccl_val_frame100:
   ref_source: real
   sample_nyud_bg: false
