@@ -4,6 +4,7 @@ real_unoccl_duck_nyud:
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: null
 real_unoccl_duck:
   ref_source: real
@@ -11,6 +12,7 @@ real_unoccl_duck:
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: null
 real_unoccl_val_frame100:
   ref_source: real
@@ -18,6 +20,7 @@ real_unoccl_val_frame100:
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 100
 
 
@@ -27,6 +30,7 @@ real_occl_val:
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: null
 real_occl_val_frame100:
   ref_source: real
@@ -34,6 +38,7 @@ real_occl_val_frame100:
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 100
 real_occl_val_frame228:
   ref_source: real
@@ -41,6 +46,7 @@ real_occl_val_frame228:
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 228
 real_occl_val_frame327:
   ref_source: real
@@ -48,6 +54,7 @@ real_occl_val_frame327:
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 327
 
 
@@ -57,6 +64,7 @@ real_occl_test:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: null
 real_occl_test_frame109:
   ref_source: real
@@ -64,6 +72,7 @@ real_occl_test_frame109:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 109
 real_occl_test_frame112:
   ref_source: real
@@ -71,6 +80,7 @@ real_occl_test_frame112:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 112
 real_occl_test_frame159:
   ref_source: real
@@ -78,6 +88,7 @@ real_occl_test_frame159:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
+    white_silhouette: false
     static_frame_idx: 159
 
 

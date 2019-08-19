@@ -500,7 +500,10 @@ class DummyDataset(Dataset):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
-        if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+        if apply_bg is None \
+                and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.white_silhouette \
+                and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+            # Early return (no need to load seg)
             return img, rel_rgb_path
         seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
         seg = np.array(self._crop_as_array(Image.open(seg_path), crop_box).resize(self._configs.data.crop_dims))
@@ -510,8 +513,8 @@ class DummyDataset(Dataset):
             img_array[seg != instance_idx+1] = apply_bg[seg != instance_idx+1, :]
         elif self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
             img_array[seg != instance_idx+1] = 0
-        else:
-            assert False
+        if self._ref_sampling_schemes[ref_scheme_idx].real_opts.white_silhouette:
+            img_array[seg == instance_idx+1] = 255
         img = Image.fromarray(img_array, mode=img.mode)
         return img, rel_rgb_path
 
