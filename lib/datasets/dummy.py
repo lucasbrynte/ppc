@@ -548,12 +548,15 @@ class DummyDataset(Dataset):
 
             width = crop_box[2] - crop_box[0]
             height = crop_box[3] - crop_box[1]
-            if width < 50 or height < 50:
+            # print(width, height)
+            if width < 25 or height < 25:
                 # print("Rejected T1, due to crop_box", crop_box)
                 continue
 
             break
         else:
+            # print(gts_in_frame)
+            # print(seq, frame_idx)
             assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
 
         return R1, t1, crop_box, frame_idx, instance_idx
