@@ -63,12 +63,17 @@ tasks:
 
       # 0-20 px
       - {method: smoothstep, target: norm_pixel_offset, x1: 0.0, x2: 20.0, y1: 1.0, y2: 0.0}
+      # 0-40 px
+      # - {method: smoothstep, target: norm_pixel_offset, x1: 0.0, x2: 40.0, y1: 1.0, y2: 0.0}
       # 20-40 px
       # - {method: smoothstep, target: norm_pixel_offset, x1: 20.0, x2: 40.0, y1: 1.0, y2: 0.0}
 
       # 1.0-1.2
       - {method: smoothstep, target: rel_depth_error, x1: -0.079, x2: -0.0, y1: 0.0, y2: 1.0} # log(1.2)=0.079
       - {method: smoothstep, target: rel_depth_error, x1: 0.0, x2: 0.079, y1: 1.0, y2: 0.0} # log(1.2)=0.079
+      # 1.0-1.5
+      # - {method: smoothstep, target: rel_depth_error, x1: -0.176, x2: -0.0, y1: 0.0, y2: 1.0} # log(1.5)=0.176
+      # - {method: smoothstep, target: rel_depth_error, x1: 0.0, x2: 0.176, y1: 1.0, y2: 0.0} # log(1.5)=0.176
       # 1.2-1.5
       # - {method: smoothstep, target: rel_depth_error, x1: -0.176, x2: -0.079, y1: 0.0, y2: 1.0} # log(1.2)=0.079, log(1.5)=0.176
       # - {method: smoothstep, target: rel_depth_error, x1: 0.079, x2: 0.176, y1: 1.0, y2: 0.0} # log(1.2)=0.079, log(1.5)=0.176
