@@ -453,6 +453,9 @@ class DummyDataset(Dataset):
         R = closest_rotmat(A)
         return self._angle_from_rotmat(R)
 
+    def _clip_and_arccos(self, x):
+        return np.arccos(np.clip(x, -1., 1.))
+
     def _angle_from_rotmat(self, R):
         assert R.shape in [(2, 2), (3, 3)]
         dim = R.shape[0]
@@ -460,9 +463,9 @@ class DummyDataset(Dataset):
         assert np.all(np.isclose(R.T @ R, np.eye(dim), rtol=0.0, atol=eps))
         assert np.linalg.det(R) > 0
         if dim == 2:
-            return np.arccos(R[0,0])
+            return self._clip_and_arccos(R[0,0])
         elif dim == 3:
-            return np.arccos(0.5 * (np.trace(R) - 1.0))
+            return self._clip_and_arccos(0.5 * (np.trace(R) - 1.0))
         else:
             assert False
 
@@ -734,8 +737,8 @@ class DummyDataset(Dataset):
                 'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
                 'norm_pixel_offset': np.linalg.norm(pixel_offset),
                 'delta_angle_inplane_signed': delta_angle_inplane,
-                'delta_angle_inplane_unsigned': np.arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
-                'delta_angle_paxis': np.arccos(R21_global[2,2]),
+                'delta_angle_inplane_unsigned': self._clip_and_arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
+                'delta_angle_paxis': self._clip_and_arccos(R21_global[2,2]),
                 'delta_angle_total': delta_angle_total,
                 'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
                 'delta_angle_paxis_cosdist': 1.0 - R21_global[2,2],
