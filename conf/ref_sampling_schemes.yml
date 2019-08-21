@@ -4,34 +4,34 @@
 real_unoccl_train:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: null
 real_unoccl_train_blackbg:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: null
 real_unoccl_train_nyud:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: null
 real_unoccl_train_whitesilhouette:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: null
 
 # ==============================================================================
@@ -40,34 +40,34 @@ real_unoccl_train_whitesilhouette:
 real_unoccl_train_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 100
 real_unoccl_train_blackbg_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 100
 real_unoccl_train_nyud_frame100:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 100
 real_unoccl_train_whitesilhouette_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: 100
 
 
@@ -81,34 +81,34 @@ real_unoccl_train_whitesilhouette_frame100:
 real_occl_val:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: null
 real_occl_val_blackbg:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: null
 real_occl_val_nyud:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: null
 real_occl_val_whitesilhouette:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: null
 
 # ==============================================================================
@@ -117,34 +117,34 @@ real_occl_val_whitesilhouette:
 real_occl_val_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 100
 real_occl_val_blackbg_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 100
 real_occl_val_nyud_frame100:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 100
 real_occl_val_whitesilhouette_frame100:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: 100
 
 # ==============================================================================
@@ -153,34 +153,34 @@ real_occl_val_whitesilhouette_frame100:
 real_occl_val_frame228:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 228
 real_occl_val_blackbg_frame228:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 228
 real_occl_val_nyud_frame228:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 228
 real_occl_val_whitesilhouette_frame228:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: 228
 
 # ==============================================================================
@@ -189,34 +189,34 @@ real_occl_val_whitesilhouette_frame228:
 real_occl_val_frame327:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 327
 real_occl_val_blackbg_frame327:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 327
 real_occl_val_nyud_frame327:
   ref_source: real
   sample_nyud_bg: true
+  white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 327
 real_occl_val_whitesilhouette_frame327:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: true
   real_opts:
     linemod_seq: train_occl/ape
     mask_silhouette: true
-    white_silhouette: true
     static_frame_idx: 327
 
 
@@ -230,18 +230,18 @@ real_occl_val_whitesilhouette_frame327:
 real_occl_test:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: null
 real_occl_test_blackbg:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: null
 
 # ==============================================================================
@@ -250,18 +250,18 @@ real_occl_test_blackbg:
 real_occl_test_frame109:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 109
 real_occl_test_blackbg_frame109:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 109
 
 # ==============================================================================
@@ -270,18 +270,18 @@ real_occl_test_blackbg_frame109:
 real_occl_test_frame112:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 112
 real_occl_test_blackbg_frame112:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 112
 
 # ==============================================================================
@@ -290,18 +290,18 @@ real_occl_test_blackbg_frame112:
 real_occl_test_frame159:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: false
-    white_silhouette: false
     static_frame_idx: 159
 real_occl_test_blackbg_frame159:
   ref_source: real
   sample_nyud_bg: false
+  white_silhouette: false
   real_opts:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: true
-    white_silhouette: false
     static_frame_idx: 159
 
 
@@ -311,6 +311,7 @@ real_occl_test_blackbg_frame159:
 synth_nyud:
   ref_source: synthetic
   sample_nyud_bg: true
+  white_silhouette: false
   synth_opts:
     object_pose:
       object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
@@ -329,6 +330,26 @@ synth_nyud:
 synth_blackbg:
   ref_source: synthetic
   sample_nyud_bg: false
+  white_silhouette: false
+  synth_opts:
+    object_pose:
+      object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
+      xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
+    camera_pose:
+      hemisphere_polar_angle:                                   {method: uniform, range: [0., 75.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
+      hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
+      hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
+      # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
+      principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
+      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
+    shading:
+      ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
+      light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
+synth_whitesilhouette:
+  ref_source: synthetic
+  sample_nyud_bg: false
+  white_silhouette: true
   synth_opts:
     object_pose:
       object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}

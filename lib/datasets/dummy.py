@@ -169,7 +169,7 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None, min_nbr_unoccluded_pixels=0):
+    def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None, min_nbr_unoccluded_pixels=0, white_silhouette=False):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -192,12 +192,15 @@ class DummyDataset(Dataset):
             return None
 
         if apply_bg is not None:
+            assert not white_silhouette
             if np.random.random() < 0.5:
                 # On BG & occluders:
                 rgb[seg != self._obj_id] = apply_bg[seg != self._obj_id, :]
             else:
                 # On BG only:
                 rgb[seg == 0] = apply_bg[seg == 0, :]
+        elif white_silhouette:
+            rgb[seg == self._obj_id] = 255
 
         return rgb
 
@@ -501,7 +504,7 @@ class DummyDataset(Dataset):
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
         if apply_bg is None \
-                and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.white_silhouette \
+                and not self._ref_sampling_schemes[ref_scheme_idx].white_silhouette \
                 and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
             # Early return (no need to load seg)
             return img, rel_rgb_path
@@ -513,7 +516,7 @@ class DummyDataset(Dataset):
             img_array[seg != instance_idx+1] = apply_bg[seg != instance_idx+1, :]
         elif self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
             img_array[seg != instance_idx+1] = 0
-        if self._ref_sampling_schemes[ref_scheme_idx].real_opts.white_silhouette:
+        if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             img_array[seg == instance_idx+1] = 255
         img = Image.fromarray(img_array, mode=img.mode)
         return img, rel_rgb_path
@@ -712,7 +715,7 @@ class DummyDataset(Dataset):
                 R_list1.append(T[:3,:3])
                 t_list1.append(T[:3,[3]])
                 instance_id_list1.append(self._determine_obj_id(obj_label))
-            img1 = self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg, min_nbr_unoccluded_pixels=200)
+            img1 = self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg, min_nbr_unoccluded_pixels=200, white_silhouette=self._ref_sampling_schemes[ref_scheme_idx].white_silhouette)
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
