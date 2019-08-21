@@ -1,9 +1,9 @@
 real_unoccl_duck_nyud:
   ref_source: real
-  sample_nyud_bg: false
+  sample_nyud_bg: true
   real_opts:
     linemod_seq: train_unoccl/<OBJ_LABEL>
-    mask_silhouette: true
+    mask_silhouette: false
     white_silhouette: false
     static_frame_idx: null
 real_unoccl_duck:
