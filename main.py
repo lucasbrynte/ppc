@@ -21,8 +21,9 @@ class Main():
         self._loss_handler = LossHandler(configs, self.__class__.__name__)
         self._checkpoint_handler = CheckpointHandler(configs)
         self._model = self._checkpoint_handler.init(self._init_model())
-        self._optimizer = self._setup_optimizer()
-        self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
+        if self._configs.train_or_eval == 'train':
+            self._optimizer = self._setup_optimizer()
+            self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
         self._visualizer = Visualizer(configs)
 
         self._target_prior_samples_numpy = None
