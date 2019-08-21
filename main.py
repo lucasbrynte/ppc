@@ -68,9 +68,9 @@ class Main():
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            save_imgs_flag = epoch % self._configs.runtime.visualization.save_imgs_interval == 0
-            plot_signals_flag = epoch % self._configs.runtime.visualization.plot_signals_interval == 0
-            plot_signal_stats_flag = epoch % self._configs.runtime.visualization.plot_signal_stats_interval == 0
+            save_imgs_flag = self._configs.runtime.visualization.save_imgs_interval is not None and epoch % self._configs.runtime.visualization.save_imgs_interval == 0
+            plot_signals_flag = self._configs.runtime.visualization.plot_signals_interval is not None and epoch % self._configs.runtime.visualization.plot_signals_interval == 0
+            plot_signal_stats_flag = self._configs.runtime.visualization.plot_signal_stats_interval is not None and epoch % self._configs.runtime.visualization.plot_signal_stats_interval == 0
 
             train_score = -self._run_epoch(epoch, TRAIN, TRAIN, self._configs.runtime.loading.nbr_batches_train, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
 
