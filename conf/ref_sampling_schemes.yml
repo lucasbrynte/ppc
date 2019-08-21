@@ -5,7 +5,6 @@ real_unoccl_duck_nyud:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
     static_frame_idx: null
-    # static_frame_idx: 100
 real_unoccl_duck:
   ref_source: real
   sample_nyud_bg: false
@@ -13,7 +12,15 @@ real_unoccl_duck:
     linemod_seq: train_unoccl/<OBJ_LABEL>
     mask_silhouette: false
     static_frame_idx: null
-    # static_frame_idx: 100
+real_unoccl_val_frame100:
+  ref_source: real
+  sample_nyud_bg: false
+  real_opts:
+    linemod_seq: train_unoccl/<OBJ_LABEL>
+    mask_silhouette: false
+    static_frame_idx: 100
+
+
 real_occl_val:
   ref_source: real
   sample_nyud_bg: false
@@ -21,7 +28,29 @@ real_occl_val:
     linemod_seq: train_occl/ape
     mask_silhouette: false
     static_frame_idx: null
-    # static_frame_idx: 100
+real_occl_val_frame100:
+  ref_source: real
+  sample_nyud_bg: false
+  real_opts:
+    linemod_seq: train_occl/ape
+    mask_silhouette: false
+    static_frame_idx: 100
+real_occl_val_frame228:
+  ref_source: real
+  sample_nyud_bg: false
+  real_opts:
+    linemod_seq: train_occl/ape
+    mask_silhouette: false
+    static_frame_idx: 228
+real_occl_val_frame327:
+  ref_source: real
+  sample_nyud_bg: false
+  real_opts:
+    linemod_seq: train_occl/ape
+    mask_silhouette: false
+    static_frame_idx: 327
+
+
 real_occl_test:
   ref_source: real
   sample_nyud_bg: false
@@ -29,7 +58,8 @@ real_occl_test:
     linemod_seq: test_occl/benchviseblue
     mask_silhouette: false
     static_frame_idx: null
-    # static_frame_idx: 100
+
+
 synth_default:
   ref_source: synthetic
   sample_nyud_bg: true

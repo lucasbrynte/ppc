@@ -17,9 +17,24 @@ rot_only_20deg_std:
 gradual_rot:
   perturbation:
     axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
-    # axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
     angle:                                                      {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 20.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+gradual_transl:
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 0.2} # 20% of object size along each dimension. tx=ty=tz
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+gradual_depth:
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: true, loc: 1.0, scale: 1.3}
   shading:
     ambient_weight:                                             {method: fixed, value: 0.8}
