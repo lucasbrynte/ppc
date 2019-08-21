@@ -18,12 +18,29 @@ data:
 data_sampling_scheme_defs:
   train:
     train:
+      # baseline
       ref_schemeset:
-        # - {ref_scheme: synth_nyud, sample_prob: 0.5}
         - {ref_scheme: synth_blackbg, sample_prob: 0.5}
         - {ref_scheme: real_unoccl_train_blackbg, sample_prob: 0.5}
-        # - {ref_scheme: real_unoccl_train, sample_prob: 0.25}
-        # - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.25}
+      
+      # # synth_blackbg_real_mix
+      # ref_schemeset:
+      #   - {ref_scheme: synth_blackbg, sample_prob: 0.5}
+      #   - {ref_scheme: real_unoccl_train_blackbg, sample_prob: 0.25}
+      #   - {ref_scheme: real_unoccl_train, sample_prob: 0.125}
+      #   - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.125}
+      
+      # # never_blackbg
+      # ref_schemeset:
+      #   - {ref_scheme: synth_nyud, sample_prob: 0.5}
+      #   - {ref_scheme: real_unoccl_train, sample_prob: 0.25}
+      #   - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.25}
+
+      # # whitesilhouette
+      # ref_schemeset:
+      #   - {ref_scheme: synth_whitesilhouette, sample_prob: 0.5}
+      #   - {ref_scheme: real_unoccl_train_whitesilhouette, sample_prob: 0.5}
+
       # query_scheme: default
       # query_scheme: 90deg_std_mild_transl_depth
       # query_scheme: 90deg_std_mild_transl
