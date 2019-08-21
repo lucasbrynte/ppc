@@ -9,6 +9,9 @@ DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented3_format0
 NYUDPATH=/home/lucas/datasets/nyud
 CONTAINER=ppc
 CONFIGNAME=dummy
+# CHECKPOINT_FNAME=best_model.pth.tar
+# CHECKPOINT_FNAME=epoch010.pth.tar
+CHECKPOINT_FNAME=latest_model.pth.tar
 
 
 TMP_SUFFIX=$(openssl rand -hex 4)
@@ -49,7 +52,7 @@ for OBJ in ${OBJECTS[@]}; do
         --config-name $CONFIGNAME \
         --experiment-name $NEW_EXPERIMENT_PREFIX/$OBJ \
         --old-experiment-name $OLD_EXPERIMENT_PREFIX/$OBJ \
-        --checkpoint-load-fname best_model.pth.tar \
+        --checkpoint-load-fname $CHECKPOINT_FNAME \
         --obj-label $OBJ
 done
 rm -rf $WS
