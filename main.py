@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from numbers import Number
+from attrdict import AttrDict
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -88,8 +89,12 @@ class Main():
 
     def eval(self):
         epoch = 1
-        for schemeset in self._configs.runtime.data_sampling_scheme_defs[TEST].keys():
-            self._run_epoch(epoch, TEST, schemeset, self._configs.runtime.loading.nbr_batches_test, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True)
+        for schemeset, schemeset_def in self._configs.runtime.data_sampling_scheme_defs[TEST].items():
+            schemeset_def = AttrDict(schemeset_def)
+            visualization_config = self._configs.runtime.visualization
+            if 'visualization' in schemeset_def:
+                visualization_config += schemeset_def.visualization
+            self._run_epoch(epoch, TEST, schemeset, self._configs.runtime.loading.nbr_batches_test, save_imgs_flag=visualization_config.save_imgs, plot_signals_flag=visualization_config.plot_signals, plot_signal_stats_flag=visualization_config.plot_signal_stats)
 
     def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):
         print('Running through epoch to collect target samples for prior...')
