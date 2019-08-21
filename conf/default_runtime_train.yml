@@ -19,10 +19,11 @@ data_sampling_scheme_defs:
   train:
     train:
       ref_schemeset:
-        - {ref_scheme: synth_default, sample_prob: 0.5}
-        - {ref_scheme: real_unoccl_duck, sample_prob: 0.25}
-        - {ref_scheme: real_unoccl_duck_nyud, sample_prob: 0.25}
-        # - {ref_scheme: real_unoccl_duck}
+        # - {ref_scheme: synth_nyud, sample_prob: 0.5}
+        - {ref_scheme: synth_blackbg, sample_prob: 0.5}
+        - {ref_scheme: real_unoccl_train_blackbg, sample_prob: 0.5}
+        # - {ref_scheme: real_unoccl_train, sample_prob: 0.25}
+        # - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.25}
       # query_scheme: default
       # query_scheme: 90deg_std_mild_transl_depth
       # query_scheme: 90deg_std_mild_transl
@@ -32,84 +33,84 @@ data_sampling_scheme_defs:
       # query_scheme: rot_only_90deg_std
       shuffle: true
   val:
-    # real_unoccl_duck_default:
+    # real_unoccl_train_blackbg_default:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_duck}
+    #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: false
-    # real_occl_val_default:
+    # real_occl_val_blackbg_default:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val}
+    #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: true
-    # synth_default:
+    # synth_blackbg:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_default}
+    #     - {ref_scheme: synth_blackbg}
     #   query_scheme: default
     #   shuffle: false
     #   use_for_val_score: false
 
 
 
-    # real_unoccl_duck_20deg_std:
+    # real_unoccl_train_blackbg_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_duck}
+    #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: 20deg_std
     #   shuffle: false
     #   use_for_val_score: false
-    # real_occl_val_20deg_std:
+    # real_occl_val_blackbg_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val}
+    #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: 20deg_std
     #   shuffle: false
     #   use_for_val_score: true
     # synth_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_default}
+    #     - {ref_scheme: synth_blackbg}
     #   query_scheme: 20deg_std
     #   shuffle: false
     #   use_for_val_score: false
 
 
 
-    real_unoccl_duck_rot_only_20deg_std:
+    real_unoccl_train_blackbg_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: real_unoccl_duck}
+        - {ref_scheme: real_unoccl_train_blackbg}
       query_scheme: rot_only_20deg_std
       shuffle: false
       use_for_val_score: false
-    real_occl_val_rot_only_20deg_std:
+    real_occl_val_blackbg_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: real_occl_val}
+        - {ref_scheme: real_occl_val_blackbg}
       query_scheme: rot_only_20deg_std
       shuffle: false
       use_for_val_score: true
     synth_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: synth_default}
+        - {ref_scheme: synth_blackbg}
       query_scheme: rot_only_20deg_std
       shuffle: false
       use_for_val_score: false
 
 
 
-    # real_unoccl_duck_rot_only_90deg_std:
+    # real_unoccl_train_blackbg_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_duck}
+    #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: rot_only_90deg_std
     #   shuffle: false
     #   use_for_val_score: false
-    # real_occl_val_rot_only_90deg_std:
+    # real_occl_val_blackbg_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val}
+    #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: rot_only_90deg_std
     #   shuffle: false
     #   use_for_val_score: true
     # synth_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_default}
+    #     - {ref_scheme: synth_blackbg}
     #   query_scheme: rot_only_90deg_std
     #   shuffle: false
     #   use_for_val_score: false
