@@ -2,7 +2,7 @@
 import argparse
 import logging
 import os
-import yaml
+import ruamel.yaml as yaml
 import shutil
 import torch
 from attrdict import AttrDict

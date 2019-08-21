@@ -3,7 +3,7 @@ from collections import namedtuple
 import os
 import shutil
 import glob
-import yaml
+import ruamel.yaml as yaml
 from attrdict import AttrDict
 
 import random
