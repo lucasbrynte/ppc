@@ -163,10 +163,26 @@ def get_configs(args):
     else:
         assert tuple(configs['runtime']['data_sampling_scheme_defs'].keys()) == (TEST,)
 
+
+    modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
+
+    # ==========================================================================
+    # Apply default options to all schemeset defs
+    # ==========================================================================
+    for mode in modes:
+        default_schemeset_opts = getattr(configs.runtime.default_schemeset_opts, mode)
+        for schemeset, schemeset_def in configs['runtime']['data_sampling_scheme_defs'][mode].items():
+            if 'opts' in schemeset_def:
+                override_opts = AttrDict(schemeset_def['opts'])
+                schemeset_def['opts'] = default_schemeset_opts + override_opts
+            else:
+                schemeset_def['opts'] = default_schemeset_opts
+
+    # ==========================================================================
     # Determine choice of data sampling specs for each mode, and store them in config
+    # ==========================================================================
     all_ref_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'ref_sampling_schemes.yml'))
     all_query_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'query_sampling_schemes.yml'))
-    modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
     ref_sampling_schemes = {}
     query_sampling_schemes = {}
     for mode in modes:
@@ -179,6 +195,7 @@ def get_configs(args):
             query_sampling_schemes[mode][scheme_set_name] = all_query_sampling_schemes[configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['query_scheme']]
     configs['runtime']['ref_sampling_schemes'] = AttrDict(ref_sampling_schemes)
     configs['runtime']['query_sampling_schemes'] = AttrDict(query_sampling_schemes)
+
 
     configs += vars(args)
 

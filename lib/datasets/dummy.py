@@ -54,8 +54,8 @@ def get_metadata(configs):
         } for obj_label, obj_anno in models_info.items()},
     }
 
-def get_dataset(configs, mode, scheme_set_name):
-    return DummyDataset(configs, mode, scheme_set_name)
+def get_dataset(configs, mode, schemeset_name):
+    return DummyDataset(configs, mode, schemeset_name)
 
 
 global global_renderer, global_nyud_img_paths
@@ -63,10 +63,11 @@ global_renderer = None
 global_nyud_img_paths = None
 
 class DummyDataset(Dataset):
-    def __init__(self, configs, mode, scheme_set_name):
+    def __init__(self, configs, mode, schemeset_name):
         self._configs = configs
         self._metadata = get_metadata(configs)
         self._mode = mode
+        self._schemeset_name = schemeset_name
         self._K = self._read_calibration()
         self._models_info = self._init_models_info()
         self._obj_label = self._configs.obj_label
@@ -82,11 +83,11 @@ class DummyDataset(Dataset):
             self._aug_transform = None
         self.Targets = self._get_target_def()
 
-        self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), scheme_set_name)
-        self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), scheme_set_name)
-        self._query_sampling_scheme = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), scheme_set_name)
+        self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), schemeset_name)
+        self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), schemeset_name)
+        self._query_sampling_scheme = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), schemeset_name)
 
-        self._pids_path = '/tmp/sixd_kp_pids/{}_{}'.format(self._mode, scheme_set_name)
+        self._pids_path = '/tmp/sixd_kp_pids/{}_{}'.format(self._mode, schemeset_name)
         if os.path.exists(self._pids_path):
             shutil.rmtree(self._pids_path)
             print("Removing " + self._pids_path)
@@ -569,7 +570,7 @@ class DummyDataset(Dataset):
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
-        for j in range(self._configs.runtime.data.max_nbr_resamplings):
+        for j in range(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings']):
             # T1 corresponds to reference image (observed)
             obj_pose_params = self._sample_object_pose_params(ref_scheme_idx)
             T_model2world = self._generate_object_pose(obj_pose_params)
@@ -578,7 +579,7 @@ class DummyDataset(Dataset):
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
-            if T1[2,3] < self._get_max_extent() + self._configs.runtime.data.min_dist_obj_and_camera:
+            if T1[2,3] < self._get_max_extent() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
                 # print("Rejected T1, due to small depth", T1)
                 continue
 
@@ -604,7 +605,7 @@ class DummyDataset(Dataset):
 
             break
         else:
-            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
+            assert False, '{}/{} resamplings performed, but no acceptable obj / cam pose was found'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings'], self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings'])
 
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
@@ -618,20 +619,20 @@ class DummyDataset(Dataset):
         T1[:3,[3]] = t1
 
         # Resample perturbation until accepted
-        for j in range(self._configs.runtime.data.max_nbr_resamplings):
+        for j in range(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings']):
             # Perturb reference T1, to get proposed pose T2
             perturb_params = self._sample_perturbation_params(sample_index_in_epoch)
             T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
-            if T2[2,3] < self._get_max_extent() + self._configs.runtime.data.min_dist_obj_and_camera:
+            if T2[2,3] < self._get_max_extent() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
                 # print("Rejected T2, due to small depth", T2)
                 continue
 
             break
         else:
-            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._configs.runtime.data.max_nbr_resamplings, self._configs.runtime.data.max_nbr_resamplings)
+            assert False, '{}/{} resamplings performed, but no acceptable perturbation was found'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings'], self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings'])
 
         # Last rows expected to remain unchanged:
         assert np.all(np.isclose(T2[3,:], np.array([0., 0., 0., 1.])))

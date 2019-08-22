@@ -1,20 +1,37 @@
-loading:
-  # nbr_batches_train: 1
-  nbr_batches_train: 32
-  # nbr_batches_val: 1
-  nbr_batches_val: 5
-  nbr_batches_prior: 128
-  batch_size: 32
-visualization:
-  save_imgs_interval: 1
-  plot_signals_interval: 1
-  plot_signal_stats_interval: 5
-  # save_imgs_interval: null
-  # plot_signals_interval: null
-  # plot_signal_stats_interval: null
-data:
-  min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
-  max_nbr_resamplings: 100
+default_schemeset_opts:
+  train:
+    loading:
+      # nbr_batches: 1
+      nbr_batches: 32
+      nbr_batches_prior: 128
+      batch_size: 32
+      shuffle: true
+    visualization:
+      save_imgs_interval: 1
+      plot_signals_interval: 1
+      plot_signal_stats_interval: 5
+      # save_imgs_interval: null
+      # plot_signals_interval: null
+      # plot_signal_stats_interval: null
+    data:
+      min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
+      max_nbr_resamplings: 100
+  val:
+    loading:
+      # nbr_batches: 1
+      nbr_batches: 5
+      batch_size: 32
+      shuffle: false
+    visualization:
+      save_imgs_interval: 1
+      plot_signals_interval: 1
+      plot_signal_stats_interval: 5
+      # save_imgs_interval: null
+      # plot_signals_interval: null
+      # plot_signal_stats_interval: null
+    data:
+      min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
+      max_nbr_resamplings: 100
 data_sampling_scheme_defs:
   train:
     train:
@@ -48,25 +65,22 @@ data_sampling_scheme_defs:
       # query_scheme: 20deg_std
       query_scheme: rot_only_20deg_std
       # query_scheme: rot_only_90deg_std
-      shuffle: true
+
   val:
     # real_unoccl_train_blackbg_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: default
-    #   shuffle: false
     #   use_for_val_score: false
     # real_occl_val_blackbg_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: default
-    #   shuffle: false
     #   use_for_val_score: true
     # synth_blackbg:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
     #   query_scheme: default
-    #   shuffle: false
     #   use_for_val_score: false
 
 
@@ -75,19 +89,16 @@ data_sampling_scheme_defs:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: 20deg_std
-    #   shuffle: false
     #   use_for_val_score: false
     # real_occl_val_blackbg_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: 20deg_std
-    #   shuffle: false
     #   use_for_val_score: true
     # synth_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
     #   query_scheme: 20deg_std
-    #   shuffle: false
     #   use_for_val_score: false
 
 
@@ -96,19 +107,16 @@ data_sampling_scheme_defs:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_blackbg}
       query_scheme: rot_only_20deg_std
-      shuffle: false
       use_for_val_score: false
     real_occl_val_blackbg_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_occl_val_blackbg}
       query_scheme: rot_only_20deg_std
-      shuffle: false
       use_for_val_score: true
     synth_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: synth_blackbg}
       query_scheme: rot_only_20deg_std
-      shuffle: false
       use_for_val_score: false
 
 
@@ -117,17 +125,14 @@ data_sampling_scheme_defs:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg}
     #   query_scheme: rot_only_90deg_std
-    #   shuffle: false
     #   use_for_val_score: false
     # real_occl_val_blackbg_rot_only_90deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg}
     #   query_scheme: rot_only_90deg_std
-    #   shuffle: false
     #   use_for_val_score: true
     # synth_rot_only_90deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
     #   query_scheme: rot_only_90deg_std
-    #   shuffle: false
     #   use_for_val_score: false

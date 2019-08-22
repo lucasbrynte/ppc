@@ -59,25 +59,34 @@ class Main():
         assert nbr_params == total_nbr_params
         return torch.optim.Adam(
             param_groups,
-            lr=self._configs.training.learning_rate * np.sqrt(self._configs.runtime.loading.batch_size),
+            lr=self._configs.training.learning_rate * np.sqrt(self._configs.runtime.data_sampling_scheme_defs.train.train.opts.loading.batch_size),
         )
 
     def train(self):
         if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
-            target_prior_samples = self._sample_epoch_of_targets(TRAIN, TRAIN, self._configs.runtime.loading.nbr_batches_prior)
+            target_prior_samples = self._sample_epoch_of_targets(TRAIN, TRAIN)
             self._target_prior_samples_numpy = target_prior_samples
             self._target_prior_samples = {task_name: torch.tensor(target_prior_samples[task_name], device=get_device()).float() for task_name in target_prior_samples.keys()}
 
         for epoch in range(1, self._configs.training.n_epochs + 1):
-            save_imgs_flag = self._configs.runtime.visualization.save_imgs_interval is not None and epoch % self._configs.runtime.visualization.save_imgs_interval == 0
-            plot_signals_flag = self._configs.runtime.visualization.plot_signals_interval is not None and epoch % self._configs.runtime.visualization.plot_signals_interval == 0
-            plot_signal_stats_flag = self._configs.runtime.visualization.plot_signal_stats_interval is not None and epoch % self._configs.runtime.visualization.plot_signal_stats_interval == 0
 
-            train_score = -self._run_epoch(epoch, TRAIN, TRAIN, self._configs.runtime.loading.nbr_batches_train, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
+            train_score = -self._run_epoch(epoch,
+                TRAIN,
+                TRAIN,
+                save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['save_imgs_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['save_imgs_interval'] == 0,
+                plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['plot_signals_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['plot_signals_interval'] == 0,
+                plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['plot_signal_stats_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[TRAIN][TRAIN]['opts']['visualization']['plot_signal_stats_interval'] == 0,
+            )
 
             val_scores = {}
             for schemeset in self._configs.runtime.data_sampling_scheme_defs[VAL].keys():
-                score = -self._run_epoch(epoch, VAL, schemeset, self._configs.runtime.loading.nbr_batches_val, save_imgs_flag=save_imgs_flag, plot_signals_flag=plot_signals_flag, plot_signal_stats_flag=plot_signal_stats_flag)
+                score = -self._run_epoch(epoch,
+                    VAL,
+                    schemeset,
+                    save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] == 0,
+                    plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] == 0,
+                    plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] == 0,
+                )
                 if self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['use_for_val_score']:
                     val_scores[schemeset] = score
             assert len(val_scores) > 0
@@ -90,25 +99,28 @@ class Main():
     def eval(self):
         epoch = 1
         for schemeset, schemeset_def in self._configs.runtime.data_sampling_scheme_defs[TEST].items():
-            schemeset_def = AttrDict(schemeset_def)
-            visualization_config = self._configs.runtime.visualization
-            if 'visualization' in schemeset_def:
-                visualization_config += schemeset_def.visualization
-            self._run_epoch(epoch, TEST, schemeset, self._configs.runtime.loading.nbr_batches_test, save_imgs_flag=visualization_config.save_imgs, plot_signals_flag=visualization_config.plot_signals, plot_signal_stats_flag=visualization_config.plot_signal_stats)
+            self._run_epoch(
+                epoch,
+                TEST,
+                schemeset,
+                save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['save_imgs'],
+                plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signals'],
+                plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signal_stats'],
+            )
 
-    def _sample_epoch_of_targets(self, mode, schemeset, nbr_batches):
+    def _sample_epoch_of_targets(self, mode, schemeset):
         print('Running through epoch to collect target samples for prior...')
         selected_targets = {task_spec['target'] for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None}
 
         cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches * self._configs.runtime.loading.batch_size)):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             pertarget_target_features = self._loss_handler.get_target_features(batch.targets, selected_targets=selected_targets)
             # Map target features to corresponding tasks:
             target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
             target_features_raw = self._loss_handler.apply_inverse_activation(target_features)
             self._loss_handler.record_batch_of_persample_signals('target_feat_raw', target_features_raw)
             if cnt % 10 == 0:
-                print('{}/{}'.format(cnt, nbr_batches))
+                print('{}/{}'.format(cnt, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches']))
             cnt += 1
 
         target_samples = self._loss_handler.get_persample_signals_numpy()['target_feat_raw']
@@ -116,7 +128,15 @@ class Main():
         print('Done.')
         return target_samples
 
-    def _run_epoch(self, epoch, mode, schemeset, nbr_batches, save_imgs_flag=True, plot_signals_flag=True, plot_signal_stats_flag=True):
+    def _run_epoch(
+            self,
+            epoch,
+            mode,
+            schemeset,
+            save_imgs_flag=True,
+            plot_signals_flag=True,
+            plot_signal_stats_flag=True,
+        ):
         if mode == TRAIN:
             self._model.train()
         else:
@@ -124,7 +144,7 @@ class Main():
 
         # cnt = 0
         visual_cnt = 1
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches * self._configs.runtime.loading.batch_size)):
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             nn_out = self._run_model(batch.input, batch.extra_input)
 
             # Raw predicted features (neural net output)
@@ -204,7 +224,7 @@ class Main():
             if mode == TEST:
                 if save_imgs_flag:
                     print('Saving images...')
-                    for sample_idx in range(self._configs.runtime.loading.batch_size):
+                    for sample_idx in range(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size']):
                         self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
                         visual_cnt += 1
 
