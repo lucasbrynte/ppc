@@ -75,6 +75,10 @@ data_sampling_scheme_defs:
           # override: {background: from_ref}
         # - scheme_name: rot_only_90deg_std
         #   # override: {background: from_ref}
+        # - scheme_name: transl_20perc
+        #   # override: {background: from_ref}
+        # - scheme_name: depth_1_1
+        #   # override: {background: from_ref}
 
   val:
     # real_unoccl_train_blackbg_default:
@@ -140,6 +144,51 @@ data_sampling_scheme_defs:
         - scheme_name: rot_only_20deg_std
           # override: {background: from_ref}
       use_for_val_score: false
+
+    # real_unoccl_train_transl_20perc:
+    #   ref_schemeset:
+    #     - scheme_name: real_unoccl_train_keepbg
+    #   query_schemeset:
+    #     - scheme_name: transl_20perc
+    #       # override: {background: from_ref}
+    #   use_for_val_score: false
+    # real_occl_val_transl_20perc:
+    #   ref_schemeset:
+    #     - scheme_name: real_occl_val_keepbg
+    #   query_schemeset:
+    #     - scheme_name: transl_20perc
+    #       # override: {background: from_ref}
+    #   use_for_val_score: true
+    # synth_nyud_transl_20perc:
+    #   ref_schemeset:
+    #     - scheme_name: synth_nyud
+    #   query_schemeset:
+    #     - scheme_name: transl_20perc
+    #       # override: {background: from_ref}
+    #   use_for_val_score: false
+
+    # real_unoccl_train_depth_1_1:
+    #   ref_schemeset:
+    #     - scheme_name: real_unoccl_train_keepbg
+    #   query_schemeset:
+    #     - scheme_name: depth_1_1
+    #       # override: {background: from_ref}
+    #   use_for_val_score: false
+    # real_occl_val_depth_1_1:
+    #   ref_schemeset:
+    #     - scheme_name: real_occl_val_keepbg
+    #   query_schemeset:
+    #     - scheme_name: depth_1_1
+    #       # override: {background: from_ref}
+    #   use_for_val_score: true
+    # synth_nyud_depth_1_1:
+    #   ref_schemeset:
+    #     - scheme_name: synth_nyud
+    #   query_schemeset:
+    #     - scheme_name: depth_1_1
+    #       # override: {background: from_ref}
+    #   use_for_val_score: false
+
     # real_unoccl_train_blackbg_rot_only_20deg_std:
     #   ref_schemeset:
     #     - {scheme_name: real_unoccl_train_blackbg}

@@ -68,6 +68,26 @@ rot_only_90deg_std:
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
   shading:
     ambient_weight:                                             {method: fixed, value: 0.8}
+transl_20perc:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 0.1} # 20% of object size along each dimension. tx=ty=tz
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+depth_1_1:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.1}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
 gradual_rot:
   background: null
   white_silhouette: false
