@@ -37,10 +37,10 @@ default_schemeset_opts:
 data_sampling_scheme_defs:
   train:
     train:
-      # baseline
-      ref_schemeset:
-        - {scheme_name: synth_blackbg, sample_prob: 0.5}
-        - {scheme_name: real_unoccl_train_blackbg, sample_prob: 0.5}
+      # # baseline
+      # ref_schemeset:
+      #   - {scheme_name: synth_blackbg, sample_prob: 0.5}
+      #   - {scheme_name: real_unoccl_train_blackbg, sample_prob: 0.5}
       
       # # synth_blackbg_real_mix
       # ref_schemeset:
@@ -49,11 +49,11 @@ data_sampling_scheme_defs:
       #   - {scheme_name: real_unoccl_train_keepbg, sample_prob: 0.125}
       #   - {scheme_name: real_unoccl_train_nyud, sample_prob: 0.125}
       
-      # # never_blackbg_ref
-      # ref_schemeset:
-      #   - {scheme_name: synth_nyud, sample_prob: 0.5}
-      #   - {scheme_name: real_unoccl_train_keepbg, sample_prob: 0.25}
-      #   - {scheme_name: real_unoccl_train_nyud, sample_prob: 0.25}
+      # never_blackbg_ref
+      ref_schemeset:
+        - {scheme_name: synth_nyud, sample_prob: 0.5}
+        - {scheme_name: real_unoccl_train_keepbg, sample_prob: 0.25}
+        - {scheme_name: real_unoccl_train_nyud, sample_prob: 0.25}
 
       # # whitesilhouette
       # ref_schemeset:
@@ -61,13 +61,20 @@ data_sampling_scheme_defs:
       #   - {scheme_name: real_unoccl_train_whitesilhouette, sample_prob: 0.5}
 
       query_schemeset:
-        # - {scheme_name: default}
-        # - {scheme_name: 90deg_std_mild_transl_depth}
-        # - {scheme_name: 90deg_std_mild_transl}
-        # - {scheme_name: 90deg_std_mild_depth}
-        # - {scheme_name: 20deg_std}
-        - {scheme_name: rot_only_20deg_std}
-        # - {scheme_name: rot_only_90deg_std}
+        # - scheme_name: default
+        #   # override: {background: from_ref}
+        # - scheme_name: 90deg_std_mild_transl_depth
+        #   # override: {background: from_ref}
+        # - scheme_name: 90deg_std_mild_transl
+        #   # override: {background: from_ref}
+        # - scheme_name: 90deg_std_mild_depth
+        #   # override: {background: from_ref}
+        # - scheme_name: 20deg_std
+        #   # override: {background: from_ref}
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
+        # - scheme_name: rot_only_90deg_std
+        #   # override: {background: from_ref}
 
   val:
     # real_unoccl_train_blackbg_default:
@@ -112,24 +119,45 @@ data_sampling_scheme_defs:
 
 
 
-    real_unoccl_train_blackbg_rot_only_20deg_std:
+    real_unoccl_train_rot_only_20deg_std:
       ref_schemeset:
-        - {scheme_name: real_unoccl_train_blackbg}
+        - scheme_name: real_unoccl_train_keepbg
       query_schemeset:
-        - {scheme_name: rot_only_20deg_std}
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
       use_for_val_score: false
-    real_occl_val_blackbg_rot_only_20deg_std:
+    real_occl_val_rot_only_20deg_std:
       ref_schemeset:
-        - {scheme_name: real_occl_val_blackbg}
+        - scheme_name: real_occl_val_keepbg
       query_schemeset:
-        - {scheme_name: rot_only_20deg_std}
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
       use_for_val_score: true
-    synth_rot_only_20deg_std:
+    synth_nyud_rot_only_20deg_std:
       ref_schemeset:
-        - {scheme_name: synth_blackbg}
+        - scheme_name: synth_nyud
       query_schemeset:
-        - {scheme_name: rot_only_20deg_std}
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
       use_for_val_score: false
+    # real_unoccl_train_blackbg_rot_only_20deg_std:
+    #   ref_schemeset:
+    #     - {scheme_name: real_unoccl_train_blackbg}
+    #   query_schemeset:
+    #     - {scheme_name: rot_only_20deg_std}
+    #   use_for_val_score: false
+    # real_occl_val_blackbg_rot_only_20deg_std:
+    #   ref_schemeset:
+    #     - {scheme_name: real_occl_val_blackbg}
+    #   query_schemeset:
+    #     - {scheme_name: rot_only_20deg_std}
+    #   use_for_val_score: true
+    # synth_rot_only_20deg_std:
+    #   ref_schemeset:
+    #     - {scheme_name: synth_blackbg}
+    #   query_schemeset:
+    #     - {scheme_name: rot_only_20deg_std}
+    #   use_for_val_score: false
 
 
 
