@@ -504,19 +504,14 @@ class DummyDataset(Dataset):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
-        if apply_bg is None \
-                and not self._ref_sampling_schemes[ref_scheme_idx].white_silhouette \
-                and not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
+        if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             # Early return (no need to load seg)
             return img, rel_rgb_path
         seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
         seg = np.array(self._crop_as_array(Image.open(seg_path), crop_box).resize(self._configs.data.crop_dims))
         img_array = np.array(img)
         if apply_bg is not None:
-            assert not self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette
             img_array[seg != instance_idx+1] = apply_bg[seg != instance_idx+1, :]
-        elif self._ref_sampling_schemes[ref_scheme_idx].real_opts.mask_silhouette:
-            img_array[seg != instance_idx+1] = 0
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             img_array[seg == instance_idx+1] = 255
         img = Image.fromarray(img_array, mode=img.mode)
@@ -702,8 +697,10 @@ class DummyDataset(Dataset):
 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
 
-        if self._ref_sampling_schemes[ref_scheme_idx].sample_nyud_bg:
+        if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
             ref_bg = np.array(self._sample_nyud_patch())
+        elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
+            ref_bg = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8)
         else:
             ref_bg = None
 
