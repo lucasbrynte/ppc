@@ -20,28 +20,32 @@ data_sampling_scheme_defs:
     # real_unoccl_train_keepbg_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_keepbg}
-    #   query_scheme: default
+    #   query_schemeset:
+    #     - {query_scheme: default}
     #   opts:
     #     loading: {nbr_batches: 64}
     #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_unoccl_train_keepbg_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_keepbg}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_unoccl_train_blackbg_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_blackbg}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_unoccl_train_whitesilhouette_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_whitesilhouette}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
@@ -53,28 +57,32 @@ data_sampling_scheme_defs:
     # real_occl_val_keepbg_default:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_keepbg}
-    #   query_scheme: default
+    #   query_schemeset:
+    #     - {query_scheme: default}
     #   opts:
     #     loading: {nbr_batches: 64}
     #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_occl_val_keepbg_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_occl_val_keepbg}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_occl_val_blackbg_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_occl_val_blackbg}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     real_occl_val_whitesilhouette_rot_only_20deg_std:
       ref_schemeset:
         - {ref_scheme: real_occl_val_whitesilhouette}
-      query_scheme: rot_only_20deg_std
+      query_schemeset:
+        - {query_scheme: rot_only_20deg_std}
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
@@ -83,14 +91,16 @@ data_sampling_scheme_defs:
     # synth_blackbg:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
-    #   query_scheme: default
+    #   query_schemeset:
+    #     - {query_scheme: default}
     #   opts:
     #     loading: {nbr_batches: 64}
     #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     # synth_rot_only_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
-    #   query_scheme: rot_only_20deg_std
+    #   query_schemeset:
+    #     - {query_scheme: rot_only_20deg_std}
     #   opts:
     #     loading: {nbr_batches: 64}
     #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
@@ -104,30 +114,35 @@ data_sampling_scheme_defs:
     real_unoccl_train_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_keepbg_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_unoccl_train_whitesilhouette FRAME 100
 # ==============================================================================
     real_unoccl_train_whitesilhouette_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_whitesilhouette_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_unoccl_train_blackbg FRAME 100
 # ==============================================================================
     real_unoccl_train_blackbg_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_unoccl_train_blackbg_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
     # real_unoccl_train_blackbg_frame100_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg_frame100}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_unoccl_train_blackbg_frame100_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg_frame100}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 
@@ -141,30 +156,35 @@ data_sampling_scheme_defs:
     real_occl_val_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_keepbg_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_whitesilhouette FRAME 100
 # ==============================================================================
     real_occl_val_whitesilhouette_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_whitesilhouette_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_blackbg FRAME 100
 # ==============================================================================
     real_occl_val_blackbg_frame100_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_blackbg_frame100}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
     # real_occl_val_blackbg_frame100_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame100}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_val_blackbg_frame100_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame100}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 
@@ -174,30 +194,35 @@ data_sampling_scheme_defs:
     real_occl_val_frame228_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_keepbg_frame228}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_whitesilhouette FRAME 228
 # ==============================================================================
     real_occl_val_whitesilhouette_frame228_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_whitesilhouette_frame228}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_blackbg FRAME 228
 # ==============================================================================
     real_occl_val_blackbg_frame228_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_blackbg_frame228}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
     # real_occl_val_blackbg_frame228_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame228}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_val_blackbg_frame228_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame228}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 
@@ -207,30 +232,35 @@ data_sampling_scheme_defs:
     real_occl_val_frame327_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_keepbg_frame327}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_whitesilhouette FRAME 327
 # ==============================================================================
     real_occl_val_whitesilhouette_frame327_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_whitesilhouette_frame327}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
 # ==============================================================================
 # real_occl_val_blackbg FRAME 327
 # ==============================================================================
     real_occl_val_blackbg_frame327_gradual_rot:
       ref_schemeset:
         - {ref_scheme: real_occl_val_blackbg_frame327}
-      query_scheme: gradual_rot
+      query_schemeset:
+        - {query_scheme: gradual_rot}
     # real_occl_val_blackbg_frame327_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame327}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_val_blackbg_frame327_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg_frame327}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 
@@ -243,16 +273,19 @@ data_sampling_scheme_defs:
     # real_occl_test_blackbg_frame109_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame109}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
     # real_occl_test_blackbg_frame109_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame109}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_test_blackbg_frame109_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame109}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 # ==============================================================================
@@ -261,16 +294,19 @@ data_sampling_scheme_defs:
     # real_occl_test_blackbg_frame112_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame112}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
     # real_occl_test_blackbg_frame112_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame112}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_test_blackbg_frame112_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame112}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 # ==============================================================================
@@ -279,16 +315,19 @@ data_sampling_scheme_defs:
     # real_occl_test_blackbg_frame159_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame159}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
     # real_occl_test_blackbg_frame159_gradual_transl:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame159}
-    #   query_scheme: gradual_transl
+    #   query_schemeset:
+    #     - {query_scheme: gradual_transl}
 
     # real_occl_test_blackbg_frame159_gradual_depth:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_test_blackbg_frame159}
-    #   query_scheme: gradual_depth
+    #   query_schemeset:
+    #     - {query_scheme: gradual_depth}
 
 
 
@@ -298,14 +337,17 @@ data_sampling_scheme_defs:
     # real_unoccl_train_blackbg_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: real_unoccl_train_blackbg}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
 
     # real_occl_val_blackbg_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: real_occl_val_blackbg}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
 
     # synth_gradual_rot:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
-    #   query_scheme: gradual_rot
+    #   query_schemeset:
+    #     - {query_scheme: gradual_rot}
