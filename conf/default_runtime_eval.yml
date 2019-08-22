@@ -4,6 +4,7 @@ default_schemeset_opts:
       nbr_batches: 3
       batch_size: 32
       shuffle: false
+      coupled_ref_and_query_scheme_sampling: false
     visualization:
       save_imgs: true
       plot_signals: false

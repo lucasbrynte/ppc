@@ -85,7 +85,7 @@ class DummyDataset(Dataset):
 
         self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), schemeset_name)
         self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), schemeset_name)
-        self._query_sampling_scheme = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), schemeset_name)
+        self._query_sampling_schemes = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), schemeset_name)
 
         self._pids_path = '/tmp/sixd_kp_pids/{}_{}'.format(self._mode, schemeset_name)
         if os.path.exists(self._pids_path):
@@ -160,14 +160,21 @@ class DummyDataset(Dataset):
         self._deterministic_perturbation_ranges = self._calc_deterministic_perturbation_ranges()
 
     def _calc_deterministic_perturbation_ranges(self):
-        return {
+        return [{
             param_name: calc_param_quantile_range(AttrDict(sample_spec), len(self))
-            for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()
+            for param_name, sample_spec in query_scheme.perturbation.items()
             if sample_spec['deterministic_quantile_range']
-        }
+        } for query_scheme in self._query_sampling_schemes]
+
     def __getitem__(self, sample_index_in_epoch):
         ref_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.ref_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.ref_schemeset])
-        data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
+        if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['loading']['coupled_ref_and_query_scheme_sampling']:
+            # Ref & query schemes are sampled jointly. Lists need to be of same length to be able to map elements.
+            assert len(query_sampling_scheme_list) == len(ref_sampling_scheme_list)
+            query_scheme_idx = ref_scheme_idx
+        else:
+            query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
+        data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
     def _render(self, K, R_list, t_list, instance_id_list, shading_params, T_world2cam=None, apply_bg=None, min_nbr_unoccluded_pixels=0, white_silhouette=False):
@@ -365,8 +372,8 @@ class DummyDataset(Dataset):
         max_extent = np.max(np.linalg.norm(min_max_corners, axis=0))
         return max_extent
 
-    def _sample_perturbation_params(self, sample_index_in_epoch):
-        return {param_name: self._deterministic_perturbation_ranges[param_name][sample_index_in_epoch, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.perturbation.items()}
+    def _sample_perturbation_params(self, query_scheme_idx, sample_index_in_epoch):
+        return {param_name: self._deterministic_perturbation_ranges[query_scheme_idx][param_name][sample_index_in_epoch, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_schemes[query_scheme_idx].perturbation.items()}
 
     def _sample_object_pose_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.object_pose.items()}
@@ -391,8 +398,8 @@ class DummyDataset(Dataset):
     def _sample_ref_shading_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.shading.items()}
 
-    def _sample_query_shading_params(self):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_scheme.shading.items()}
+    def _sample_query_shading_params(self, query_scheme_idx):
+        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_schemes[query_scheme_idx].shading.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -608,7 +615,7 @@ class DummyDataset(Dataset):
 
         return T_model2world, T_occluders, T_world2cam, R1, t1, crop_box
 
-    def _generate_perturbation(self, ref_scheme_idx, sample_index_in_epoch, R1, t1):
+    def _generate_perturbation(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1):
         T1 = np.eye(4)
         T1[:3,:3] = R1
         T1[:3,[3]] = t1
@@ -616,7 +623,7 @@ class DummyDataset(Dataset):
         # Resample perturbation until accepted
         for j in range(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['max_nbr_resamplings']):
             # Perturb reference T1, to get proposed pose T2
-            perturb_params = self._sample_perturbation_params(sample_index_in_epoch)
+            perturb_params = self._sample_perturbation_params(query_scheme_idx, sample_index_in_epoch)
             T2 = self._apply_perturbation(T1, perturb_params)
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
@@ -672,14 +679,14 @@ class DummyDataset(Dataset):
         else:
             assert False, 'No proper NYU-D background image found'
 
-    def _generate_sample(self, ref_scheme_idx, sample_index_in_epoch):
+    def _generate_sample(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
         # which only controls the perturbation, and thus the query image
         # ======================================================================
 
         # ref_scheme = self._data_sampling_scheme_defs.ref_schemeset[ref_scheme_idx].scheme_name
-        # query_scheme = self._data_sampling_scheme_defs.query_scheme
+        # query_scheme = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].scheme_name
 
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
@@ -695,7 +702,7 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         K = H @ self._K
 
-        R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
+        R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
@@ -721,19 +728,19 @@ class DummyDataset(Dataset):
             img1 = self._render(K, R_list1, t_list1, instance_id_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg, min_nbr_unoccluded_pixels=200, white_silhouette=self._ref_sampling_schemes[ref_scheme_idx].white_silhouette)
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
-                return self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
+                return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
             img1 = Image.fromarray(img1)
         else:
             assert False
 
 
-        if self._query_sampling_scheme.background == 'from_ref':
+        if self._query_sampling_schemes[query_scheme_idx].background == 'from_ref':
             query_bg = np.array(img1)
         else:
-            assert self._query_sampling_scheme.background in (None, 'black')
+            assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
             query_bg = None
-        query_shading_params = self._sample_query_shading_params()
-        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_scheme.white_silhouette))
+        query_shading_params = self._sample_query_shading_params(query_scheme_idx)
+        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_schemes[query_scheme_idx].white_silhouette))
 
         # Augmentation + numpy -> pytorch conversion
         img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)

@@ -119,19 +119,19 @@ def save_settings(args):
     with open(os.path.join(experiment_settings_path, 'args.yml'), 'w') as file:
         yaml.dump(vars(args), file, Dumper=yaml.CDumper)
 
-def infer_sampling_probs(ref_sampling_scheme_list):
-    nbr_schemes = len(ref_sampling_scheme_list)
-    nbr_schemes_with_unspecified_prob = sum(['sampling_prob' not in sampling_scheme_def for sampling_scheme_def in ref_sampling_scheme_list])
-    total_prob_specified = sum([sampling_scheme_def['sampling_prob'] for sampling_scheme_def in ref_sampling_scheme_list if 'sampling_prob' in sampling_scheme_def])
+def infer_sampling_probs(sampling_scheme_list):
+    nbr_schemes = len(sampling_scheme_list)
+    nbr_schemes_with_unspecified_prob = sum(['sampling_prob' not in sampling_scheme_def for sampling_scheme_def in sampling_scheme_list])
+    total_prob_specified = sum([sampling_scheme_def['sampling_prob'] for sampling_scheme_def in sampling_scheme_list if 'sampling_prob' in sampling_scheme_def])
     assert closeto_within(total_prob_specified, low=0.0, high=1.0)
     remaining_prob = 1.0 - total_prob_specified
-    for sampling_scheme_def in ref_sampling_scheme_list:
+    for sampling_scheme_def in sampling_scheme_list:
         if 'sampling_prob' not in sampling_scheme_def:
             sampling_scheme_def['sampling_prob'] = remaining_prob / nbr_schemes_with_unspecified_prob
-    total_prob = sum([sampling_scheme_def['sampling_prob'] for sampling_scheme_def in ref_sampling_scheme_list])
+    total_prob = sum([sampling_scheme_def['sampling_prob'] for sampling_scheme_def in sampling_scheme_list])
     # Should now sum up to 1.0:
     assert np.isclose(total_prob, 1.0)
-    # NOTE: Not returning ref_sampling_scheme_list, in order to emphasize in-place behavior
+    # NOTE: Not returning sampling_scheme_list, in order to emphasize in-place behavior
 
 def get_configs(args):
     if args.train_or_eval == 'train':
@@ -189,10 +189,16 @@ def get_configs(args):
         ref_sampling_schemes[mode] = {}
         query_sampling_schemes[mode] = {}
         for scheme_set_name in configs['runtime']['data_sampling_scheme_defs'][mode].keys():
-            ref_sampling_scheme_list = configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['ref_schemeset'] # List of elements such as {ref_scheme: rot_only_20deg_std}
+            ref_sampling_scheme_list = configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['ref_schemeset'] # List of elements such as {ref_scheme: real_unoccl_train}
+            query_sampling_scheme_list = configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['query_schemeset'] # List of elements such as {query_scheme: rot_only_20deg_std}
             infer_sampling_probs(ref_sampling_scheme_list) # Modified in-place
+            if configs.runtime.data_sampling_scheme_defs[mode][scheme_set_name]['opts']['loading']['coupled_ref_and_query_scheme_sampling']:
+                # Ref & query schemes are sampled jointly. Lists need to be of same length to be able to map elements.
+                assert len(query_sampling_scheme_list) == len(ref_sampling_scheme_list)
+            else:
+                infer_sampling_probs(query_sampling_scheme_list) # Modified in-place
             ref_sampling_schemes[mode][scheme_set_name] = [all_ref_sampling_schemes[ref_sampling_scheme_def['ref_scheme']] for ref_sampling_scheme_def in ref_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
-            query_sampling_schemes[mode][scheme_set_name] = all_query_sampling_schemes[configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['query_scheme']]
+            query_sampling_schemes[mode][scheme_set_name] = [all_query_sampling_schemes[query_sampling_scheme_def['query_scheme']] for query_sampling_scheme_def in query_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
     configs['runtime']['ref_sampling_schemes'] = AttrDict(ref_sampling_schemes)
     configs['runtime']['query_sampling_schemes'] = AttrDict(query_sampling_schemes)
 
