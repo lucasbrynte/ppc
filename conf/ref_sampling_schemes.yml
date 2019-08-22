@@ -1,7 +1,7 @@
 # ==============================================================================
 # real_unoccl_train
 # ==============================================================================
-real_unoccl_train:
+real_unoccl_train_keepbg:
   ref_source: real
   background: null
   white_silhouette: false
@@ -33,7 +33,7 @@ real_unoccl_train_whitesilhouette:
 # ==============================================================================
 # real_unoccl_train FRAME 100
 # ==============================================================================
-real_unoccl_train_frame100:
+real_unoccl_train_keepbg_frame100:
   ref_source: real
   background: null
   white_silhouette: false
@@ -70,7 +70,7 @@ real_unoccl_train_whitesilhouette_frame100:
 # ==============================================================================
 # real_occl_val
 # ==============================================================================
-real_occl_val:
+real_occl_val_keepbg:
   ref_source: real
   background: null
   white_silhouette: false
@@ -102,7 +102,7 @@ real_occl_val_whitesilhouette:
 # ==============================================================================
 # real_occl_val FRAME 100
 # ==============================================================================
-real_occl_val_frame100:
+real_occl_val_keepbg_frame100:
   ref_source: real
   background: null
   white_silhouette: false
@@ -134,7 +134,7 @@ real_occl_val_whitesilhouette_frame100:
 # ==============================================================================
 # real_occl_val FRAME 228
 # ==============================================================================
-real_occl_val_frame228:
+real_occl_val_keepbg_frame228:
   ref_source: real
   background: null
   white_silhouette: false
@@ -166,7 +166,7 @@ real_occl_val_whitesilhouette_frame228:
 # ==============================================================================
 # real_occl_val FRAME 327
 # ==============================================================================
-real_occl_val_frame327:
+real_occl_val_keepbg_frame327:
   ref_source: real
   background: null
   white_silhouette: false
@@ -203,7 +203,7 @@ real_occl_val_whitesilhouette_frame327:
 # ==============================================================================
 # real_occl_test
 # ==============================================================================
-real_occl_test:
+real_occl_test_keepbg:
   ref_source: real
   background: null
   white_silhouette: false
@@ -221,7 +221,7 @@ real_occl_test_blackbg:
 # ==============================================================================
 # real_occl_test FRAME 109
 # ==============================================================================
-real_occl_test_frame109:
+real_occl_test_keepbg_frame109:
   ref_source: real
   background: null
   white_silhouette: false
@@ -239,7 +239,7 @@ real_occl_test_blackbg_frame109:
 # ==============================================================================
 # real_occl_test FRAME 112
 # ==============================================================================
-real_occl_test_frame112:
+real_occl_test_keepbg_frame112:
   ref_source: real
   background: null
   white_silhouette: false
@@ -257,7 +257,7 @@ real_occl_test_blackbg_frame112:
 # ==============================================================================
 # real_occl_test FRAME 159
 # ==============================================================================
-real_occl_test_frame159:
+real_occl_test_keepbg_frame159:
   ref_source: real
   background: null
   white_silhouette: false
