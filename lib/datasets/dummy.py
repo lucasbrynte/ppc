@@ -697,16 +697,21 @@ class DummyDataset(Dataset):
 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, sample_index_in_epoch, R1, t1)
 
-        if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-            ref_bg = np.array(self._sample_nyud_patch())
-        elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
-            ref_bg = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8)
-        else:
-            ref_bg = None
-
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
+            if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
+                ref_bg = np.array(self._sample_nyud_patch())
+            elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
+                ref_bg = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8)
+            else:
+                assert self._ref_sampling_schemes[ref_scheme_idx].background is None
+                ref_bg = None
             img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=ref_bg)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
+            if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
+                ref_bg = np.array(self._sample_nyud_patch())
+            else:
+                assert self._ref_sampling_schemes[ref_scheme_idx].background in (None, 'black')
+                ref_bg = None
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
             R_list1, t_list1, instance_id_list1 = [R1], [t1], [self._obj_id]
             for obj_label, T in T1_occluders.items():
@@ -718,8 +723,17 @@ class DummyDataset(Dataset):
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, sample_index_in_epoch)
             img1 = Image.fromarray(img1)
+        else:
+            assert False
+
+
+        if self._query_sampling_scheme.background == 'from_ref':
+            query_bg = np.array(img1)
+        else:
+            assert self._query_sampling_scheme.background in (None, 'black')
+            query_bg = None
         query_shading_params = self._sample_query_shading_params()
-        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params))
+        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_scheme.white_silhouette))
 
         # Augmentation + numpy -> pytorch conversion
         img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
