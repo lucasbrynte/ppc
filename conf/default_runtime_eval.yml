@@ -13,42 +13,73 @@ default_schemeset_opts:
       max_nbr_resamplings: 100
 data_sampling_scheme_defs:
   test:
-    # real_unoccl_train_blackbg_default:
-    #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_train_blackbg}
-    #   query_scheme: default
-    #   opts:
-    #     visualization:
-    #       save_imgs: true
-    #       plot_signals: true
-    #       plot_signal_stats: true
-    # real_occl_val_blackbg_default:
-    #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val_blackbg}
-    #   query_scheme: default
-    #   opts:
-    #     visualization:
-    #       save_imgs: true
-    #       plot_signals: true
-    #       plot_signal_stats: true
+
+# ==============================================================================
+# real_unoccl_train
+# ==============================================================================
+    real_unoccl_train_default:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_train}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_unoccl_train_blackbg_default:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_train_blackbg}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_unoccl_train_whitesilhouette_default:
+      ref_schemeset:
+        - {ref_scheme: real_unoccl_train_whitesilhouette}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+
+
+# ==============================================================================
+# real_occl_val
+# ==============================================================================
+    real_occl_val_default:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_occl_val_blackbg_default:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val_blackbg}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_occl_val_whitesilhouette_default:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val_whitesilhouette}
+      query_scheme: default
+      opts:
+        loading: {nbr_batches: 8}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+
+
     # synth_blackbg:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
     #   query_scheme: default
     #   opts:
-    #     visualization:
-    #       save_imgs: true
-    #       plot_signals: true
-    #       plot_signal_stats: true
+    #     loading: {nbr_batches: 8}
+    #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
     # synth_rot_only_20deg_std:
     #   ref_schemeset:
     #     - {ref_scheme: synth_blackbg}
     #   query_scheme: rot_only_20deg_std
     #   opts:
-    #     visualization:
-    #       save_imgs: true
-    #       plot_signals: true
-    #       plot_signal_stats: true
+    #     loading: {nbr_batches: 8}
+    #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
 
 
 
@@ -98,6 +129,14 @@ data_sampling_scheme_defs:
 
 
 # ==============================================================================
+# real_occl_val_whitesilhouette FRAME 100
+# ==============================================================================
+    real_occl_val_whitesilhouette_frame100_gradual_rot:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val_whitesilhouette_frame100}
+      query_scheme: gradual_rot
+
+# ==============================================================================
 # real_occl_val_blackbg FRAME 100
 # ==============================================================================
     real_occl_val_blackbg_frame100_gradual_rot:
@@ -116,6 +155,14 @@ data_sampling_scheme_defs:
 
 
 # ==============================================================================
+# real_occl_val_whitesilhouette FRAME 228
+# ==============================================================================
+    real_occl_val_whitesilhouette_frame228_gradual_rot:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val_whitesilhouette_frame228}
+      query_scheme: gradual_rot
+
+# ==============================================================================
 # real_occl_val_blackbg FRAME 228
 # ==============================================================================
     real_occl_val_blackbg_frame228_gradual_rot:
@@ -132,6 +179,14 @@ data_sampling_scheme_defs:
     #     - {ref_scheme: real_occl_val_blackbg_frame228}
     #   query_scheme: gradual_depth
 
+
+# ==============================================================================
+# real_occl_val_whitesilhouette FRAME 327
+# ==============================================================================
+    real_occl_val_whitesilhouette_frame327_gradual_rot:
+      ref_schemeset:
+        - {ref_scheme: real_occl_val_whitesilhouette_frame327}
+      query_scheme: gradual_rot
 
 # ==============================================================================
 # real_occl_val_blackbg FRAME 327
