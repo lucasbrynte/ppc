@@ -181,6 +181,12 @@ def get_configs(args):
     # ==========================================================================
     # Determine choice of data sampling specs for each mode, and store them in config
     # ==========================================================================
+    def lookup_scheme_and_override(all_schemes, scheme_def):
+        scheme = all_schemes[scheme_def['scheme_name']]
+        if 'override' in scheme_def:
+            scheme = scheme + AttrDict(scheme_def['override'])
+        return scheme
+
     all_ref_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'ref_sampling_schemes.yml'))
     all_query_sampling_schemes = read_yaml_as_attrdict(os.path.join(CONFIG_ROOT, 'query_sampling_schemes.yml'))
     ref_sampling_schemes = {}
@@ -197,8 +203,8 @@ def get_configs(args):
                 assert len(query_sampling_scheme_list) == len(ref_sampling_scheme_list)
             else:
                 infer_sampling_probs(query_sampling_scheme_list) # Modified in-place
-            ref_sampling_schemes[mode][scheme_set_name] = [all_ref_sampling_schemes[ref_sampling_scheme_def['ref_scheme']] for ref_sampling_scheme_def in ref_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
-            query_sampling_schemes[mode][scheme_set_name] = [all_query_sampling_schemes[query_sampling_scheme_def['query_scheme']] for query_sampling_scheme_def in query_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
+            ref_sampling_schemes[mode][scheme_set_name] = [lookup_scheme_and_override(all_ref_sampling_schemes, ref_sampling_scheme_def) for ref_sampling_scheme_def in ref_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
+            query_sampling_schemes[mode][scheme_set_name] = [lookup_scheme_and_override(all_query_sampling_schemes, query_sampling_scheme_def) for query_sampling_scheme_def in query_sampling_scheme_list] # Map all such elements to the corresponding data sampling specs
     configs['runtime']['ref_sampling_schemes'] = AttrDict(ref_sampling_schemes)
     configs['runtime']['query_sampling_schemes'] = AttrDict(query_sampling_schemes)
 

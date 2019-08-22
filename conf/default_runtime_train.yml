@@ -39,115 +39,115 @@ data_sampling_scheme_defs:
     train:
       # baseline
       ref_schemeset:
-        - {ref_scheme: synth_blackbg, sample_prob: 0.5}
-        - {ref_scheme: real_unoccl_train_blackbg, sample_prob: 0.5}
+        - {scheme_name: synth_blackbg, sample_prob: 0.5}
+        - {scheme_name: real_unoccl_train_blackbg, sample_prob: 0.5}
       
       # # synth_blackbg_real_mix
       # ref_schemeset:
-      #   - {ref_scheme: synth_blackbg, sample_prob: 0.5}
-      #   - {ref_scheme: real_unoccl_train_blackbg, sample_prob: 0.25}
-      #   - {ref_scheme: real_unoccl_train_keepbg, sample_prob: 0.125}
-      #   - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.125}
+      #   - {scheme_name: synth_blackbg, sample_prob: 0.5}
+      #   - {scheme_name: real_unoccl_train_blackbg, sample_prob: 0.25}
+      #   - {scheme_name: real_unoccl_train_keepbg, sample_prob: 0.125}
+      #   - {scheme_name: real_unoccl_train_nyud, sample_prob: 0.125}
       
-      # # never_blackbg
+      # # never_blackbg_ref
       # ref_schemeset:
-      #   - {ref_scheme: synth_nyud, sample_prob: 0.5}
-      #   - {ref_scheme: real_unoccl_train_keepbg, sample_prob: 0.25}
-      #   - {ref_scheme: real_unoccl_train_nyud, sample_prob: 0.25}
+      #   - {scheme_name: synth_nyud, sample_prob: 0.5}
+      #   - {scheme_name: real_unoccl_train_keepbg, sample_prob: 0.25}
+      #   - {scheme_name: real_unoccl_train_nyud, sample_prob: 0.25}
 
       # # whitesilhouette
       # ref_schemeset:
-      #   - {ref_scheme: synth_whitesilhouette, sample_prob: 0.5}
-      #   - {ref_scheme: real_unoccl_train_whitesilhouette, sample_prob: 0.5}
+      #   - {scheme_name: synth_whitesilhouette, sample_prob: 0.5}
+      #   - {scheme_name: real_unoccl_train_whitesilhouette, sample_prob: 0.5}
 
       query_schemeset:
-        # - {query_scheme: default}
-        # - {query_scheme: 90deg_std_mild_transl_depth}
-        # - {query_scheme: 90deg_std_mild_transl}
-        # - {query_scheme: 90deg_std_mild_depth}
-        # - {query_scheme: 20deg_std}
-        - {query_scheme: rot_only_20deg_std}
-        # - {query_scheme: rot_only_90deg_std}
+        # - {scheme_name: default}
+        # - {scheme_name: 90deg_std_mild_transl_depth}
+        # - {scheme_name: 90deg_std_mild_transl}
+        # - {scheme_name: 90deg_std_mild_depth}
+        # - {scheme_name: 20deg_std}
+        - {scheme_name: rot_only_20deg_std}
+        # - {scheme_name: rot_only_90deg_std}
 
   val:
     # real_unoccl_train_blackbg_default:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_train_blackbg}
+    #     - {scheme_name: real_unoccl_train_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: default}
+    #     - {scheme_name: default}
     #   use_for_val_score: false
     # real_occl_val_blackbg_default:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val_blackbg}
+    #     - {scheme_name: real_occl_val_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: default}
+    #     - {scheme_name: default}
     #   use_for_val_score: true
     # synth_blackbg:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_blackbg}
+    #     - {scheme_name: synth_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: default}
+    #     - {scheme_name: default}
     #   use_for_val_score: false
 
 
 
     # real_unoccl_train_blackbg_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_train_blackbg}
+    #     - {scheme_name: real_unoccl_train_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: 20deg_std}
+    #     - {scheme_name: 20deg_std}
     #   use_for_val_score: false
     # real_occl_val_blackbg_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val_blackbg}
+    #     - {scheme_name: real_occl_val_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: 20deg_std}
+    #     - {scheme_name: 20deg_std}
     #   use_for_val_score: true
     # synth_20deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_blackbg}
+    #     - {scheme_name: synth_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: 20deg_std}
+    #     - {scheme_name: 20deg_std}
     #   use_for_val_score: false
 
 
 
     real_unoccl_train_blackbg_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: real_unoccl_train_blackbg}
+        - {scheme_name: real_unoccl_train_blackbg}
       query_schemeset:
-        - {query_scheme: rot_only_20deg_std}
+        - {scheme_name: rot_only_20deg_std}
       use_for_val_score: false
     real_occl_val_blackbg_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: real_occl_val_blackbg}
+        - {scheme_name: real_occl_val_blackbg}
       query_schemeset:
-        - {query_scheme: rot_only_20deg_std}
+        - {scheme_name: rot_only_20deg_std}
       use_for_val_score: true
     synth_rot_only_20deg_std:
       ref_schemeset:
-        - {ref_scheme: synth_blackbg}
+        - {scheme_name: synth_blackbg}
       query_schemeset:
-        - {query_scheme: rot_only_20deg_std}
+        - {scheme_name: rot_only_20deg_std}
       use_for_val_score: false
 
 
 
     # real_unoccl_train_blackbg_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_unoccl_train_blackbg}
+    #     - {scheme_name: real_unoccl_train_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: rot_only_90deg_std}
+    #     - {scheme_name: rot_only_90deg_std}
     #   use_for_val_score: false
     # real_occl_val_blackbg_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: real_occl_val_blackbg}
+    #     - {scheme_name: real_occl_val_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: rot_only_90deg_std}
+    #     - {scheme_name: rot_only_90deg_std}
     #   use_for_val_score: true
     # synth_rot_only_90deg_std:
     #   ref_schemeset:
-    #     - {ref_scheme: synth_blackbg}
+    #     - {scheme_name: synth_blackbg}
     #   query_schemeset:
-    #     - {query_scheme: rot_only_90deg_std}
+    #     - {scheme_name: rot_only_90deg_std}
     #   use_for_val_score: false
