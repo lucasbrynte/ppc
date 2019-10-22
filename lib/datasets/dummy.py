@@ -514,16 +514,22 @@ class DummyDataset(Dataset):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
-        if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
-            # Early return (no need to load seg)
-            return img, rel_rgb_path
+
+        # Load instance segmentaiton
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        instance_seg = np.array(self._crop_as_array(Image.open(instance_seg_path), crop_box).resize(self._configs.data.crop_dims))
+        instance_seg_raw = np.array(self._crop_as_array(Image.open(instance_seg_path), crop_box).resize(self._configs.data.crop_dims))
+
+        # Map indices to 0 / 1 / 2
+        instance_seg = np.empty_like(instance_seg_raw)
+        instance_seg.fill(2) # Default: occluder
+        instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
+        instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
+
         img_array = np.array(img)
         if apply_bg is not None:
-            img_array[instance_seg != instance_idx+1] = apply_bg[instance_seg != instance_idx+1, :]
+            img_array[instance_seg != 1] = apply_bg[instance_seg != 1, :]
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
-            img_array[instance_seg == instance_idx+1] = 255
+            img_array[instance_seg == 1] = 255
         img = Image.fromarray(img_array, mode=img.mode)
         return img, rel_rgb_path
 
