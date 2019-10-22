@@ -48,6 +48,16 @@ default:
     depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.3}
   shading:
     ambient_weight:                                             {method: fixed, value: 0.8}
+rot_only_5deg_std:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
+    angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 5.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
 rot_only_20deg_std:
   background: null
   white_silhouette: false
@@ -68,7 +78,7 @@ rot_only_90deg_std:
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
   shading:
     ambient_weight:                                             {method: fixed, value: 0.8}
-transl_20perc:
+transl_10perc:
   background: null
   white_silhouette: false
   perturbation:
@@ -86,6 +96,36 @@ depth_1_1:
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.1}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+mild_gradual_rot:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 10.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+mild_gradual_transl:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: normal, deterministic_quantile_range: true, loc: 0.0, scale: 0.1} # 20% of object size along each dimension. tx=ty=tz
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+  shading:
+    ambient_weight:                                             {method: fixed, value: 0.8}
+mild_gradual_depth:
+  background: null
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: true, loc: 1.0, scale: 1.1}
   shading:
     ambient_weight:                                             {method: fixed, value: 0.8}
 gradual_rot:
