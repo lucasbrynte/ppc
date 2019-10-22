@@ -198,19 +198,20 @@ class DummyDataset(Dataset):
             clip_far = 10000, # mm
         )
 
-        if np.sum(seg == self._obj_id) < min_nbr_unoccluded_pixels:
+        instance_idx_obj_of_interest = 0
+        if np.sum(instance_seg == instance_idx_obj_of_interest+1) < min_nbr_unoccluded_pixels:
             return None
 
         if apply_bg is not None:
             assert not white_silhouette
             if np.random.random() < 0.5:
                 # On BG & occluders:
-                rgb[seg != self._obj_id] = apply_bg[seg != self._obj_id, :]
+                rgb[instance_seg != instance_idx_obj_of_interest+1] = apply_bg[instance_seg != instance_idx_obj_of_interest+1, :]
             else:
                 # On BG only:
-                rgb[seg == 0] = apply_bg[seg == 0, :]
+                rgb[instance_seg == 0] = apply_bg[instance_seg == 0, :]
         elif white_silhouette:
-            rgb[seg == self._obj_id] = 255
+            rgb[instance_seg == instance_idx_obj_of_interest+1] = 255
 
         return rgb
 
