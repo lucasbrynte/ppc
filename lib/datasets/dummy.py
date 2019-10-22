@@ -179,7 +179,41 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _render(self, K, R, t, obj_id, R_occluders_list, t_occluders_list, obj_id_occluders, shading_params, T_world2cam=None, apply_bg=None, min_nbr_unoccluded_pixels=0, white_silhouette=False):
+    def _get_ref_bg(self, ref_scheme_idx, black_already=False):
+        if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
+            return self._sample_bg_patch(self._nyud_img_paths)
+        elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
+            return self._sample_bg_patch(self._voc_img_paths)
+        elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
+            return np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8) if not black_already else None
+        assert self._ref_sampling_schemes[ref_scheme_idx].background is None
+        return None
+
+    def _get_query_bg(self, query_scheme_idx, img1):
+        if self._query_sampling_schemes[query_scheme_idx].background == 'from_ref':
+            query_bg = img1
+        else:
+            assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
+            query_bg = None
+
+    def _apply_bg(self, rgb, instance_seg, bg, inplace=False):
+        if not inplace:
+            rgb = rgb.copy()
+        if np.random.random() < 0.5:
+            # On BG & occluders:
+            rgb[instance_seg != 1] = bg[instance_seg != 1, :]
+        else:
+            # On BG only:
+            rgb[instance_seg == 0] = bg[instance_seg == 0, :]
+        return rgb
+
+    def _set_white_silhouette(self, rgb, instance_seg, inplace=False):
+        if not inplace:
+            rgb = rgb.copy()
+        rgb[instance_seg == 1] = 255
+        return rgb
+
+    def _render(self, K, R, t, obj_id, R_occluders_list, t_occluders_list, obj_id_occluders, shading_params, T_world2cam=None, min_nbr_unoccluded_pixels=0):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -201,20 +235,9 @@ class DummyDataset(Dataset):
         # instance_seg is 0 on BG, 1 on object of interest, and 2 on occluders
 
         if np.sum(instance_seg == 1) < min_nbr_unoccluded_pixels:
-            return None
+            return None, None
 
-        if apply_bg is not None:
-            assert not white_silhouette
-            if np.random.random() < 0.5:
-                # On BG & occluders:
-                rgb[instance_seg != 1] = apply_bg[instance_seg != 1, :]
-            else:
-                # On BG only:
-                rgb[instance_seg == 0] = apply_bg[instance_seg == 0, :]
-        elif white_silhouette:
-            rgb[instance_seg == 1] = 255
-
-        return rgb
+        return rgb, instance_seg
 
     def _truncate_bbox(self, bbox):
         (x1, y1, x2, y2) = bbox
@@ -513,7 +536,7 @@ class DummyDataset(Dataset):
             mode = 'RGB'
         return np.array(Image.fromarray(img, mode=mode).resize(dims))
 
-    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=None):
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
@@ -531,11 +554,7 @@ class DummyDataset(Dataset):
         instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
         instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
 
-        if apply_bg is not None:
-            img[instance_seg != 1] = apply_bg[instance_seg != 1, :]
-        if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
-            img[instance_seg == 1] = 255
-        return img, rel_rgb_path
+        return img, instance_seg, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         seq = self._get_seq(ref_scheme_idx)
@@ -730,45 +749,41 @@ class DummyDataset(Dataset):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-                ref_bg = self._sample_bg_patch(self._nyud_img_paths)
-            elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
-                ref_bg = self._sample_bg_patch(self._voc_img_paths)
-            elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
-                ref_bg = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8)
-            else:
-                assert self._ref_sampling_schemes[ref_scheme_idx].background is None
-                ref_bg = None
-            img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=ref_bg)
+            ref_bg = self._get_ref_bg(ref_scheme_idx, black_already=False)
+            img1, instance_seg1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-                ref_bg = self._sample_bg_patch(self._nyud_img_paths)
-            elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
-                ref_bg = self._sample_bg_patch(self._voc_img_paths)
-            else:
-                assert self._ref_sampling_schemes[ref_scheme_idx].background in (None, 'black')
-                ref_bg = None
+            ref_bg = self._get_ref_bg(ref_scheme_idx, black_already=True)
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
             R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
             for obj_label, T in T1_occluders.items():
                 R_occluders_list1.append(T[:3,:3])
                 t_occluders_list1.append(T[:3,[3]])
                 obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-            img1 = self._render(K, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, apply_bg=ref_bg, min_nbr_unoccluded_pixels=200, white_silhouette=self._ref_sampling_schemes[ref_scheme_idx].white_silhouette)
+            img1, instance_seg1 = self._render(K, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
+
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
         else:
             assert False
 
+        # Ref BG & silhouette post-processing
+        if ref_bg is not None:
+            img1 = self._apply_bg(img1, instance_seg1, ref_bg)
+        if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
+            img1 = self._set_white_silhouette(img1, instance_seg1)
 
-        if self._query_sampling_schemes[query_scheme_idx].background == 'from_ref':
-            query_bg = img1
-        else:
-            assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
-            query_bg = None
+
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        img2 = self._render(K, R2, t2, self._obj_id, [], [], [], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_schemes[query_scheme_idx].white_silhouette)
+        img2, instance_seg2 = self._render(K, R2, t2, self._obj_id, [], [], [], query_shading_params)
+        query_bg = self._get_query_bg(query_scheme_idx, img1)
+
+        # Query BG & silhouette post-processing
+        if query_bg is not None:
+            img2 = self._apply_bg(img2, instance_seg2, query_bg)
+        if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
+            img2 = self._set_white_silhouette(img2, instance_seg2)
+
 
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
