@@ -15,9 +15,9 @@ real_unoccl_train_blackbg:
   real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_train_nyud:
+real_unoccl_train_voc:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
@@ -47,9 +47,9 @@ real_unoccl_train_blackbg_frame100:
   real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
-real_unoccl_train_nyud_frame100:
+real_unoccl_train_voc_frame100:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
@@ -84,9 +84,9 @@ real_occl_val_blackbg:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: null
-real_occl_val_nyud:
+real_occl_val_voc:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
@@ -116,9 +116,9 @@ real_occl_val_blackbg_frame100:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: 100
-real_occl_val_nyud_frame100:
+real_occl_val_voc_frame100:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
@@ -148,9 +148,9 @@ real_occl_val_blackbg_frame228:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: 228
-real_occl_val_nyud_frame228:
+real_occl_val_voc_frame228:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
@@ -180,9 +180,9 @@ real_occl_val_blackbg_frame327:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: 327
-real_occl_val_nyud_frame327:
+real_occl_val_voc_frame327:
   ref_source: real
-  background: nyud
+  background: voc
   white_silhouette: false
   real_opts:
     linemod_seq: train_occl/ape
@@ -276,9 +276,9 @@ real_occl_test_blackbg_frame159:
 
 
 
-synth_nyud:
+synth_voc:
   ref_source: synthetic
-  background: nyud
+  background: voc
   white_silhouette: false
   synth_opts:
     object_pose:

@@ -168,6 +168,7 @@ data:
   dataformat: dummy
   path: /datasets/occluded-linemod-augmented
   nyud_path: /datasets/nyud
+  voc_path: /datasets/voc
   img_dims: [480, 480]
   crop_dims: [128, 128]
   ref_colorjitter_during_train: true

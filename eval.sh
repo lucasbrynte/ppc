@@ -7,6 +7,7 @@ NEW_EXPERIMENT_PREFIX=$2
 REPOPATH=/home/lucas/research/ppc
 DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented5_split_unoccl_train_test
 NYUDPATH=/home/lucas/datasets/nyud
+VOCPATH=/home/lucas/datasets/VOC/VOCdevkit/VOC2012
 CONTAINER=ppc
 CONFIGNAME=dummy
 # CHECKPOINT_FNAME=best_model.pth.tar
@@ -49,6 +50,7 @@ for OBJ in ${OBJECTS[@]}; do
         -v /hdd/lucas/out/ppc-experiments:/workspace/ppc/experiments \
         -v $DATAPATH:/datasets/occluded-linemod-augmented \
         -v $NYUDPATH:/datasets/nyud \
+        -v $VOCPATH:/datasets/voc \
         $CONTAINER python $PROFILE_ARGS main.py \
         eval \
         --overwrite-experiment \
