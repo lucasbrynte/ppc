@@ -534,7 +534,6 @@ class DummyDataset(Dataset):
             img[instance_seg != 1] = apply_bg[instance_seg != 1, :]
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             img[instance_seg == 1] = 255
-        img = Image.fromarray(img, mode='RGB')
         return img, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
@@ -695,7 +694,7 @@ class DummyDataset(Dataset):
                 # Unsure what will happen when cropping these iamges as numpy array, but try / catch kept as of now.
                 full_img = Image.open(img_path)
                 img_width, img_height = full_img.size
-                return Image.fromarray(self._crop(np.array(full_img), self._sample_crop_box(img_height, img_width)), mode='RGB')
+                return self._crop(np.array(full_img), self._sample_crop_box(img_height, img_width))
             except:
                 # Not ideal to keep removing elements from long list...
                 # Set would be tempting, but not straightforward to sample from
@@ -731,9 +730,9 @@ class DummyDataset(Dataset):
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-                ref_bg = np.array(self._sample_bg_patch(self._nyud_img_paths))
+                ref_bg = self._sample_bg_patch(self._nyud_img_paths)
             elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
-                ref_bg = np.array(self._sample_bg_patch(self._voc_img_paths))
+                ref_bg = self._sample_bg_patch(self._voc_img_paths)
             elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
                 ref_bg = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8)
             else:
@@ -742,9 +741,9 @@ class DummyDataset(Dataset):
             img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=ref_bg)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-                ref_bg = np.array(self._sample_bg_patch(self._nyud_img_paths))
+                ref_bg = self._sample_bg_patch(self._nyud_img_paths)
             elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
-                ref_bg = np.array(self._sample_bg_patch(self._voc_img_paths))
+                ref_bg = self._sample_bg_patch(self._voc_img_paths)
             else:
                 assert self._ref_sampling_schemes[ref_scheme_idx].background in (None, 'black')
                 ref_bg = None
@@ -758,22 +757,21 @@ class DummyDataset(Dataset):
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
-            img1 = Image.fromarray(img1)
         else:
             assert False
 
 
         if self._query_sampling_schemes[query_scheme_idx].background == 'from_ref':
-            query_bg = np.array(img1)
+            query_bg = img1
         else:
             assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
             query_bg = None
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_schemes[query_scheme_idx].white_silhouette))
+        img2 = self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_schemes[query_scheme_idx].white_silhouette)
 
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
-            img1 = np.array(self._aug_transform(img1))
+            img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
         img1 = numpy_to_pt(img1, normalize_flag=True)
         img2 = numpy_to_pt(img2, normalize_flag=True)
 
