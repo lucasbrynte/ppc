@@ -21,7 +21,8 @@ RUN conda install -y -c conda-forge \
     matplotlib \
     attrdict \
     Cython \
-    pyyaml
+    pyyaml \
+    jupyter
 RUN apt-get install -y --no-install-recommends libgl1-mesa-dev
 RUN conda install -y -c anaconda \
     scipy \
@@ -77,8 +78,23 @@ RUN rm /tmp/NVIDIA-DRIVER.run
 # DEBUGGING
 #RUN apt-get install -y --no-install-recommends sudo
 # glxinfo:
-#RUN apt-get install -y --no-install-recommends mesa-utils
+RUN apt-get install -y --no-install-recommends mesa-utils
 
 
 # Clean up apt - slim container
 RUN rm -rf /var/lib/apt/lists/*
+
+
+# # Entrypoint script for adding a new user, matching the host UID
+# # From: https://denibertovic.com/posts/handling-permissions-with-docker-volumes/
+# COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+# RUN chmod +x /usr/local/bin/entrypoint.sh
+# ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# 
+# 
+# # Configure jupyter
+# COPY gen_passwd.py /gen_passwd.py
+# COPY config-password-and-start-jupyter-server.sh /config-password-and-start-jupyter-server.sh
+# RUN chmod +x /config-password-and-start-jupyter-server.sh
+# 
+# CMD ["/config-password-and-start-jupyter-server.sh"]
