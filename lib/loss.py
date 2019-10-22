@@ -226,7 +226,7 @@ class LossHandler:
             loss_decay = 1.0
 
             # Assume loss applied for every sample until proven wrong:
-            loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.uint8)
+            loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.bool)
 
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:

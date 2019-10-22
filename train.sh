@@ -34,7 +34,9 @@ xhost + # allow connections to X server
 for OBJ in ${OBJECTS[@]}; do
     # NOTE: ndocker seems to ignore NV_GPU when the X socket is fed into the container anyway.
     # Mimick behavior by setting CUDA_VISIBLE_DEVICES inside container instead.
-    ndocker \
+    docker run \
+        -it \
+        -e HOST_USER_ID=$(id -u) -e HOST_GROUP_ID=$(id -g) \
         -e PYTHONPATH=/workspace/ppc \
         -e CUDA_VISIBLE_DEVICES=$NV_GPU \
         -e DISPLAY=unix:0.$NV_GPU \
