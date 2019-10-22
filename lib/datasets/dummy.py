@@ -517,13 +517,13 @@ class DummyDataset(Dataset):
         if apply_bg is None and not self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             # Early return (no need to load seg)
             return img, rel_rgb_path
-        seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        seg = np.array(self._crop_as_array(Image.open(seg_path), crop_box).resize(self._configs.data.crop_dims))
+        instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
+        instance_seg = np.array(self._crop_as_array(Image.open(instance_seg_path), crop_box).resize(self._configs.data.crop_dims))
         img_array = np.array(img)
         if apply_bg is not None:
-            img_array[seg != instance_idx+1] = apply_bg[seg != instance_idx+1, :]
+            img_array[instance_seg != instance_idx+1] = apply_bg[instance_seg != instance_idx+1, :]
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
-            img_array[seg == instance_idx+1] = 255
+            img_array[instance_seg == instance_idx+1] = 255
         img = Image.fromarray(img_array, mode=img.mode)
         return img, rel_rgb_path
 
