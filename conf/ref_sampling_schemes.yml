@@ -6,28 +6,28 @@ real_unoccl_train_keepbg:
   background: null
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 real_unoccl_train_blackbg:
   ref_source: real
   background: black
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 real_unoccl_train_nyud:
   ref_source: real
   background: nyud
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 real_unoccl_train_whitesilhouette:
   ref_source: real
   background: black
   white_silhouette: true
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 
 # ==============================================================================
@@ -38,28 +38,28 @@ real_unoccl_train_keepbg_frame100:
   background: null
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 real_unoccl_train_blackbg_frame100:
   ref_source: real
   background: black
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 real_unoccl_train_nyud_frame100:
   ref_source: real
   background: nyud
   white_silhouette: false
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 real_unoccl_train_whitesilhouette_frame100:
   ref_source: real
   background: black
   white_silhouette: true
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 
 

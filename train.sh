@@ -4,7 +4,7 @@ set -e
 EXPERIMENT_PREFIX=$1
 
 REPOPATH=/home/lucas/research/ppc
-DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented3_format06
+DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented5_split_unoccl_train_test
 NYUDPATH=/home/lucas/datasets/nyud
 CONTAINER=ppc
 CONFIGNAME=dummy
