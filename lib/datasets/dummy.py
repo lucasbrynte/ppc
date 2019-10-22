@@ -495,17 +495,22 @@ class DummyDataset(Dataset):
             seq = seq.replace('<OBJ_LABEL>', self._obj_label)
         return seq
 
-    def _crop_as_array(self, img, crop_box):
+    def _crop(self, img, crop_box):
         (x1, y1, x2, y2) = crop_box
-        img_mode = img.mode
-        img = np.array(img)
         if len(img.shape) == 2:
             img = img[y1:y2, x1:x2]
         else:
             assert len(img.shape) == 3
             img = img[y1:y2, x1:x2, :]
-        img = Image.fromarray(img, mode=img_mode)
         return img
+
+    def _resize_img(self, img, dims):
+        if len(img.shape) == 2:
+            mode = 'P'
+        else:
+            assert len(img.shape) == 3
+            mode = 'RGB'
+        return np.array(Image.fromarray(img, mode=mode).resize(dims))
 
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx, apply_bg=None):
         seq = self._get_seq(ref_scheme_idx)
@@ -513,11 +518,11 @@ class DummyDataset(Dataset):
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
-        img = self._crop_as_array(Image.open(rgb_path), crop_box).resize(self._configs.data.crop_dims)
+        img = self._resize_img(self._crop(np.array(Image.open(rgb_path)), crop_box), self._configs.data.crop_dims)
 
         # Load instance segmentaiton
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        instance_seg_raw = np.array(self._crop_as_array(Image.open(instance_seg_path), crop_box).resize(self._configs.data.crop_dims))
+        instance_seg_raw = self._resize_img(self._crop(np.array(Image.open(instance_seg_path)), crop_box), self._configs.data.crop_dims)
 
         # Map indices to 0 / 1 / 2
         instance_seg = np.empty_like(instance_seg_raw)
@@ -525,12 +530,11 @@ class DummyDataset(Dataset):
         instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
         instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
 
-        img_array = np.array(img)
         if apply_bg is not None:
-            img_array[instance_seg != 1] = apply_bg[instance_seg != 1, :]
+            img[instance_seg != 1] = apply_bg[instance_seg != 1, :]
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
-            img_array[instance_seg == 1] = 255
-        img = Image.fromarray(img_array, mode=img.mode)
+            img[instance_seg == 1] = 255
+        img = Image.fromarray(img, mode='RGB')
         return img, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
@@ -691,7 +695,7 @@ class DummyDataset(Dataset):
                 # Unsure what will happen when cropping these iamges as numpy array, but try / catch kept as of now.
                 full_img = Image.open(img_path)
                 img_width, img_height = full_img.size
-                return self._crop_as_array(full_img, self._sample_crop_box(img_height, img_width))
+                return Image.fromarray(self._crop(np.array(full_img), self._sample_crop_box(img_height, img_width)), mode='RGB')
             except:
                 # Not ideal to keep removing elements from long list...
                 # Set would be tempting, but not straightforward to sample from
