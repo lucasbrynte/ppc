@@ -15,7 +15,7 @@ from torch import Tensor
 from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
-from lib.utils import read_yaml_and_pickle, pextend, pflat, pillow_to_pt
+from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
 from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
@@ -772,8 +772,10 @@ class DummyDataset(Dataset):
         img2 = Image.fromarray(self._render(K, [R2], [t2], [self._obj_id], query_shading_params, apply_bg=query_bg, white_silhouette=self._query_sampling_schemes[query_scheme_idx].white_silhouette))
 
         # Augmentation + numpy -> pytorch conversion
-        img1 = pillow_to_pt(img1, normalize_flag=True, transform=self._aug_transform)
-        img2 = pillow_to_pt(img2, normalize_flag=True, transform=None)
+        if self._aug_transform is not None:
+            img1 = np.array(self._aug_transform(img1))
+        img1 = numpy_to_pt(img1, normalize_flag=True)
+        img2 = numpy_to_pt(img2, normalize_flag=True)
 
         data = img1, img2
 

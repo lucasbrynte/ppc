@@ -64,10 +64,8 @@ def read_attrdict_from_default_and_specific_yaml(default_config_path, specific_c
         configs += read_yaml_as_attrdict(specific_config_path)
     return configs
 
-def pillow_to_pt(image, normalize_flag=True, transform=None):
-    """Pillow image to pytorch tensor."""
-    if transform is not None:
-        image = transform(image)
+def numpy_to_pt(image, normalize_flag=True):
+    """Numpy array to pytorch tensor."""
     image = np.array(image)
     if len(image.shape) == 2:
         image = image[:, :, np.newaxis]
