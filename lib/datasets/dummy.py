@@ -10,6 +10,7 @@ import random
 import math
 import numpy as np
 from PIL import Image
+import cv2 as cv
 import torch
 from torch import Tensor
 from torchvision.transforms import ColorJitter
@@ -723,6 +724,34 @@ class DummyDataset(Dataset):
         else:
             assert False, 'No proper NYU-D background image found'
 
+    def _blur_synth_obj(self, img, instance_seg, blur_opts, inplace=False):
+        if not inplace:
+            img = img.copy()
+
+        sigma = np.random.uniform(low=blur_opts.sigma_range[0], high=blur_opts.sigma_range[1])
+        # Compute where to truncate kernel using inverse of OpenCV getGaussianKernel() default behavior
+        ksize = 1 + 2 * ( 1 + max(0, math.ceil((sigma-0.8)/0.3)) )
+        assert ksize >= 3
+        assert ksize % 2 == 1
+        img_blurred = cv.GaussianBlur(img, (ksize,ksize), sigma)
+
+        silhouette = (instance_seg == 1).astype(np.uint8)
+        kernel = np.ones((3,3), dtype=np.uint8)
+
+        if blur_opts.on_border_only:
+            # Compute morphological gradient
+            blur_region_uint8 = cv.morphologyEx(silhouette, cv.MORPH_GRADIENT, kernel)
+        else:
+            # Just dilate the silhouette
+            blur_region_uint8 = cv.dilate(silhouette, kernel, iterations=blur_opts.nbr_px_margin)
+
+        blur_region = blur_region_uint8.astype(np.bool)
+        assert np.allclose(blur_region, blur_region)
+
+        img[blur_region] = img_blurred[blur_region]
+
+        return img
+
     def _generate_sample(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
@@ -760,7 +789,6 @@ class DummyDataset(Dataset):
                 t_occluders_list1.append(T[:3,[3]])
                 obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
             img1, instance_seg1 = self._render(K, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
-
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
@@ -772,6 +800,14 @@ class DummyDataset(Dataset):
             img1 = self._apply_bg(img1, instance_seg1, ref_bg)
         if self._ref_sampling_schemes[ref_scheme_idx].white_silhouette:
             img1 = self._set_white_silhouette(img1, instance_seg1)
+
+        # Apply blurring
+        if self._ref_sampling_schemes[ref_scheme_idx].blur_opts.apply_blur:
+            img1 = self._blur_synth_obj(
+                img1,
+                instance_seg1,
+                self._ref_sampling_schemes[ref_scheme_idx].blur_opts,
+            )
 
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
