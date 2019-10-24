@@ -529,13 +529,40 @@ class DummyDataset(Dataset):
             img = img[y1:y2, x1:x2, :]
         return img
 
-    def _resize_img(self, img, dims):
-        if len(img.shape) == 2:
-            mode = 'P'
+    def _resize_uint8(self, img, dims, interpolation=cv.INTER_CUBIC):
+        assert img.dtype == np.uint8
+        if interpolation == cv.INTER_LINEAR:
+            img = img.astype(np.float64)
+        resized = cv.resize(img, dims, interpolation=interpolation)
+        if interpolation == cv.INTER_LINEAR:
+            resized = (resized + 0.5).astype(np.uint8)
+        if len(img.shape) == 3 and img.shape[2] == 1:
+            resized = resized[:,:,None]
+        return resized
+
+    def _resize_img(self, img, dims, interpolation=cv.INTER_LINEAR):
+        if interpolation == cv.INTER_NEAREST:
+            return self._resize_uint8(img, dims, interpolation=interpolation)
         else:
-            assert len(img.shape) == 3
-            mode = 'RGB'
-        return np.array(Image.fromarray(img, mode=mode).resize(dims))
+            if len(img.shape) == 2:
+                assert img.dtype == np.uint8
+                # Assign each unique value to a channel, and replace the 2D-array with 1-hot encodings across channels in 3D-array.
+                # Bilinear interpolation is performed in this domain - resulting in averaging the probability distributions.
+                # Finally, the argmax operator is applied on the averaged distributions, and the old values are inserted at the corresponding indices.
+                unique_vals = np.unique(img)
+                assert len(unique_vals.shape) == 1
+                img_onehot = np.tile(np.zeros_like(img)[:,:,None], (1,1,len(unique_vals)))
+                for ch_idx, val in enumerate(unique_vals):
+                    img_onehot[:,:,ch_idx][img == val] = 1
+                blended_distributions = self._resize_uint8(img_onehot, dims, interpolation=interpolation)
+                dominant_channels_map = blended_distributions.argmax(axis=2).astype(np.uint8)
+                img = np.empty_like(dominant_channels_map)
+                for ch_idx, val in enumerate(unique_vals):
+                    img[dominant_channels_map == ch_idx] = val
+                return img
+            else:
+                assert len(img.shape) == 3
+                return self._resize_uint8(img, dims, interpolation=interpolation)
 
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._get_seq(ref_scheme_idx)
@@ -543,17 +570,21 @@ class DummyDataset(Dataset):
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
-        img = self._resize_img(self._crop(np.array(Image.open(rgb_path)), crop_box), self._configs.data.crop_dims)
+        img = self._crop(np.array(Image.open(rgb_path)), crop_box)
 
-        # Load instance segmentaiton
+        # Load instance segmentation
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        instance_seg_raw = self._resize_img(self._crop(np.array(Image.open(instance_seg_path)), crop_box), self._configs.data.crop_dims)
+        instance_seg_raw = self._crop(np.array(Image.open(instance_seg_path)), crop_box)
 
         # Map indices to 0 / 1 / 2
         instance_seg = np.empty_like(instance_seg_raw)
         instance_seg.fill(2) # Default: occluder
         instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
         instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
+
+        # Upsample RGB image & segmentation
+        img = self._resize_img(img, self._configs.data.crop_dims)
+        instance_seg = self._resize_img(instance_seg, self._configs.data.crop_dims)
 
         return img, instance_seg, rel_rgb_path
 
