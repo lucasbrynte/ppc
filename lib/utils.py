@@ -7,7 +7,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 from scipy.stats import uniform, norm
 import torch
-from torchvision.transforms.functional import normalize, to_tensor
+from torchvision.transforms.functional import normalize
 
 from lib.constants import TV_MEAN, TV_STD
 
@@ -64,13 +64,13 @@ def read_attrdict_from_default_and_specific_yaml(default_config_path, specific_c
         configs += read_yaml_as_attrdict(specific_config_path)
     return configs
 
-def numpy_to_pt(image, normalize_flag=True):
+def numpy_to_pt(image, normalize_flag=False):
     """Numpy array to pytorch tensor."""
-    image = np.array(image)
+    if normalize_flag:
+        assert not isinstance(image, np.integer)
     if len(image.shape) == 2:
-        image = image[:, :, np.newaxis]
-        # image._unsqueeze(0)
-    image = to_tensor(image)
+        image = image[:, :, None]
+    image = torch.from_numpy(image.transpose(2,0,1))
     if normalize_flag:
         image = normalize(image, TV_MEAN, TV_STD)
     return image

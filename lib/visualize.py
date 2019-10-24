@@ -134,7 +134,7 @@ class Visualizer:
 
     def _retrieve_input_img(self, image_tensor):
         img = normalize(image_tensor, mean=-TV_MEAN/TV_STD, std=1/TV_STD)
-        img = torch.clamp(img, 0.0, 1.0)
+        img = torch.clamp(img / 255., 0.0, 1.0)
         img = np.moveaxis(img.numpy(), 0, -1)
         return img
 

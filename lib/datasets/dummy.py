@@ -860,8 +860,8 @@ class DummyDataset(Dataset):
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
-        img1 = numpy_to_pt(img1, normalize_flag=True)
-        img2 = numpy_to_pt(img2, normalize_flag=True)
+        img1 = numpy_to_pt(img1.astype(np.float32), normalize_flag=True)
+        img2 = numpy_to_pt(img2.astype(np.float32), normalize_flag=True)
 
         data = img1, img2
 
