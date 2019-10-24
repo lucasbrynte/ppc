@@ -180,13 +180,13 @@ class DummyDataset(Dataset):
         data, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
         return Sample(targets, data, extra_input, meta_data)
 
-    def _get_ref_bg(self, ref_scheme_idx, black_already=False):
+    def _get_ref_bg(self, ref_scheme_idx, bg_dims, black_already=False):
         if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
-            return self._sample_bg_patch(self._nyud_img_paths)
+            return self._sample_bg_patch(self._nyud_img_paths, bg_dims)
         elif self._ref_sampling_schemes[ref_scheme_idx].background == 'voc':
-            return self._sample_bg_patch(self._voc_img_paths)
+            return self._sample_bg_patch(self._voc_img_paths, bg_dims)
         elif self._ref_sampling_schemes[ref_scheme_idx].background == 'black':
-            return np.zeros(list(self._configs.data.crop_dims)+[3], dtype=np.uint8) if not black_already else None
+            return np.zeros(list(bg_dims)+[3], dtype=np.uint8) if not black_already else None
         assert self._ref_sampling_schemes[ref_scheme_idx].background is None
         return None
 
@@ -582,10 +582,6 @@ class DummyDataset(Dataset):
         instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
         instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
 
-        # Upsample RGB image & segmentation
-        img = self._resize_img(img, self._configs.data.crop_dims)
-        instance_seg = self._resize_img(instance_seg, self._configs.data.crop_dims)
-
         return img, instance_seg, rel_rgb_path
 
     def _read_pose_from_anno(self, ref_scheme_idx):
@@ -706,11 +702,11 @@ class DummyDataset(Dataset):
 
         return R2, t2
 
-    def _sample_crop_box(self, img_height, img_width):
-        x1 = np.random.randint(img_width - self._configs.data.crop_dims[1])
-        x2 = x1 + self._configs.data.crop_dims[1]
-        y1 = np.random.randint(img_height - self._configs.data.crop_dims[0])
-        y2 = y1 + self._configs.data.crop_dims[0]
+    def _sample_crop_box(self, full_img_dims, crop_dims):
+        x1 = np.random.randint(full_img_dims[1] - crop_dims[1])
+        x2 = x1 + crop_dims[1]
+        y1 = np.random.randint(full_img_dims[0] - crop_dims[0])
+        y2 = y1 + crop_dims[0]
         return (x1, y1, x2, y2)
 
     def _init_nyud_img_paths(self):
@@ -735,7 +731,7 @@ class DummyDataset(Dataset):
         global_voc_img_paths = voc_img_paths
         return voc_img_paths
 
-    def _sample_bg_patch(self, bg_img_paths):
+    def _sample_bg_patch(self, bg_img_paths, bg_crop_dims):
         NBR_ATTEMPTS = 100
         for j in range(NBR_ATTEMPTS):
             path_idx = np.random.randint(len(bg_img_paths))
@@ -746,7 +742,7 @@ class DummyDataset(Dataset):
                 # Unsure what will happen when cropping these iamges as numpy array, but try / catch kept as of now.
                 full_img = Image.open(img_path)
                 img_width, img_height = full_img.size
-                return self._crop(np.array(full_img), self._sample_crop_box(img_height, img_width))
+                return self._crop(np.array(full_img), self._sample_crop_box((img_height, img_width), bg_crop_dims))
             except:
                 # Not ideal to keep removing elements from long list...
                 # Set would be tempting, but not straightforward to sample from
@@ -783,6 +779,10 @@ class DummyDataset(Dataset):
 
         return img
 
+    def _dims_from_bbox(self, bbox):
+        x1, y1, x2, y2 = bbox
+        return (y2-y1, x2-x1)
+
     def _generate_sample(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
@@ -809,10 +809,10 @@ class DummyDataset(Dataset):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            ref_bg = self._get_ref_bg(ref_scheme_idx, black_already=False)
+            ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
             img1, instance_seg1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            ref_bg = self._get_ref_bg(ref_scheme_idx, black_already=True)
+            ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
             R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
             for obj_label, T in T1_occluders.items():
@@ -840,6 +840,11 @@ class DummyDataset(Dataset):
                 self._ref_sampling_schemes[ref_scheme_idx].blur_opts,
             )
 
+        # If real image - resize the cropped bounding box to the desired resolution
+        if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
+            # Upsample RGB image & segmentation
+            img1 = self._resize_img(img1, self._configs.data.crop_dims)
+            instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         img2, instance_seg2 = self._render(K, R2, t2, self._obj_id, [], [], [], query_shading_params)
