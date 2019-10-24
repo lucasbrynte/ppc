@@ -411,7 +411,7 @@ synth_voc:
   blur_opts:
     apply_blur: true
     on_border_only: false
-    sigma_range: [0.5, 1.5]
+    sigma_range: [1.2, 1.2]
     nbr_px_margin: 1
   synth_opts:
     object_pose:
@@ -435,7 +435,7 @@ synth_blackbg:
   blur_opts:
     apply_blur: true
     on_border_only: false
-    sigma_range: [0.5, 1.5]
+    sigma_range: [1.2, 1.2]
     nbr_px_margin: 1
   synth_opts:
     object_pose:
@@ -459,7 +459,7 @@ synth_whitesilhouette:
   blur_opts:
     apply_blur: true
     on_border_only: false
-    sigma_range: [0.5, 1.5]
+    sigma_range: [1.2, 1.2]
     nbr_px_margin: 1
   synth_opts:
     object_pose:
