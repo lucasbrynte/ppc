@@ -537,23 +537,25 @@ class DummyDataset(Dataset):
             img = img[y1:y2, x1:x2, :]
         return img
 
-    def _resize_uint8(self, img, dims, interpolation=cv.INTER_CUBIC):
-        assert img.dtype == np.uint8
+    def _resize_uint(self, img, dims, interpolation=cv.INTER_CUBIC):
+        dtype = img.dtype
+        assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
         if interpolation == cv.INTER_LINEAR:
             img = img.astype(np.float64)
         resized = cv.resize(img, dims, interpolation=interpolation)
         if interpolation == cv.INTER_LINEAR:
-            resized = (resized + 0.5).astype(np.uint8)
+            resized = (resized + 0.5).astype(dtype)
         if len(img.shape) == 3 and img.shape[2] == 1:
             resized = resized[:,:,None]
         return resized
 
     def _resize_img(self, img, dims, interpolation=cv.INTER_LINEAR):
         if interpolation == cv.INTER_NEAREST:
-            return self._resize_uint8(img, dims, interpolation=interpolation)
+            return self._resize_uint(img, dims, interpolation=interpolation)
         else:
             if len(img.shape) == 2:
-                assert img.dtype == np.uint8
+                dtype = img.dtype
+                assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
                 # Assign each unique value to a channel, and replace the 2D-array with 1-hot encodings across channels in 3D-array.
                 # Bilinear interpolation is performed in this domain - resulting in averaging the probability distributions.
                 # Finally, the argmax operator is applied on the averaged distributions, and the old values are inserted at the corresponding indices.
@@ -562,15 +564,15 @@ class DummyDataset(Dataset):
                 img_onehot = np.tile(np.zeros_like(img)[:,:,None], (1,1,len(unique_vals)))
                 for ch_idx, val in enumerate(unique_vals):
                     img_onehot[:,:,ch_idx][img == val] = 1
-                blended_distributions = self._resize_uint8(img_onehot, dims, interpolation=interpolation)
-                dominant_channels_map = blended_distributions.argmax(axis=2).astype(np.uint8)
+                blended_distributions = self._resize_uint(img_onehot, dims, interpolation=interpolation)
+                dominant_channels_map = blended_distributions.argmax(axis=2).astype(dtype)
                 img = np.empty_like(dominant_channels_map)
                 for ch_idx, val in enumerate(unique_vals):
                     img[dominant_channels_map == ch_idx] = val
                 return img
             else:
                 assert len(img.shape) == 3
-                return self._resize_uint8(img, dims, interpolation=interpolation)
+                return self._resize_uint(img, dims, interpolation=interpolation)
 
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx):
         seq = self._get_seq(ref_scheme_idx)
