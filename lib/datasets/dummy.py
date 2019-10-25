@@ -606,18 +606,13 @@ class DummyDataset(Dataset):
         depth_map = depth_map.astype(np.float32) * float(depth_scale)
         return depth_map
 
-    def _get_safe_anno_mask(self, seq, crop_box, frame_idx):
+    def _get_safe_anno_mask(self, depth_map, depth_map_rendered):
         """
         Reads observed depth (from RGB-D sensor) and rendered depth, and returns a mask such that:
         (1) The observed depth is positive (i.e. not corrupted / missing data)
         (2) The depths match up to a certain threshold
         The idea is that in the case of an unannotated occluder, the depths would not match.
         """
-        all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
-        depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
-        depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
-        depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
-
         MIN_DEPTH_FOR_VALID_OBS = 0.05 # 5 cm
         DEPTH_TH = 0.02 # At most 2 cm depth discrepancy for pixel to be safely annotated (no unannotated occlusion detected)
         safe_anno_mask = (depth_map >= MIN_DEPTH_FOR_VALID_OBS) & (np.abs(depth_map - depth_map_rendered) < DEPTH_TH)
@@ -853,8 +848,14 @@ class DummyDataset(Dataset):
             img1, ref_img_path = self._read_img(seq, crop_box, frame_idx)
             instance_seg1 = self._read_instance_seg(seq, crop_box, frame_idx, instance_idx)
 
+            # Determine depth scale and read depth maps
+            all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
+            depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
+            depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
+            depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
+
             # Determine at what pixels the annotated segmentation can be relied upon
-            safe_anno_mask = self._get_safe_anno_mask(seq, crop_box, frame_idx)
+            safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
 
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
