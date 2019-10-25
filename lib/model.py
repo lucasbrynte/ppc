@@ -174,13 +174,13 @@ class SemiSiameseCNN(nn.Module):
         self.merge_units = nn.Sequential(*merge_units_list)
 
     def forward(self, x):
-        input_maps, extra_input = x
+        maps, extra_input = x
 
         # Initialize
-        s1 = input_maps.ref_img
-        s2 = input_maps.query_img
-        # mask1 = input_maps.ref_silmask
-        # mask2 = input_maps.query_silmask
+        s1 = maps.ref_img
+        s2 = maps.query_img
+        # mask1 = maps.ref_silmask
+        # mask2 = maps.query_silmask
         mrg = None # Unused
 
         # Loop through layers

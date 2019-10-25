@@ -24,7 +24,7 @@ from lib.sixd_toolkit.pysixd import inout
 from lib.rendering.glumpy_renderer import Renderer
 from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_camera_pose
 
-InputMaps = namedtuple('InputMaps', [
+Maps = namedtuple('Maps', [
     'ref_img',
     'query_img',
     'ref_silmask',
@@ -184,8 +184,8 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        input_maps, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
-        return Sample(targets, input_maps, extra_input, meta_data)
+        maps, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
+        return Sample(targets, maps, extra_input, meta_data)
 
     def _get_ref_bg(self, ref_scheme_idx, bg_dims, black_already=False):
         if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
@@ -873,7 +873,7 @@ class DummyDataset(Dataset):
         silmask1 = numpy_to_pt(instance_seg1 == 1, normalize_flag=False)
         silmask2 = numpy_to_pt(instance_seg2 == 1, normalize_flag=False)
 
-        input_maps = InputMaps(
+        maps = Maps(
             ref_img = img1,
             query_img = img2,
             ref_silmask = silmask1,
@@ -926,4 +926,4 @@ class DummyDataset(Dataset):
             ref_img_path = ref_img_path if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real' else None,
         )
 
-        return input_maps, targets, extra_input, meta_data
+        return maps, targets, extra_input, meta_data

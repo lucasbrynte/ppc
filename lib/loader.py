@@ -5,8 +5,8 @@ from importlib import import_module
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, RandomSampler
 
-Sample = namedtuple('Sample', ['targets', 'input_maps', 'extra_input', 'meta_data'])
-Batch = namedtuple('Batch', ['targets', 'input_maps', 'extra_input', 'meta_data'])
+Sample = namedtuple('Sample', ['targets', 'maps', 'extra_input', 'meta_data'])
+Batch = namedtuple('Batch', ['targets', 'maps', 'extra_input', 'meta_data'])
 
 
 class FixedSeededRandomSampler(RandomSampler):
@@ -116,7 +116,7 @@ class Loader:
         for batch in loader:
             batch = Batch(
                 targets = loader.dataset.Targets(*batch[0]),
-                input_maps = self._dataset_module.InputMaps(*batch[1]),
+                maps = self._dataset_module.Maps(*batch[1]),
                 extra_input = self._dataset_module.ExtraInput(*batch[2]),
                 meta_data = [self._dataset_module.SampleMetaData(*sample_meta_data) for sample_meta_data in batch[3]],
             )
@@ -125,11 +125,11 @@ class Loader:
 
 def collate_batch(batch_list):
     """Collates for PT data loader."""
-    targets, input_maps, extra_input, meta_data = zip(*batch_list)
+    targets, maps, extra_input, meta_data = zip(*batch_list)
 
     # Map list hierarchy from sample/property to property/sample
     targets = tuple(map(torch.stack, zip(*targets)))
-    input_maps = tuple(map(torch.stack, zip(*input_maps)))
+    maps = tuple(map(torch.stack, zip(*maps)))
     extra_input = tuple(map(torch.stack, zip(*extra_input)))
 
-    return (targets, input_maps, extra_input, meta_data)
+    return (targets, maps, extra_input, meta_data)

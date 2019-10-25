@@ -187,8 +187,8 @@ class Visualizer:
         return tmp + unit_suffix
 
     def save_images(self, batch, pred_features, target_features, loss_notapplied, mode, schemeset, step_index, sample=-1):
-        img1_batch = batch.input_maps.ref_img
-        img2_batch = batch.input_maps.query_img
+        img1_batch = batch.maps.ref_img
+        img2_batch = batch.maps.query_img
         img_shape = img1_batch.shape[-2:]
         img1 = self._retrieve_input_img(img1_batch[sample])
         img2 = self._retrieve_input_img(img2_batch[sample])
