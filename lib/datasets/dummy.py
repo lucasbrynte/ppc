@@ -571,13 +571,19 @@ class DummyDataset(Dataset):
                 assert len(img.shape) == 3
                 return self._resize_uint8(img, dims, interpolation=interpolation)
 
-    def _read_img(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+    def _read_img(self, ref_scheme_idx, crop_box, frame_idx):
         seq = self._get_seq(ref_scheme_idx)
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = self._crop(np.array(Image.open(rgb_path)), crop_box)
+
+        return img, rel_rgb_path
+
+    def _read_instance_seg(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+        seq = self._get_seq(ref_scheme_idx)
+        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         # Load instance segmentation
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
@@ -589,7 +595,7 @@ class DummyDataset(Dataset):
         instance_seg[instance_seg_raw == 0] = 0 # Preserve index 0 for BG
         instance_seg[instance_seg_raw == instance_idx+1] = 1 # instance_idx+1 -> 1 (obj_of_interest)
 
-        return img, instance_seg, rel_rgb_path
+        return instance_seg
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         seq = self._get_seq(ref_scheme_idx)
@@ -817,7 +823,8 @@ class DummyDataset(Dataset):
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
-            img1, instance_seg1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx, instance_idx)
+            img1, ref_img_path = self._read_img(ref_scheme_idx, crop_box, frame_idx)
+            instance_seg1 = self._read_instance_seg(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
             ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
