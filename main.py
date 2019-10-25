@@ -145,7 +145,7 @@ class Main():
         # cnt = 0
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
-            nn_out = self._run_model(batch.input, batch.extra_input)
+            nn_out = self._run_model(batch.input_maps, batch.extra_input)
 
             # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)
@@ -265,12 +265,10 @@ class Main():
         self._loss_handler._reset_signals()
         return score
 
-    def _run_model(self, inputs, extra_input):
-        img1, img2 = inputs
-        img1 = img1.to(get_device(), non_blocking=True)
-        img2 = img2.to(get_device(), non_blocking=True)
+    def _run_model(self, input_maps, extra_input):
+        input_maps = input_maps.__class__(*tuple(map(lambda x: x.to(get_device(), non_blocking=True), input_maps)))
         extra_input = extra_input.__class__(*tuple(map(lambda x: x.to(get_device(), non_blocking=True), extra_input)))
-        return self._model((extra_input, img1, img2))
+        return self._model((input_maps, extra_input))
 
 
 def run(setup):
