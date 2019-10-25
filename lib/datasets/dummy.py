@@ -525,6 +525,7 @@ class DummyDataset(Dataset):
         seq = self._ref_sampling_schemes[ref_scheme_idx].real_opts.linemod_seq
         if '<OBJ_LABEL>' in seq:
             seq = seq.replace('<OBJ_LABEL>', self._obj_label)
+        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
         return seq
 
     def _crop(self, img, crop_box):
@@ -573,7 +574,6 @@ class DummyDataset(Dataset):
 
     def _read_img(self, ref_scheme_idx, crop_box, frame_idx):
         seq = self._get_seq(ref_scheme_idx)
-        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
@@ -583,7 +583,6 @@ class DummyDataset(Dataset):
 
     def _read_instance_seg(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
         seq = self._get_seq(ref_scheme_idx)
-        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         # Load instance segmentation
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
@@ -599,7 +598,6 @@ class DummyDataset(Dataset):
 
     def _read_pose_from_anno(self, ref_scheme_idx):
         seq = self._get_seq(ref_scheme_idx)
-        assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
 
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
         nbr_frames = len(all_gts)
