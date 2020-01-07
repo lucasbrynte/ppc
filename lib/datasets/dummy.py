@@ -692,7 +692,7 @@ class DummyDataset(Dataset):
 
             obj_labels_possible_occluders = [model_spec['readable_label'] for obj_id, model_spec in self._models_info.items() if obj_id != self._obj_id]
             T_occluders = {}
-            nbr_occluders = 4
+            nbr_occluders = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['nbr_occluders']
             for k, obj_label in enumerate(np.random.choice(obj_labels_possible_occluders, size=(nbr_occluders,), replace=False)):
                 bin_size = 2*np.pi/nbr_occluders
                 margin = 0.15 * bin_size
