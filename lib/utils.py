@@ -136,6 +136,7 @@ def get_rotation_axis_angle(axis, angle):
     return T
 
 def get_translation(translation_vec):
+    translation_vec = np.array(translation_vec).squeeze()
     T = np.eye(4)
     T[0:3, 3] = translation_vec
     return T
