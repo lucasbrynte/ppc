@@ -17,6 +17,7 @@ from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
+# from lib.utils import get_eucl
 from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
@@ -606,6 +607,19 @@ class DummyDataset(Dataset):
         depth_map = depth_map.astype(np.float32) * float(depth_scale)
         return depth_map
 
+    # def _compute_gt_optflow(self, depth_map_rendered, silhouette_mask, K, R1, t1, R2, t2):
+    #     # Normalize pixels
+    #     # Backproject normalized 2D points
+    #     # Reproject into 2nd camera & compute residual
+    # 
+    #     # NOTE: Use fundamental matrix instead..?
+    #     # NOTE: Use fundamental matrix instead..?
+    #     # NOTE: Use fundamental matrix instead..?
+    #     # NOTE: Use fundamental matrix instead..?
+    #     # NOTE: Use fundamental matrix instead..?
+    # 
+    #     return gt_optflow
+
     def _get_safe_anno_mask(self, depth_map, depth_map_rendered):
         """
         Reads observed depth (from RGB-D sensor) and rendered depth, and returns a mask such that:
@@ -623,6 +637,7 @@ class DummyDataset(Dataset):
         seq = self._get_seq(ref_scheme_idx)
 
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
+        # NOTE: Last frame missing (from both data and annotations). Lost during pre-processing scripts in ~/research/3dod/preprocessing/rigidpose, due to wrong "sequence_length" entries in ~/object-pose-estimation/meta.json
         nbr_frames = len(all_gts)
 
         NBR_ATTEMPTS = 50
@@ -842,6 +857,10 @@ class DummyDataset(Dataset):
 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
+        # # Transformation from 1st camera frame to 2nd camera frame
+        # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
+        # # T12_cam = get_eucl(R2, t2) @ np.linalg.inv(get_eucl(R1, t1))
+
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
             seq = self._get_seq(ref_scheme_idx)
@@ -853,6 +872,9 @@ class DummyDataset(Dataset):
             depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
             depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
             depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
+
+            # # Compute ground truth optical flow
+            # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, K, R1, t1, R2, t2)
 
             # Determine at what pixels the annotated segmentation can be relied upon
             safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)

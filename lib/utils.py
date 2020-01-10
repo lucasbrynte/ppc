@@ -141,6 +141,13 @@ def get_translation(translation_vec):
     T[0:3, 3] = translation_vec
     return T
 
+# def get_eucl(R, t):
+#     t = np.array(t).squeeze()
+#     T = np.eye(4)
+#     T[0:3, 0:3] = R
+#     T[0:3, 3] = t
+#     return T
+
 def sample_param(sample_spec):
     shape = sample_spec.shape if hasattr(sample_spec, 'shape') else ()
     if sample_spec.method == 'fixed':
