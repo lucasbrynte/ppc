@@ -4,6 +4,7 @@ set -e
 OLD_EXPERIMENT_PREFIX=$1
 NEW_EXPERIMENT_PREFIX=$2
 
+REPOPATH=/home/lucas/research/ppc
 CONTAINER=ppc
 CONFIGNAME=dummy
 # CHECKPOINT_FNAME=best_model.pth.tar
