@@ -54,7 +54,8 @@ tasks:
       - {method: relative, min_denominator: 0.01}
   delta_angle_total:
     target: delta_angle_total
-    loss_func: L2
+    loss_func: L1
+    # loss_func: L2
     loss_weight: 1.0
     clamp_before_loss: false
     prior_loss: null
