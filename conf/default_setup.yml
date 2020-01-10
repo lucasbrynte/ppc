@@ -60,8 +60,8 @@ tasks:
     clamp_before_loss: false
     prior_loss: null
     loss_decay:
-      - {method: relative, min_denominator: 0.005}
-
+      # - {method: relative, min_denominator: 0.005}
+    
       # 0-20 px
       - {method: smoothstep, target: norm_pixel_offset, x1: 0.0, x2: 20.0, y1: 1.0, y2: 0.0}
       # 0-40 px
