@@ -18,6 +18,7 @@ default_schemeset_opts:
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images
+      # nbr_occluders: 0 # Occluders for synthetic ref images
   val:
     loading:
       # nbr_batches: 1
@@ -36,6 +37,7 @@ default_schemeset_opts:
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images
+      # nbr_occluders: 0 # Occluders for synthetic ref images
 data_sampling_scheme_defs:
   train:
     train:
