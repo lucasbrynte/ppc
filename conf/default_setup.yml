@@ -131,42 +131,44 @@ tasks:
 logging:
   avg_window_size: 25
 model:
-  coord_maps:
-    enabled: True
-    viewing_ray_dependent_coordinates: True
-    preserve_scale: False
-    # NOTE: Different tasks might desire different format on coord maps. Maybe supply coord maps in multiple formats?
-  # siamese_net: true
-  siamese_net: false
-  cnn_layers:
-    - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: true}
-    - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-    - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-    - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-    - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-    - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-  # cnn_layers:
-  #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: true}
-  #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-  #   - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-  #   - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-  #   - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-  #   - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-  head_layers:
-    - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-    - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-    - {dropout_factor: null, bias: true, relu_flag: false}
-    # - {dropout_factor: null, bias: false, relu_flag: false}
+  architecture: custom_siamese
+  custom_siamese_opts:
+    coord_maps:
+      enabled: True
+      viewing_ray_dependent_coordinates: True
+      preserve_scale: False
+      # NOTE: Different tasks might desire different format on coord maps. Maybe supply coord maps in multiple formats?
+    # siamese_net: true
+    siamese_net: false
+    cnn_layers:
+      - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: true}
+      - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
+      - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
+      - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
+      - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
+      - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
+    # cnn_layers:
+    #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: true}
+    #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
+    #   - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
+    #   - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
+    #   - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
+    #   - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
+    head_layers:
+      - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+      - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+      - {dropout_factor: null, bias: true, relu_flag: false}
+      # - {dropout_factor: null, bias: false, relu_flag: false}
 data:
   dataformat: dummy
   path: /datasets/occluded-linemod-augmented

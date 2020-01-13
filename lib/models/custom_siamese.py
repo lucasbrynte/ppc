@@ -26,7 +26,7 @@ class SiameseUnit(nn.Module):
         super().__init__()
         self._configs = configs
         self._domain_specific_params = domain_specific_params
-        if self._configs.model.siamese_net:
+        if self._configs.model.custom_siamese_opts.siamese_net:
             if self._domain_specific_params:
                 self.conv_real = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
                 self.conv_synth = ConvBatchReLU(in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
@@ -43,7 +43,7 @@ class SiameseUnit(nn.Module):
         y = []
         for i in range(2):
             z = x[i]
-            if self._configs.model.siamese_net:
+            if self._configs.model.custom_siamese_opts.siamese_net:
                 if self._domain_specific_params:
                     if i == 0:
                         # NOTE: Convolutions applied for all samples in both branches.
@@ -65,11 +65,6 @@ class SiameseUnit(nn.Module):
             y.append(z)
         return y
 
-# model:
-#   coord_maps:
-#     enabled: False
-#     viewing_ray_dependent_coordinates: True
-#     preserve_scale: False
 class MergeUnit(nn.Module):
     """
     Takes a number of feature maps as input. None elements allowed, but disregarded.
@@ -80,7 +75,7 @@ class MergeUnit(nn.Module):
         self._configs = configs
         self.has_prev_merged = in_channels[-1] is not None
         total_in_channels = sum(in_channels) if self.has_prev_merged else sum(in_channels[:-1])
-        if self._configs.model.coord_maps.enabled:
+        if self._configs.model.custom_siamese_opts.coord_maps.enabled:
             total_in_channels += 2
         self.conv = ConvBatchReLU(total_in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
@@ -89,18 +84,18 @@ class MergeUnit(nn.Module):
         x = x[1:]
         x = [fmap for fmap in x if fmap is not None]
         batch_size, _, ds_height, ds_width = x[0].shape
-        if self._configs.model.coord_maps.enabled:
+        if self._configs.model.custom_siamese_opts.coord_maps.enabled:
             coord_maps = torch.empty((batch_size, 2, ds_height, ds_width), device=get_device())
             for sample_idx in range(batch_size):
                 (x1, y1, x2, y2) = extra_input.crop_box_normalized[sample_idx]
-                if self._configs.model.coord_maps.viewing_ray_dependent_coordinates:
+                if self._configs.model.custom_siamese_opts.coord_maps.viewing_ray_dependent_coordinates:
                     # Bounding box center in normalized coordinates
                     xc = 0.5 * (x1 + x2)
                     yc = 0.5 * (y1 + y2)
                 else:
                     xc = 0.
                     yc = 0.
-                if self._configs.model.coord_maps.preserve_scale:
+                if self._configs.model.custom_siamese_opts.coord_maps.preserve_scale:
                     # "Preserving the scale" effectively preserves some information which is dependent on absolute depth
                     # Bounding box width & height are in normalized coordinates.
                     cc_width  = x2 - x1
@@ -227,17 +222,17 @@ class Model(nn.Module):
     def __init__(self, configs):
         super().__init__()
         self._configs = configs
-        self.ds_factor, self.cnn_output_dims = self.calc_downsampling_dimensions(self._configs.model.cnn_layers)
-        self.verify_cnn_layer_specs(self._configs.model.cnn_layers)
-        self.verify_head_layer_specs(self._configs['model']['head_layers']) # Access by key important - needs to be mutable
-        self.semi_siamese_cnn = SemiSiameseCNN(self._configs, self._configs.model.cnn_layers)
-        self.head = Head(self._configs, self.cnn_output_dims, self._configs.model.head_layers)
+        self.ds_factor, self.cnn_output_dims = self.calc_downsampling_dimensions(self._configs.model.custom_siamese_opts.cnn_layers)
+        self.verify_cnn_layer_specs(self._configs.model.custom_siamese_opts.cnn_layers)
+        self.verify_head_layer_specs(self._configs['model']['custom_siamese_opts']['head_layers']) # Access by key important - needs to be mutable
+        self.semi_siamese_cnn = SemiSiameseCNN(self._configs, self._configs.model.custom_siamese_opts.cnn_layers)
+        self.head = Head(self._configs, self.cnn_output_dims, self._configs.model.custom_siamese_opts.head_layers)
 
     def get_last_layer_params(self):
         for module in reversed(self.head.sequential):
             w_params, b_params = get_module_parameters(module)
             if len(w_params) > 0 or len(b_params) > 0:
-                assert len(w_params) == 1 and len(b_params) == (1 if self._configs.model.head_layers[-1].bias else 0)
+                assert len(w_params) == 1 and len(b_params) == (1 if self._configs.model.custom_siamese_opts.head_layers[-1].bias else 0)
                 break
         else:
             assert False, "Tried to find last parameterized layer, but found no layer with parameters of interest"

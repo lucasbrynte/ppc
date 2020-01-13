@@ -2,12 +2,12 @@ import torch
 import numpy as np
 from numbers import Number
 from attrdict import AttrDict
+from importlib import import_module
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
-from lib.model import Model
 from lib.utils import get_device, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -17,6 +17,7 @@ class Main():
     def __init__(self, configs):
         """Constructor."""
         self._configs = configs
+        self._model_module = import_module('lib.models.%s' % configs.model.architecture)
         self._modes = (TRAIN, VAL) if self._configs.train_or_eval == 'train' else (TEST,)
         self._data_loader = Loader(self._modes, self._configs)
         self._loss_handler = LossHandler(configs, self.__class__.__name__)
@@ -31,7 +32,7 @@ class Main():
         self._target_prior_samples = None
 
     def _init_model(self):
-        model = Model(self._configs)
+        model = self._model_module.Model(self._configs)
         return model
 
     def _setup_optimizer(self):
