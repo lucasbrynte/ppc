@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from numbers import Number
 
 from lib.utils import get_module_parameters, get_device
 
@@ -227,6 +228,31 @@ class Model(nn.Module):
         self.verify_head_layer_specs(self._configs['model']['custom_siamese_opts']['head_layers']) # Access by key important - needs to be mutable
         self.semi_siamese_cnn = SemiSiameseCNN(self._configs, self._configs.model.custom_siamese_opts.cnn_layers)
         self.head = Head(self._configs, self.cnn_output_dims, self._configs.model.custom_siamese_opts.head_layers)
+
+    def get_optim_param_groups(self):
+        weight_decay = self._configs.model.custom_siamese_opts.weight_decay if self._configs.model.custom_siamese_opts.weight_decay is not None else {'cnn': 0, 'head': 0}
+        assert all(isinstance(val, Number) for val in weight_decay.values())
+        param_groups = []
+        param_groups.append({
+            'params': [param for name, param in self.semi_siamese_cnn.named_parameters() if name.endswith('weight') and param.requires_grad],
+            'weight_decay': self._configs.model.custom_siamese_opts.weight_decay['cnn'],
+        })
+        param_groups.append({
+            'params': [param for name, param in self.semi_siamese_cnn.named_parameters() if name.endswith('bias') and param.requires_grad],
+            'weight_decay': 0,
+        })
+        param_groups.append({
+            'params': [param for name, param in self.head.named_parameters() if name.endswith('weight') and param.requires_grad],
+            'weight_decay': self._configs.model.custom_siamese_opts.weight_decay['head'],
+        })
+        param_groups.append({
+            'params': [param for name, param in self.head.named_parameters() if name.endswith('bias') and param.requires_grad],
+            'weight_decay': 0,
+        })
+        nbr_params = sum([len(param_group['params']) for param_group in param_groups])
+        total_nbr_params = len([param for param in self.parameters() if param.requires_grad])
+        assert nbr_params == total_nbr_params
+        return param_groups
 
     def get_last_layer_params(self):
         for module in reversed(self.head.sequential):

@@ -4,8 +4,6 @@ training:
   # learning_rate: 1.77e-5 # 1e-4 / sqrt(32)
   learning_rate: 5.e-5
   # learning_rate: 1.e-4
-  # weight_decay: null
-  weight_decay: {cnn: 0, head: 1.e-4}
   backup_epochs: false
   clamp_predictions: false
 targets:
@@ -133,6 +131,8 @@ logging:
 model:
   architecture: custom_siamese
   custom_siamese_opts:
+    # weight_decay: null
+    weight_decay: {cnn: 0, head: 1.e-4}
     coord_maps:
       enabled: True
       viewing_ray_dependent_coordinates: True
