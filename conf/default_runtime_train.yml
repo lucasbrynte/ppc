@@ -155,20 +155,20 @@ data_sampling_scheme_defs:
     #       # override: {background: from_ref}
     #   use_for_val_score: true
 
-    # real_unoccl_train_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - scheme_name: real_unoccl_train_keepbg
-    #   query_schemeset:
-    #     - scheme_name: rot_only_20deg_std
-    #       # override: {background: from_ref}
-    #   use_for_val_score: false
-    # real_occl_val_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - scheme_name: real_occl_val_keepbg
-    #   query_schemeset:
-    #     - scheme_name: rot_only_20deg_std
-    #       # override: {background: from_ref}
-    #   use_for_val_score: true
+    real_unoccl_train_rot_only_20deg_std:
+      ref_schemeset:
+        - scheme_name: real_unoccl_train_keepbg
+      query_schemeset:
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
+      use_for_val_score: false
+    real_occl_val_rot_only_20deg_std:
+      ref_schemeset:
+        - scheme_name: real_occl_val_keepbg
+      query_schemeset:
+        - scheme_name: rot_only_20deg_std
+          # override: {background: from_ref}
+      use_for_val_score: true
     synth_voc_rot_only_20deg_std:
       ref_schemeset:
         - scheme_name: synth_voc
@@ -176,7 +176,7 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: rot_only_20deg_std
           # override: {background: from_ref}
-      use_for_val_score: true
+      use_for_val_score: false
 
     # real_unoccl_train_transl_10perc:
     #   ref_schemeset:
