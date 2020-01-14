@@ -120,6 +120,14 @@ class Model(nn.Module):
         resnet_output_dims = self._check_resnet_output_dims()
         self.head = Head(self._configs, resnet_output_dims, self._configs.model.resnet18_opts.head_layers)
 
+    def freeze_resnet(self):
+        for param in list(self.E12.parameters()) + list(self.E2.parameters()):
+            param.requires_grad = False
+
+    def unfreeze_resnet(self):
+        for param in list(self.E12.parameters()) + list(self.E2.parameters()):
+            param.requires_grad = True
+
     def _check_resnet_output_dims(self):
         out = self.E2(self.E11(torch.zeros((1, 3, self._configs.data.crop_dims[0], self._configs.data.crop_dims[1]))))
         return out.shape[1:]
