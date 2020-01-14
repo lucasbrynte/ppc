@@ -222,6 +222,7 @@ class Main():
             self._loss_handler.filter_persample_signals([
                 'interp_target_feat',
                 'interp_pred_feat',
+                'pred_feat',
                 'pred_feat_raw',
                 'relative_feat_abserror',
                 'interp_feat_abserror',

@@ -118,6 +118,7 @@ class Visualizer:
 
     def calc_and_plot_signal_stats(self, signals, mode, schemeset, step_index, target_prior_samples=None, filtered_flag=False):
         suffix = '' if not filtered_flag else '_filtered'
+        self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['interp_pred_feat'+suffix], 'pred_feature_against_target_magnitude'+suffix, mode, schemeset, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['relative_feat_abserror'+suffix], 'relative_feature_abserror_against_target_magnitude'+suffix, mode, schemeset, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['interp_feat_abserror'+suffix], 'feature_abserror_against_target_magnitude'+suffix, mode, schemeset, step_index)
         self.plot_feature_error_against_target_magnitude(signals['interp_target_feat'+suffix], signals['interp_feat_error'+suffix], 'feature_error_against_target_magnitude'+suffix, mode, schemeset, step_index)
