@@ -73,8 +73,10 @@ class Renderer():
 
     void main() {
         float light_diffuse_w = max(dot(normalize(vs_light_eye_dir), normalize(vs_normal)), 0.0);
-        float light_w = u_light_ambient_w + light_diffuse_w;
-        if(light_w > 1.0) light_w = 1.0;
+
+        float light_w = u_light_ambient_w + (1.0 - u_light_ambient_w)*light_diffuse_w;
+        //float light_w = u_light_ambient_w + light_diffuse_w;
+        //if(light_w > 1.0) light_w = 1.0;
 
         if(bool(u_use_texture))
             out_rgb = vec4(light_w * texture2D(u_texture_map, vs_texcoord));
