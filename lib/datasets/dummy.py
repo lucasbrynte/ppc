@@ -853,7 +853,7 @@ class DummyDataset(Dataset):
         # print("sq", crop_box)
         crop_box_normalized = self._normalize_bbox(crop_box, self._K[0,0], self._K[1,1], self._K[0,2], self._K[1,2])
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
-        K = H @ self._K
+        HK = H @ self._K
 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
@@ -874,7 +874,7 @@ class DummyDataset(Dataset):
             depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
 
             # # Compute ground truth optical flow
-            # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, K, R1, t1, R2, t2)
+            # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, HK, R1, t1, R2, t2)
 
             # Determine at what pixels the annotated segmentation can be relied upon
             safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
@@ -887,7 +887,7 @@ class DummyDataset(Dataset):
                 R_occluders_list1.append(T[:3,:3])
                 t_occluders_list1.append(T[:3,[3]])
                 obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-            img1, instance_seg1 = self._render(K, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
+            img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
             if img1 is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
@@ -919,7 +919,7 @@ class DummyDataset(Dataset):
             safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        img2, instance_seg2 = self._render(K, R2, t2, self._obj_id, [], [], [], query_shading_params)
+        img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
         query_bg = self._get_query_bg(query_scheme_idx, img1)
 
         # Query BG & silhouette post-processing
@@ -950,7 +950,7 @@ class DummyDataset(Dataset):
 
         # Raise error instead of returning nan when calling arccos(x) for x outside of [-1, 1]
         with np.errstate(invalid='raise'):
-            pixel_offset = pflat(K @ t2)[:2,0] - pflat(K @ t1)[:2,0]
+            pixel_offset = pflat(HK @ t2)[:2,0] - pflat(HK @ t1)[:2,0]
             delta_angle_inplane = self._calc_delta_angle_inplane(R21_cam)
             delta_angle_total = self._angle_from_rotmat(R21_cam)
 
