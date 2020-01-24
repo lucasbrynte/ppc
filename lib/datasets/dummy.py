@@ -28,8 +28,8 @@ from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_cam
 Maps = namedtuple('Maps', [
     'ref_img',
     'query_img',
-    'ref_silmask',
-    'query_silmask',
+    # 'ref_silmask',
+    # 'query_silmask',
     'safe_anno_mask',
 ])
 
@@ -937,8 +937,8 @@ class DummyDataset(Dataset):
         maps = Maps(
             ref_img = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
             query_img = numpy_to_pt(img2.astype(np.float32), normalize_flag=True),
-            ref_silmask = numpy_to_pt(instance_seg1 == 1, normalize_flag=False),
-            query_silmask = numpy_to_pt(instance_seg2 == 1, normalize_flag=False),
+            # ref_silmask = numpy_to_pt(instance_seg1 == 1, normalize_flag=False),
+            # query_silmask = numpy_to_pt(instance_seg2 == 1, normalize_flag=False),
             safe_anno_mask = numpy_to_pt(safe_anno_mask, normalize_flag=False),
         )
 
