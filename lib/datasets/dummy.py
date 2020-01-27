@@ -36,10 +36,15 @@ Maps = namedtuple('Maps', [
 ExtraInput = namedtuple('ExtraInput', [
     'crop_box_normalized',
     'real_ref',
+    'HK',
+    'R2',
+    't2',
 ])
 
 SampleMetaData = namedtuple('SampleMetaData', [
     'ref_img_path',
+    'ambient_weight',
+    'obj_id',
 ])
 
 def get_metadata(configs):
@@ -919,14 +924,20 @@ class DummyDataset(Dataset):
             safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
-        query_bg = self._get_query_bg(query_scheme_idx, img1)
+        if self._configs.data.query_rendering_method == 'glumpy':
+            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
+            query_bg = self._get_query_bg(query_scheme_idx, img1)
 
-        # Query BG & silhouette post-processing
-        if query_bg is not None:
-            img2 = self._apply_bg(img2, instance_seg2, query_bg)
-        if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
-            img2 = self._set_white_silhouette(img2, instance_seg2)
+            # Query BG & silhouette post-processing
+            if query_bg is not None:
+                img2 = self._apply_bg(img2, instance_seg2, query_bg)
+            if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
+                img2 = self._set_white_silhouette(img2, instance_seg2)
+        else:
+            assert self._configs.data.query_rendering_method == 'neural'
+            assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
+            assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
+            img2 = np.zeros_like(img1)
 
 
         # Augmentation + numpy -> pytorch conversion
@@ -982,10 +993,15 @@ class DummyDataset(Dataset):
         extra_input = ExtraInput(
             crop_box_normalized = torch.tensor(crop_box_normalized).float(),
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
+            HK = torch.tensor(HK, dtype=torch.float32),
+            R2 = torch.tensor(R2, dtype=torch.float32),
+            t2 = torch.tensor(t2, dtype=torch.float32),
         )
 
         meta_data = SampleMetaData(
             ref_img_path = ref_img_path if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real' else None,
+            ambient_weight = float(query_shading_params['ambient_weight']),
+            obj_id = self._obj_id,
         )
 
         return maps, targets, extra_input, meta_data

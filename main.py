@@ -7,6 +7,7 @@ import lib.setup
 from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
+from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.utils import get_device, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -26,6 +27,9 @@ class Main():
             self._optimizer = self._setup_optimizer()
             self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
         self._visualizer = Visualizer(configs)
+
+        if self._configs.data.query_rendering_method == 'neural':
+            self._neural_rendering_wrapper = NeuralRenderingWrapper(configs)
 
         self._target_prior_samples_numpy = None
         self._target_prior_samples = None
@@ -129,6 +133,14 @@ class Main():
         # cnt = 0
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
+            if self._configs.data.query_rendering_method == 'neural':
+                batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
+                    batch.extra_input.HK.cuda(),
+                    batch.extra_input.R2.cuda(),
+                    batch.extra_input.t2.cuda(),
+                    batch.meta_data.obj_id,
+                    batch.meta_data.ambient_weight,
+                )
             nn_out = self._run_model(batch.maps, batch.extra_input)
 
             # Raw predicted features (neural net output)

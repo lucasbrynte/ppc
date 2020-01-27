@@ -189,4 +189,6 @@ data:
   voc_path: /datasets/voc
   img_dims: [480, 480]
   crop_dims: [128, 128]
+  # query_rendering_method: glumpy
+  query_rendering_method: neural
   ref_colorjitter_during_train: true
