@@ -50,7 +50,8 @@ class Renderer():
     """
 
     _fragment_shader = """
-    uniform float u_light_ambient_w;
+    uniform float u_ambient_coeff;
+    uniform float u_diffuse_coeff;
     uniform sampler2D u_texture_map;
     uniform int u_use_texture;
     uniform float u_obj_id;
@@ -74,8 +75,8 @@ class Renderer():
     void main() {
         float light_diffuse_w = max(dot(normalize(vs_light_eye_dir), normalize(vs_normal)), 0.0);
 
-        float light_w = u_light_ambient_w + (1.0 - u_light_ambient_w)*light_diffuse_w;
-        //float light_w = u_light_ambient_w + light_diffuse_w;
+        float light_w = u_ambient_coeff + u_diffuse_coeff*light_diffuse_w;
+        //float light_w = u_ambient_coeff + light_diffuse_w;
         //if(light_w > 1.0) light_w = 1.0;
 
         if(bool(u_use_texture))
@@ -352,7 +353,8 @@ class Renderer():
         light_pos = np.squeeze(self._mat_view @ light_pos) # self._mat_view represents cam frame -> openGL cam frame transformation. (Camera assumed to be in origin)
         light_pos = light_pos[:3] / light_pos[3] # Perspective divide
         self._program['u_light_eye_pos'] = light_pos
-        self._program['u_light_ambient_w'] = ambient_weight
+        self._program['u_ambient_coeff'] = ambient_weight
+        self._program['u_diffuse_coeff'] = 1.0 - ambient_weight
 
         self._fbo.activate()
         self._prepare_rendering() # Could alternatively be done in on_draw()
