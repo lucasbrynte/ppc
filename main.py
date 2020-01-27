@@ -82,14 +82,15 @@ class Main():
     def eval(self):
         epoch = 1
         for schemeset, schemeset_def in self._configs.runtime.data_sampling_scheme_defs[TEST].items():
-            self._run_epoch(
-                epoch,
-                TEST,
-                schemeset,
-                save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['save_imgs'],
-                plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signals'],
-                plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signal_stats'],
-            )
+            with torch.no_grad():
+                self._run_epoch(
+                    epoch,
+                    TEST,
+                    schemeset,
+                    save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['save_imgs'],
+                    plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signals'],
+                    plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signal_stats'],
+                )
 
     def _sample_epoch_of_targets(self, mode, schemeset):
         print('Running through epoch to collect target samples for prior...')
