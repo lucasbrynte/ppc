@@ -134,13 +134,15 @@ class Main():
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             if self._configs.data.query_rendering_method == 'neural':
-                batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
-                    batch.extra_input.HK.cuda(),
-                    batch.extra_input.R2.cuda(),
-                    batch.extra_input.t2.cuda(),
-                    batch.meta_data.obj_id,
-                    batch.meta_data.ambient_weight,
-                )
+                # NOTE: Here is fine to not store gradients. Use other function entirely when evaluating w/ gradient search for optimal pose.
+                with torch.no_grad():
+                    batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
+                        batch.extra_input.HK.cuda(),
+                        batch.extra_input.R2.cuda(),
+                        batch.extra_input.t2.cuda(),
+                        batch.meta_data.obj_id,
+                        batch.meta_data.ambient_weight,
+                    )
             nn_out = self._run_model(batch.maps, batch.extra_input)
 
             # Raw predicted features (neural net output)
