@@ -118,7 +118,7 @@ class Loader:
                 targets = loader.dataset.Targets(*batch[0]),
                 maps = self._dataset_module.Maps(*batch[1]),
                 extra_input = self._dataset_module.ExtraInput(*batch[2]),
-                meta_data = [self._dataset_module.SampleMetaData(*sample_meta_data) for sample_meta_data in batch[3]],
+                meta_data = self._dataset_module.SampleMetaData(*batch[3]),
             )
             yield batch
 
@@ -131,5 +131,6 @@ def collate_batch(batch_list):
     targets = tuple(map(torch.stack, zip(*targets)))
     maps = tuple(map(torch.stack, zip(*maps)))
     extra_input = tuple(map(torch.stack, zip(*extra_input)))
+    meta_data = list(zip(*meta_data))
 
     return (targets, maps, extra_input, meta_data)

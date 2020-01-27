@@ -205,8 +205,8 @@ class Visualizer:
             gridspec_kw={'height_ratios': [1, 2]},
         )
         ref_img_title = 'Ref. image'
-        if batch.meta_data[sample].ref_img_path is not None:
-            ref_img_title += '\n' + batch.meta_data[sample].ref_img_path
+        if batch.meta_data.ref_img_path[sample] is not None:
+            ref_img_title += '\n' + batch.meta_data.ref_img_path[sample]
         self._plot_img(axes_array[0,0], img1, ref_img_title)
         self._plot_img(axes_array[0,1], img2, 'Query image')
 
