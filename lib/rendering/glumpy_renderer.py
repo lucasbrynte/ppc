@@ -52,6 +52,9 @@ class Renderer():
     _fragment_shader = """
     uniform float u_ambient_coeff;
     uniform float u_diffuse_coeff;
+    uniform float u_specular_coeff;
+    uniform float u_specular_shininess;
+    uniform float u_specular_whiteness;
     uniform sampler2D u_texture_map;
     uniform int u_use_texture;
     uniform float u_obj_id;
@@ -75,14 +78,23 @@ class Renderer():
     void main() {
         float light_diffuse_w = max(dot(normalize(vs_light_eye_dir), normalize(vs_normal)), 0.0);
 
-        float light_w = u_ambient_coeff + u_diffuse_coeff*light_diffuse_w;
-        //float light_w = u_ambient_coeff + light_diffuse_w;
-        //if(light_w > 1.0) light_w = 1.0;
+        vec3 cam_eye_dir = normalize(-vs_eye_pos); // Camera position term omitted. It is (0,0,0) in eye frame.
+        vec3 reflect_dir = reflect(-normalize(vs_light_eye_dir), normalize(vs_normal));
+        float light_specular_w = pow(max(dot(cam_eye_dir, reflect_dir), 0.0), u_specular_shininess);
 
+
+        vec3 object_color;
         if(bool(u_use_texture))
-            out_rgb = vec4(light_w * texture2D(u_texture_map, vs_texcoord));
+            object_color = vec4(texture2D(u_texture_map, vs_texcoord)).rgb;
         else
-            out_rgb = vec4(light_w * vs_color, 1.0);
+            object_color = vs_color;
+
+        vec3 specular_color = (1.0-u_specular_whiteness)*object_color + u_specular_whiteness*vec3(1.0, 1.0, 1.0);
+
+        vec3 out_rgb_tmp = u_ambient_coeff*object_color + u_diffuse_coeff*light_diffuse_w*object_color + u_specular_coeff*light_specular_w*specular_color;
+        out_rgb = vec4(out_rgb_tmp, 1.0);
+
+
         out_depth = vec4(vs_eye_depth, 0.0, 0.0, 1.0);
         out_seg = vec4(u_obj_id, 0.0, 0.0, 1.0);
         out_instance_seg = vec4(u_instance_id, 0.0, 0.0, 1.0);
@@ -342,9 +354,15 @@ class Renderer():
         obj_id_list,
         light_pos = [0, 0, 0], # Camera origin
         ambient_weight = 0.5,
+        diffuse_weight = 0.5,
+        specular_weight = 0.0,
+        specular_shininess = 3.,
+        specular_whiteness = 0.3,
         clip_near = 100,
         clip_far = 10000,
     ):
+        assert ambient_weight + diffuse_weight <= 1.0 + 1e-7
+        assert specular_shininess >= 0.0
         nbr_instances = len(R_list)
 
         mat_proj = self._compute_calib_proj(K, 0, 0, self._shape[1], self._shape[0], clip_near, clip_far)
@@ -354,7 +372,10 @@ class Renderer():
         light_pos = light_pos[:3] / light_pos[3] # Perspective divide
         self._program['u_light_eye_pos'] = light_pos
         self._program['u_ambient_coeff'] = ambient_weight
-        self._program['u_diffuse_coeff'] = 1.0 - ambient_weight
+        self._program['u_diffuse_coeff'] = diffuse_weight
+        self._program['u_specular_coeff'] = specular_weight
+        self._program['u_specular_shininess'] = specular_shininess
+        self._program['u_specular_whiteness'] = specular_whiteness
 
         self._fbo.activate()
         self._prepare_rendering() # Could alternatively be done in on_draw()

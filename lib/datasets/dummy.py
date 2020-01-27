@@ -243,6 +243,10 @@ class DummyDataset(Dataset):
             [obj_id] + obj_id_occluders,
             light_pos = light_pos_camframe,
             ambient_weight = shading_params['ambient_weight'],
+            diffuse_weight = shading_params['diffuse_weight'] if 'diffuse_weight' in shading_params else (1.0 - shading_params['ambient_weight']),
+            specular_weight = shading_params['specular_weight'] if 'specular_weight' in shading_params else 0.0,
+            specular_shininess = shading_params['specular_shininess'] if 'specular_shininess' in shading_params else 3.0,
+            specular_whiteness = shading_params['specular_whiteness'] if 'specular_whiteness' in shading_params else 0.3,
             clip_near = 100, # mm
             clip_far = 10000, # mm
         )

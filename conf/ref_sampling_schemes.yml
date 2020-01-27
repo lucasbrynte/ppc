@@ -427,6 +427,9 @@ synth_voc:
       inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
+      specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+      specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
+      specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
       light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
 synth_blackbg:
   ref_source: synthetic
@@ -451,6 +454,9 @@ synth_blackbg:
       inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
+      specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+      specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
+      specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
       light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
 synth_whitesilhouette:
   ref_source: synthetic
@@ -475,4 +481,7 @@ synth_whitesilhouette:
       inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
+      specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+      specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
+      specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
       light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
