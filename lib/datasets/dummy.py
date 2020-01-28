@@ -972,7 +972,7 @@ class DummyDataset(Dataset):
             total_nbr_model_pts = self._models[self._obj_id]['pts'].shape[0]
             sampled_nbr_model_pts = 3000
             sampled_model_pts = self._models[self._obj_id]['pts'][np.random.choice(total_nbr_model_pts, size=sampled_nbr_model_pts), :]
-            avg_reproj_err = np.mean(np.linalg.norm(project_pts(sampled_model_pts.T, HK, R2, t1) - project_pts(sampled_model_pts.T, HK, R1, t1), axis=0))
+            avg_reproj_err = np.mean(np.linalg.norm(project_pts(sampled_model_pts.T, HK, R2, t2) - project_pts(sampled_model_pts.T, HK, R1, t1), axis=0))
             all_target_vals = {
                 'avg_reproj_err': avg_reproj_err,
                 'pixel_offset': pixel_offset,
