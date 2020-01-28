@@ -107,6 +107,10 @@ def closeto_within(data, low=None, high=None):
         ret &= np.isclose(overshoot, 0.0)
     return ret
 
+def project_pts(pts, K, R, t):
+    assert pts.shape[0] == 3
+    return pflat(K @ (R@pts + t))[:2,0]
+
 def uniform_sampling_on_S2(shape=()):
     """
     For shape (s1, s2, ...), output shape is (s1, s2, ..., 3)

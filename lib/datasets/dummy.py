@@ -18,7 +18,7 @@ from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
 # from lib.utils import get_eucl
-from lib.utils import uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
+from lib.utils import project_pts, uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -969,9 +969,14 @@ class DummyDataset(Dataset):
             delta_angle_inplane = self._calc_delta_angle_inplane(R21_cam)
             delta_angle_total = self._angle_from_rotmat(R21_cam)
 
+            total_nbr_model_pts = self._models[self._obj_id]['pts'].shape[0]
+            sampled_nbr_model_pts = 3000
+            sampled_model_pts = self._models[self._obj_id]['pts'][np.random.choice(total_nbr_model_pts, size=sampled_nbr_model_pts), :]
+            avg_reproj_err = np.mean(np.linalg.norm(project_pts(sampled_model_pts.T, HK, R2, t1) - project_pts(sampled_model_pts.T, HK, R1, t1), axis=0))
             all_target_vals = {
+                'avg_reproj_err': avg_reproj_err,
                 'pixel_offset': pixel_offset,
-                'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
+                'rel_depth_error': np.log(t1[2,0]) - np.log(t1[2,0]),
                 'norm_pixel_offset': np.linalg.norm(pixel_offset),
                 'delta_angle_inplane_signed': delta_angle_inplane,
                 'delta_angle_inplane_unsigned': self._clip_and_arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
