@@ -612,7 +612,23 @@ class DummyDataset(Dataset):
         """
         subdir = 'depth_rendered' if rendered else 'depth'
         depth_path = os.path.join(self._configs.data.path, seq, subdir, str(frame_idx).zfill(6) + '.png')
-        depth_map = self._crop(np.array(Image.open(depth_path), dtype=np.uint16), crop_box)
+
+        # NOTE! simplify this back again, once the root of the PNG issue is found...
+        # depth_map = self._crop(np.array(Image.open(depth_path), dtype=np.uint16), crop_box)
+        try:
+            depth_map11 = Image.open(depth_path)
+            depth_map22 = np.array(depth_map11, dtype=np.uint16)
+            depth_map = self._crop(depth_map22, crop_box)
+        except:
+            print(depth_path)
+            print(depth_map11)
+            print(depth_map22)
+            print(depth_map)
+            print(type(depth_map11))
+            print(type(depth_map22))
+            print(type(depth_map))
+            assert False
+
         depth_map = depth_map.astype(np.float32) * float(depth_scale)
         return depth_map
 
