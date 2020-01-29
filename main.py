@@ -96,6 +96,15 @@ class Main():
                     plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['visualization']['plot_signal_stats'],
                 )
 
+    def eval_with_posesearch(self):
+        for schemeset, schemeset_def in self._configs.runtime.data_sampling_scheme_defs[TEST].items():
+            if not self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['poseopt']['enabled']:
+                continue
+            self._run_epoch_with_posesearch(
+                TEST,
+                schemeset,
+            )
+
     def _sample_epoch_of_targets(self, mode, schemeset):
         print('Running through epoch to collect target samples for prior...')
         selected_targets = {task_spec['target'] for task_name, task_spec in self._configs.tasks.items() if task_spec['prior_loss'] is not None}
@@ -115,6 +124,32 @@ class Main():
         self._loss_handler._reset_signals()
         print('Done.')
         return target_samples
+
+    def _run_epoch_with_posesearch(self, mode, schemeset):
+        assert mode == TEST
+        self._model.eval() # Although gradients are computed - batch norm, dropout etc should be in eval mode.
+        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
+            assert self._configs.data.query_rendering_method == 'neural'
+            batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
+                batch.extra_input.HK.cuda(),
+                batch.extra_input.R2.cuda(),
+                batch.extra_input.t2.cuda(),
+                batch.meta_data.obj_id,
+                batch.meta_data.ambient_weight,
+            )
+            nn_out = self._run_model(batch.maps, batch.extra_input)
+
+            # Raw predicted features (neural net output)
+            pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+
+            # Apply activation, and get corresponding target features
+            pred_features = self._loss_handler.apply_activation(pred_features_raw)
+            pertarget_target_features = self._loss_handler.get_target_features(batch.targets)
+            # Map target features to corresponding tasks:
+            target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
+
+            # TODO: How to parameterize R2..? Exponential map may not be straightforward here..? Quaternions? Euler angles?
+            # TODO: Identify estimated reproj error & compute its gradient w.r.t. R2 params.
 
     def _run_epoch(
             self,
