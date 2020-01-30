@@ -924,12 +924,6 @@ class DummyDataset(Dataset):
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         HK = H @ self._K
 
-        R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
-
-        # # Transformation from 1st camera frame to 2nd camera frame
-        # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
-        # # T12_cam = get_eucl(R2, t2) @ np.linalg.inv(get_eucl(R1, t1))
-
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
             seq = self._get_seq(ref_scheme_idx)
@@ -941,9 +935,6 @@ class DummyDataset(Dataset):
             depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
             depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
             depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
-
-            # # Compute ground truth optical flow
-            # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, HK, R1, t1, R2, t2)
 
             # Determine at what pixels the annotated segmentation can be relied upon
             safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
@@ -986,6 +977,16 @@ class DummyDataset(Dataset):
             img1 = self._resize_img(img1, self._configs.data.crop_dims)
             instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
             safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
+
+
+        R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
+
+        # # Transformation from 1st camera frame to 2nd camera frame
+        # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
+        # # T12_cam = get_eucl(R2, t2) @ np.linalg.inv(get_eucl(R1, t1))
+
+        # # Compute ground truth optical flow
+        # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, HK, R1, t1, R2, t2)
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
