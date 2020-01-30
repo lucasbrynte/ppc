@@ -616,12 +616,25 @@ class DummyDataset(Dataset):
         # NOTE! simplify this back again, once the root of the PNG issue is found...
         # depth_map = self._crop(np.array(Image.open(depth_path), dtype=np.uint16), crop_box)
         try:
+            # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000487.png'
             depth_map11 = Image.open(depth_path)
             depth_map22 = np.array(depth_map11, dtype=np.uint16)
             depth_map = self._crop(depth_map22, crop_box)
         except:
             print(depth_path)
             print(depth_map11)
+
+            no_dtype_enforced = np.array(depth_map11)
+            print(no_dtype_enforced.shape)
+            print(no_dtype_enforced)
+
+            asarray = np.asarray(depth_map11)
+            print(asarray.shape)
+            print(asarray)
+
+            tmp1 = no_dtype_enforced.astype(np.uint16)
+            tmp2 = asarray.astype(np.uint16)
+
             print(depth_map22)
             print(depth_map)
             print(type(depth_map11))
