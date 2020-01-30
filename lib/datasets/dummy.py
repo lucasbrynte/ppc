@@ -192,7 +192,8 @@ class DummyDataset(Dataset):
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
         maps, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
-        return Sample(targets, maps, extra_input, meta_data)
+        sample = Sample(targets, maps, extra_input, meta_data)
+        return [sample]
 
     def _get_ref_bg(self, ref_scheme_idx, bg_dims, black_already=False):
         if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':

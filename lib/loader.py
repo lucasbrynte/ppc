@@ -125,6 +125,11 @@ class Loader:
 
 def collate_batch(batch_list):
     """Collates for PT data loader."""
+    # Expect "sub-mini-batches" returned as lists / tuples from dataset.__getitem__.
+    assert all([isinstance(sub_mini_batch, (list, tuple)) for sub_mini_batch in batch_list])
+    # Create list out of list of lists.
+    batch_list = [sample for sub_mini_batch in batch_list for sample in sub_mini_batch]
+
     targets, maps, extra_input, meta_data = zip(*batch_list)
 
     # Map list hierarchy from sample/property to property/sample
