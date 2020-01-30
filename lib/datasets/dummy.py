@@ -857,6 +857,50 @@ class DummyDataset(Dataset):
         x1, y1, x2, y2 = bbox
         return (y2-y1, x2-x1)
 
+    def _calc_targets(self, HK, R1, t1, R2, t2):
+        # How to rotate 2nd camera frame, to align it with 1st camera frame
+        R21_cam = closest_rotmat(R1 @ R2.T)
+
+        # NOTE ON RELATIVE DEPTH:
+        # Actual depth is impossible to determine from image alone due to cropping effects on calibration.
+
+        # Raise error instead of returning nan when calling arccos(x) for x outside of [-1, 1]
+        with np.errstate(invalid='raise'):
+            pixel_offset = pflat(HK @ t2)[:2,0] - pflat(HK @ t1)[:2,0]
+            delta_angle_inplane = self._calc_delta_angle_inplane(R21_cam)
+            delta_angle_total = self._angle_from_rotmat(R21_cam)
+
+            total_nbr_model_pts = self._models[self._obj_id]['pts'].shape[0]
+            # sampled_nbr_model_pts = 3000
+            # sampled_model_pts = self._models[self._obj_id]['pts'][np.random.choice(total_nbr_model_pts, size=sampled_nbr_model_pts), :]
+            sampled_model_pts = self._models[self._obj_id]['pts']
+            avg_reproj_err = np.mean(np.linalg.norm(project_pts(sampled_model_pts.T, HK, R2, t2) - project_pts(sampled_model_pts.T, HK, R1, t1), axis=0))
+            all_target_vals = {
+                'avg_reproj_err': avg_reproj_err,
+                'pixel_offset': pixel_offset,
+                'rel_depth_error': np.log(t1[2,0]) - np.log(t1[2,0]),
+                'norm_pixel_offset': np.linalg.norm(pixel_offset),
+                'delta_angle_inplane_signed': delta_angle_inplane,
+                'delta_angle_inplane_unsigned': self._clip_and_arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
+                'delta_angle_paxis': self._clip_and_arccos(R21_cam[2,2]),
+                'delta_angle_total': delta_angle_total,
+                'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
+                'delta_angle_paxis_cosdist': 1.0 - R21_cam[2,2],
+                'delta_angle_total_cosdist': 1.0 - np.cos(delta_angle_total),
+            }
+
+        target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.targets.keys()}
+
+        for target_name, target_spec in self._configs.targets.items():
+            target = target_vals[target_name]
+            target = np.array(target)
+            if len(target.shape) == 0:
+                target = target[None] # Add redundant dimension (unsqueeze)
+            if not (target_spec['min'] is None and target_spec['max'] is None):
+                target = np.clip(target, target_spec['min'], target_spec['max'])
+            target_vals[target_name] = torch.tensor(target).float()
+        return self.Targets(**target_vals)
+
     def _generate_sample(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
@@ -973,48 +1017,7 @@ class DummyDataset(Dataset):
             safe_anno_mask = numpy_to_pt(safe_anno_mask, normalize_flag=False),
         )
 
-        # How to rotate 2nd camera frame, to align it with 1st camera frame
-        R21_cam = closest_rotmat(R1 @ R2.T)
-
-        # NOTE ON RELATIVE DEPTH:
-        # Actual depth is impossible to determine from image alone due to cropping effects on calibration.
-
-        # Raise error instead of returning nan when calling arccos(x) for x outside of [-1, 1]
-        with np.errstate(invalid='raise'):
-            pixel_offset = pflat(HK @ t2)[:2,0] - pflat(HK @ t1)[:2,0]
-            delta_angle_inplane = self._calc_delta_angle_inplane(R21_cam)
-            delta_angle_total = self._angle_from_rotmat(R21_cam)
-
-            total_nbr_model_pts = self._models[self._obj_id]['pts'].shape[0]
-            # sampled_nbr_model_pts = 3000
-            # sampled_model_pts = self._models[self._obj_id]['pts'][np.random.choice(total_nbr_model_pts, size=sampled_nbr_model_pts), :]
-            sampled_model_pts = self._models[self._obj_id]['pts']
-            avg_reproj_err = np.mean(np.linalg.norm(project_pts(sampled_model_pts.T, HK, R2, t2) - project_pts(sampled_model_pts.T, HK, R1, t1), axis=0))
-            all_target_vals = {
-                'avg_reproj_err': avg_reproj_err,
-                'pixel_offset': pixel_offset,
-                'rel_depth_error': np.log(t1[2,0]) - np.log(t1[2,0]),
-                'norm_pixel_offset': np.linalg.norm(pixel_offset),
-                'delta_angle_inplane_signed': delta_angle_inplane,
-                'delta_angle_inplane_unsigned': self._clip_and_arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
-                'delta_angle_paxis': self._clip_and_arccos(R21_cam[2,2]),
-                'delta_angle_total': delta_angle_total,
-                'delta_angle_inplane_cosdist': 1.0 - np.cos(delta_angle_inplane),
-                'delta_angle_paxis_cosdist': 1.0 - R21_cam[2,2],
-                'delta_angle_total_cosdist': 1.0 - np.cos(delta_angle_total),
-            }
-
-        target_vals = {key: val for key, val in all_target_vals.items() if key in self._configs.targets.keys()}
-
-        for target_name, target_spec in self._configs.targets.items():
-            target = target_vals[target_name]
-            target = np.array(target)
-            if len(target.shape) == 0:
-                target = target[None] # Add redundant dimension (unsqueeze)
-            if not (target_spec['min'] is None and target_spec['max'] is None):
-                target = np.clip(target, target_spec['min'], target_spec['max'])
-            target_vals[target_name] = torch.tensor(target).float()
-        targets = self.Targets(**target_vals)
+        targets = self._calc_targets(HK, R1, t1, R2, t2)
 
         extra_input = ExtraInput(
             crop_box_normalized = torch.tensor(crop_box_normalized).float(),
