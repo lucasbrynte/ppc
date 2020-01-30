@@ -192,7 +192,29 @@ class DummyDataset(Dataset):
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
         HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
-        maps, targets, extra_input, meta_data = self._generate_sample(
+        R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
+        query_shading_params = self._sample_query_shading_params(query_scheme_idx)
+        if self._configs.data.query_rendering_method == 'glumpy':
+            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
+            query_bg = self._get_query_bg(query_scheme_idx, img1)
+
+            # Query BG & silhouette post-processing
+            if query_bg is not None:
+                img2 = self._apply_bg(img2, instance_seg2, query_bg)
+            if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
+                img2 = self._set_white_silhouette(img2, instance_seg2)
+        else:
+            assert self._configs.data.query_rendering_method == 'neural'
+            assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
+            assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
+            img2 = np.zeros_like(img1)
+            instance_seg2 = np.zeros_like(instance_seg1)
+
+        # Augmentation + numpy -> pytorch conversion
+        if self._aug_transform is not None:
+            img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
+
+        sample = self._generate_sample(
             ref_scheme_idx,
             query_scheme_idx,
             sample_index_in_epoch,
@@ -204,9 +226,37 @@ class DummyDataset(Dataset):
             instance_seg1,
             safe_anno_mask,
             crop_box_normalized,
+            img2,
+            instance_seg2,
+            R2,
+            t2,
+            query_shading_params,
         )
-        sample = Sample(targets, maps, extra_input, meta_data)
-        return [sample]
+
+        if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt']:
+            # In the neural renderer case, rendering has not yet been carried out. The placeholders im2 and instance_seg2 remain unchanged.
+            assert self._configs.data.query_rendering_method == 'neural'
+            sample_at_opt = self._generate_sample(
+                ref_scheme_idx,
+                query_scheme_idx,
+                sample_index_in_epoch,
+                HK,
+                R1,
+                t1,
+                ref_img_path,
+                img1,
+                instance_seg1,
+                safe_anno_mask,
+                crop_box_normalized,
+                img2,
+                instance_seg2,
+                R1, # Ref pose sent in as query pose!
+                t1, # Ref pose sent in as query pose!
+                query_shading_params,
+            )
+            return [sample, sample_at_opt]
+        else:
+            return [sample]
 
     def _get_ref_bg(self, ref_scheme_idx, bg_dims, black_already=False):
         if self._ref_sampling_schemes[ref_scheme_idx].background == 'nyud':
@@ -1033,36 +1083,18 @@ class DummyDataset(Dataset):
             instance_seg1,
             safe_anno_mask,
             crop_box_normalized,
+            img2,
+            instance_seg2,
+            R2,
+            t2,
+            query_shading_params,
         ):
-        R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
-
         # # Transformation from 1st camera frame to 2nd camera frame
         # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
         # # T12_cam = get_eucl(R2, t2) @ np.linalg.inv(get_eucl(R1, t1))
 
         # # Compute ground truth optical flow
         # gt_optflow = self._compute_gt_optflow(depth_map_rendered, instance_seg1 == 1, HK, R1, t1, R2, t2)
-
-        query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        if self._configs.data.query_rendering_method == 'glumpy':
-            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
-            query_bg = self._get_query_bg(query_scheme_idx, img1)
-
-            # Query BG & silhouette post-processing
-            if query_bg is not None:
-                img2 = self._apply_bg(img2, instance_seg2, query_bg)
-            if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
-                img2 = self._set_white_silhouette(img2, instance_seg2)
-        else:
-            assert self._configs.data.query_rendering_method == 'neural'
-            assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
-            assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
-            img2 = np.zeros_like(img1)
-
-
-        # Augmentation + numpy -> pytorch conversion
-        if self._aug_transform is not None:
-            img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
 
         # Convert maps to pytorch tensors, and organize in attrdict
         maps = Maps(
@@ -1089,4 +1121,4 @@ class DummyDataset(Dataset):
             obj_id = self._obj_id,
         )
 
-        return maps, targets, extra_input, meta_data
+        return Sample(targets, maps, extra_input, meta_data)
