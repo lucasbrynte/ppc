@@ -15,6 +15,7 @@ default_schemeset_opts:
       # plot_signals_interval: null
       # plot_signal_stats_interval: null
     data:
+      pushopt: true # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images
@@ -34,6 +35,7 @@ default_schemeset_opts:
       # plot_signals_interval: null
       # plot_signal_stats_interval: null
     data:
+      pushopt: false # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images

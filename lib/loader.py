@@ -83,11 +83,17 @@ class Loader:
     def _get_loader_config(self, mode, schemeset_name, nbr_samples):
         self._datasets[mode][schemeset_name].set_len(nbr_samples)
         scheme_def = AttrDict(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name])
+
+        batch_size = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['batch_size']
+        if self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['data']['pushopt']:
+            assert batch_size % 2 == 0
+            batch_size //= 2
+
         loader_config = {}
         loader_config['dataset'] = self._datasets[mode][schemeset_name]
         loader_config['collate_fn'] = collate_batch
         loader_config['pin_memory'] = True
-        loader_config['batch_size'] = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['batch_size']
+        loader_config['batch_size'] = batch_size
         # loader_config['num_workers'] = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['num_workers']
         loader_config['drop_last'] = True
 
