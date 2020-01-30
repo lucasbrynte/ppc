@@ -191,7 +191,20 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        maps, targets, extra_input, meta_data = self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
+        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
+        maps, targets, extra_input, meta_data = self._generate_sample(
+            ref_scheme_idx,
+            query_scheme_idx,
+            sample_index_in_epoch,
+            HK,
+            R1,
+            t1,
+            ref_img_path,
+            img1,
+            instance_seg1,
+            safe_anno_mask,
+            crop_box_normalized,
+        )
         sample = Sample(targets, maps, extra_input, meta_data)
         return [sample]
 
@@ -949,7 +962,7 @@ class DummyDataset(Dataset):
             target_vals[target_name] = torch.tensor(target).float()
         return self.Targets(**target_vals)
 
-    def _generate_sample(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
+    def _generate_ref_img_and_anno(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
         # which only controls the perturbation, and thus the query image
@@ -978,9 +991,10 @@ class DummyDataset(Dataset):
             ret = self._get_ref_img_synthetic(ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam)
             if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
-                return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
+                return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
             else:
                 img1, instance_seg1, ref_bg, safe_anno_mask = ret
+                ref_img_path = None
         else:
             assert False
 
@@ -1004,7 +1018,22 @@ class DummyDataset(Dataset):
             instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
             safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
+        return HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized
 
+    def _generate_sample(
+            self,
+            ref_scheme_idx,
+            query_scheme_idx,
+            sample_index_in_epoch,
+            HK,
+            R1,
+            t1,
+            ref_img_path,
+            img1,
+            instance_seg1,
+            safe_anno_mask,
+            crop_box_normalized,
+        ):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         # # Transformation from 1st camera frame to 2nd camera frame
@@ -1055,7 +1084,7 @@ class DummyDataset(Dataset):
         )
 
         meta_data = SampleMetaData(
-            ref_img_path = ref_img_path if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real' else None,
+            ref_img_path = ref_img_path,
             ambient_weight = float(query_shading_params['ambient_weight']),
             obj_id = self._obj_id,
         )
