@@ -870,6 +870,40 @@ class DummyDataset(Dataset):
         x1, y1, x2, y2 = bbox
         return (y2-y1, x2-x1)
 
+    def _get_ref_img_real(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+        ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
+        seq = self._get_seq(ref_scheme_idx)
+        img1, ref_img_path = self._read_img(seq, crop_box, frame_idx)
+        instance_seg1 = self._read_instance_seg(seq, crop_box, frame_idx, instance_idx)
+
+        # Determine depth scale and read depth maps
+        all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
+        depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
+        depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
+        depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
+
+        # Determine at what pixels the annotated segmentation can be relied upon
+        safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
+
+        return img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path
+
+    def _get_ref_img_synthetic(self, ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam):
+        ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
+        ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
+        R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
+        for obj_label, T in T1_occluders.items():
+            R_occluders_list1.append(T[:3,:3])
+            t_occluders_list1.append(T[:3,[3]])
+            obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
+        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
+        if img1 is None:
+            return None
+
+        # Determine at what pixels the annotated segmentation can be relied upon
+        safe_anno_mask = np.ones(self._configs.data.crop_dims, dtype=np.bool)
+
+        return img1, instance_seg1, ref_bg, safe_anno_mask
+
     def _calc_targets(self, HK, R1, t1, R2, t2):
         # How to rotate 2nd camera frame, to align it with 1st camera frame
         R21_cam = closest_rotmat(R1 @ R2.T)
@@ -938,36 +972,14 @@ class DummyDataset(Dataset):
         HK = H @ self._K
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
-            seq = self._get_seq(ref_scheme_idx)
-            img1, ref_img_path = self._read_img(seq, crop_box, frame_idx)
-            instance_seg1 = self._read_instance_seg(seq, crop_box, frame_idx, instance_idx)
-
-            # Determine depth scale and read depth maps
-            all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
-            depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
-            depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
-            depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
-
-            # Determine at what pixels the annotated segmentation can be relied upon
-            safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
-
+            img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
-            ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
-            R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
-            for obj_label, T in T1_occluders.items():
-                R_occluders_list1.append(T[:3,:3])
-                t_occluders_list1.append(T[:3,[3]])
-                obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-            img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
-            if img1 is None:
+            ret = self._get_ref_img_synthetic(ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam)
+            if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_sample(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch)
-
-            # Determine at what pixels the annotated segmentation can be relied upon
-            safe_anno_mask = np.ones(self._configs.data.crop_dims, dtype=np.bool)
-
+            else:
+                img1, instance_seg1, ref_bg, safe_anno_mask = ret
         else:
             assert False
 
