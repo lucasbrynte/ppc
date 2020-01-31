@@ -40,16 +40,18 @@ tasks:
     loss_weight: 1.e-2
     clamp_before_loss: false
     prior_loss: null
+    # prior_loss: {method: sinkhorn, loss_weight: 1.0}
     loss_decay: null
     # loss_decay:
-    #   # - {method: relative, min_denominator: 0.5}
+    #   - {method: relative, min_denominator: 1.0}
+    # #   # - {method: relative, min_denominator: 0.5}
     #   # - {method: relative, min_denominator: 0.1}
-    #   # - {method: relative, min_denominator: 0.05}
-    #   - {method: relative, min_denominator: 0.01}
+    # #   # - {method: relative, min_denominator: 0.05}
+    #   # - {method: relative, min_denominator: 0.01}
 
   # rel_depth_error:
   #   target: rel_depth_error
-  #   loss_func: L2
+  #   loss_func: L1
   #   loss_weight: 1.0
   #   clamp_before_loss: false
   #   prior_loss: null
