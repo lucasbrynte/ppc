@@ -81,24 +81,24 @@ data_sampling_scheme_defs:
       opts:
         loading: {nbr_batches: 64}
         visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
-    # real_occl_val_keepbg_transl_10perc:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_keepbg}
-    #   query_schemeset:
-    #     - scheme_name: transl_10perc
-    #       # override: {background: from_ref}
-    #   opts:
-    #     loading: {nbr_batches: 64}
-    #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
-    # real_occl_val_keepbg_depth_1_1:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_keepbg}
-    #   query_schemeset:
-    #     - scheme_name: depth_1_1
-    #       # override: {background: from_ref}
-    #   opts:
-    #     loading: {nbr_batches: 64}
-    #     visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_occl_val_keepbg_transl_10perc:
+      ref_schemeset:
+        - {scheme_name: real_occl_val_keepbg}
+      query_schemeset:
+        - scheme_name: transl_10perc
+          # override: {background: from_ref}
+      opts:
+        loading: {nbr_batches: 64}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
+    real_occl_val_keepbg_depth_1_1:
+      ref_schemeset:
+        - {scheme_name: real_occl_val_keepbg}
+      query_schemeset:
+        - scheme_name: depth_1_1
+          # override: {background: from_ref}
+      opts:
+        loading: {nbr_batches: 64}
+        visualization: {save_imgs: false, plot_signals: true, plot_signal_stats: true}
 
 
 
@@ -114,18 +114,18 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: mild_gradual_rot
           # override: {background: from_ref}
-    # real_unoccl_train_keepbg_frame100_gradual_transl:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: gradual_transl
-    #       # override: {background: from_ref}
-    # real_unoccl_train_keepbg_frame100_gradual_depth:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: gradual_depth
-    #       # override: {background: from_ref}
+    real_unoccl_train_keepbg_frame100_gradual_transl:
+      ref_schemeset:
+        - {scheme_name: real_unoccl_train_keepbg_frame100}
+      query_schemeset:
+        - scheme_name: gradual_transl
+          # override: {background: from_ref}
+    real_unoccl_train_keepbg_frame100_gradual_depth:
+      ref_schemeset:
+        - {scheme_name: real_unoccl_train_keepbg_frame100}
+      query_schemeset:
+        - scheme_name: gradual_depth
+          # override: {background: from_ref}
 
 
 
@@ -138,18 +138,18 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: mild_gradual_rot
           # override: {background: from_ref}
-    # real_occl_val_keepbg_frame100_gradual_transl:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: gradual_transl
-    #       # override: {background: from_ref}
-    # real_occl_val_keepbg_frame100_gradual_depth:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: gradual_depth
-    #       # override: {background: from_ref}
+    real_occl_val_keepbg_frame100_gradual_transl:
+      ref_schemeset:
+        - {scheme_name: real_occl_val_keepbg_frame100}
+      query_schemeset:
+        - scheme_name: gradual_transl
+          # override: {background: from_ref}
+    real_occl_val_keepbg_frame100_gradual_depth:
+      ref_schemeset:
+        - {scheme_name: real_occl_val_keepbg_frame100}
+      query_schemeset:
+        - scheme_name: gradual_depth
+          # override: {background: from_ref}
 
 
 
@@ -162,18 +162,18 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: mild_gradual_rot
           # override: {background: from_ref}
-    # real_occl_test_keepbg_frame109_gradual_transl:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame109}
-    #   query_schemeset:
-    #     - scheme_name: gradual_transl
-    #       # override: {background: from_ref}
-    # real_occl_test_keepbg_frame109_gradual_depth:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame109}
-    #   query_schemeset:
-    #     - scheme_name: gradual_depth
-    #       # override: {background: from_ref}
+    real_occl_test_keepbg_frame109_gradual_transl:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame109}
+      query_schemeset:
+        - scheme_name: gradual_transl
+          # override: {background: from_ref}
+    real_occl_test_keepbg_frame109_gradual_depth:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame109}
+      query_schemeset:
+        - scheme_name: gradual_depth
+          # override: {background: from_ref}
 
 
 # ==============================================================================
@@ -185,18 +185,18 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: mild_gradual_rot
           # override: {background: from_ref}
-    # real_occl_test_keepbg_frame112_gradual_transl:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame112}
-    #   query_schemeset:
-    #     - scheme_name: gradual_transl
-    #       # override: {background: from_ref}
-    # real_occl_test_keepbg_frame112_gradual_depth:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame112}
-    #   query_schemeset:
-    #     - scheme_name: gradual_depth
-    #       # override: {background: from_ref}
+    real_occl_test_keepbg_frame112_gradual_transl:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame112}
+      query_schemeset:
+        - scheme_name: gradual_transl
+          # override: {background: from_ref}
+    real_occl_test_keepbg_frame112_gradual_depth:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame112}
+      query_schemeset:
+        - scheme_name: gradual_depth
+          # override: {background: from_ref}
 
 
 # ==============================================================================
@@ -208,15 +208,15 @@ data_sampling_scheme_defs:
       query_schemeset:
         - scheme_name: mild_gradual_rot
           # override: {background: from_ref}
-    # real_occl_test_keepbg_frame159_gradual_transl:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame159}
-    #   query_schemeset:
-    #     - scheme_name: gradual_transl
-    #       # override: {background: from_ref}
-    # real_occl_test_keepbg_frame159_gradual_depth:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_test_keepbg_frame159}
-    #   query_schemeset:
-    #     - scheme_name: gradual_depth
-    #       # override: {background: from_ref}
+    real_occl_test_keepbg_frame159_gradual_transl:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame159}
+      query_schemeset:
+        - scheme_name: gradual_transl
+          # override: {background: from_ref}
+    real_occl_test_keepbg_frame159_gradual_depth:
+      ref_schemeset:
+        - {scheme_name: real_occl_test_keepbg_frame159}
+      query_schemeset:
+        - scheme_name: gradual_depth
+          # override: {background: from_ref}
