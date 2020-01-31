@@ -30,7 +30,7 @@ def parse_arguments():
                              'the name of the experiment\'s directory')
     parser.add_argument('--old-experiment-name', default=None, type=str,
                         help='name of experiment to evaluate')
-    parser.add_argument('--checkpoint-load-fname', default='best_model.pth.tar',
+    parser.add_argument('--checkpoint-load-fname', default='latest_model.pth.tar',
                         help='file name of the model weights to load before evaluation')
     # parser.add_argument('--eval-mode', action='append', default=[], type=str,
     #                     help='For eval only. Example: "--eval-mode val --eval-mode train" performs evaluation on train & val sets, val set first.')
