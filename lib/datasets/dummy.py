@@ -681,8 +681,12 @@ class DummyDataset(Dataset):
         # depth_map = self._crop(np.array(Image.open(depth_path), dtype=np.uint16), crop_box)
         try:
             # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000487.png'
+            # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000872.png'
             depth_map11 = Image.open(depth_path)
-            depth_map22 = np.array(depth_map11, dtype=np.uint16)
+            # depth_map22 = np.array(depth_map11, dtype=np.uint16)
+            # NOTE: weirdly, calling np.array() with the dtype=np.uint16 argument may seemingly randomly generate errors with PngImageFile -> int conversion, but the same thing does not happen with initial np.array() call followed by .astype(np.uint16).
+            depth_map11b = np.array(depth_map11)
+            depth_map22 = depth_map11b.astype(np.uint16)
             depth_map = self._crop(depth_map22, crop_box)
         except:
             print(depth_path)
