@@ -81,7 +81,11 @@ class Main():
 
     def eval(self):
         epoch = 1
-        for schemeset, schemeset_def in self._configs.runtime.data_sampling_scheme_defs[TEST].items():
+        for schemeset in sorted(
+            self._configs.runtime.data_sampling_scheme_defs[TEST].keys(),
+            key = lambda schemeset: self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['loading']['nbr_batches'],
+        ):
+        # for schemeset in self._configs.runtime.data_sampling_scheme_defs[TEST]:
             with torch.no_grad():
                 self._run_epoch(
                     epoch,
