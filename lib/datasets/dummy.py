@@ -993,7 +993,7 @@ class DummyDataset(Dataset):
             all_target_vals = {
                 'avg_reproj_err': avg_reproj_err,
                 'pixel_offset': pixel_offset,
-                'rel_depth_error': np.log(t1[2,0]) - np.log(t1[2,0]),
+                'rel_depth_error': np.log(t2[2,0]) - np.log(t1[2,0]),
                 'norm_pixel_offset': np.linalg.norm(pixel_offset),
                 'delta_angle_inplane_signed': delta_angle_inplane,
                 'delta_angle_inplane_unsigned': self._clip_and_arccos(np.cos(delta_angle_inplane)), # cos & arccos combined will map angle to [0, pi] range
