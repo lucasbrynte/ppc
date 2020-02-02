@@ -183,7 +183,8 @@ class Main():
                         batch.meta_data.obj_id,
                         batch.meta_data.ambient_weight,
                     )
-            nn_out = self._run_model(batch.maps, batch.extra_input)
+            maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
+            nn_out = self._model((maps, extra_input))
 
             # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)
@@ -304,10 +305,10 @@ class Main():
         self._loss_handler._reset_signals()
         return score
 
-    def _run_model(self, maps, extra_input):
+    def _batch_to_gpu(self, maps, extra_input):
         maps = maps.__class__(*tuple(map(lambda x: x.to(get_device(), non_blocking=True), maps)))
         extra_input = extra_input.__class__(*tuple(map(lambda x: x.to(get_device(), non_blocking=True), extra_input)))
-        return self._model((maps, extra_input))
+        return maps, extra_input
 
 
 def run(setup):
