@@ -17,7 +17,7 @@ def parse_arguments():
     """Parse input arguments."""
     parser = argparse.ArgumentParser(description='Pose Proposal Critic',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('train_or_eval', choices=['train', 'eval'],
+    parser.add_argument('train_or_eval', choices=['train', 'eval', 'eval_poseopt'],
                         help='select train / eval mode')
     parser.add_argument('--config-name',
                         help='name of the config dir that is going to be used')
@@ -40,7 +40,7 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    if args.train_or_eval == 'eval':
+    if args.train_or_eval in ['eval', 'eval_poseopt']:
         assert args.old_experiment_name is not None
         # assert len(args.eval_mode) > 0
     else:
@@ -48,7 +48,7 @@ def parse_arguments():
         # assert args.eval_mode == []
 
     args.experiment_path = os.path.join(args.experiment_root_path, args.experiment_name)
-    if args.train_or_eval == 'eval':
+    if args.train_or_eval in ['eval', 'eval_poseopt']:
         args.old_experiment_path = os.path.join(args.experiment_root_path, args.old_experiment_name)
 
     if args.overwrite_experiment and os.path.exists(args.experiment_path):

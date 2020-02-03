@@ -8,6 +8,7 @@ from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
+from lib.pose_optimizer import PoseOptimizer
 from lib.utils import get_device, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -130,26 +131,19 @@ class Main():
         self._model.eval() # Although gradients are computed - batch norm, dropout etc should be in eval mode.
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             assert self._configs.data.query_rendering_method == 'neural'
-            batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
+            maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
+            pose_optimizer = PoseOptimizer(
+                self._model,
+                self._neural_rendering_wrapper,
+                self._loss_handler,
+                maps,
                 batch.extra_input.HK.cuda(),
                 batch.extra_input.R2.cuda(),
                 batch.extra_input.t2.cuda(),
                 batch.meta_data.obj_id,
                 batch.meta_data.ambient_weight,
             )
-            nn_out = self._run_model(batch.maps, batch.extra_input)
-
-            # Raw predicted features (neural net output)
-            pred_features_raw = self._loss_handler.get_pred_features(nn_out)
-
-            # Apply activation, and get corresponding target features
-            pred_features = self._loss_handler.apply_activation(pred_features_raw)
-            pertarget_target_features = self._loss_handler.get_target_features(batch.targets)
-            # Map target features to corresponding tasks:
-            target_features = self._loss_handler.map_features_to_tasks(pertarget_target_features)
-
-            # TODO: How to parameterize R2..? Exponential map may not be straightforward here..? Quaternions? Euler angles?
-            # TODO: Identify estimated reproj error & compute its gradient w.r.t. R2 params.
+            pose_optimizer.optimize()
 
     def _run_epoch(
             self,
@@ -320,10 +314,13 @@ def run(setup):
 
     main = Main(configs)
     # configs['data']['data_loader'] = main._data_loader
-    if args.train_or_eval in 'train':
+    if args.train_or_eval == 'train':
         main.train()
-    else:
+    elif args.train_or_eval == 'eval':
         main.eval()
+    else:
+        assert args.train_or_eval == 'eval_poseopt'
+        main.eval_with_posesearch()
 
 if __name__ == '__main__':
     run(lib.setup)
