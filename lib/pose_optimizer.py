@@ -2,6 +2,14 @@ import torch
 from lib.expm.expm32 import expm32
 from lib.expm.expm64 import expm64
 
+def expm_frechet(A, E, expm):
+    n = A.size(0)
+    M = torch.zeros(2*n, 2*n, dtype=A.dtype, device=A.device, requires_grad=False)
+    M[:n, :n] = A
+    M[n:, n:] = A
+    M[:n, n:] = E
+    return expm(M)[:n, n:]
+
 class expm_class(torch.autograd.Function):
     @staticmethod
     def _expm_func(A):
