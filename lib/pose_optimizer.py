@@ -102,7 +102,7 @@ class FullPosePipeline(nn.Module):
         self._obj_id = obj_id
         self._ambient_weight = ambient_weight
 
-    def forward(self, t, w, fname='out.png'):
+    def forward(self, t, w, R_refpt=None, fname='out.png'):
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -112,18 +112,21 @@ class FullPosePipeline(nn.Module):
         # theta = torch.acos(0.5*(trace-1.0))
         # return theta
 
+        R = w_to_R(w)
+        if R_refpt is not None:
+            R = torch.bmm(R, R_refpt)
         query_img = self._neural_rendering_wrapper.render(
             self._HK,
-            w_to_R(w),
+            R,
             t,
             self._obj_id,
             self._ambient_weight,
         )
 
-        # fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
-        # axes_array[0,0].imshow(_retrieve_input_img(self._maps.ref_img[0,:,:,:].detach().cpu()))
-        # axes_array[0,1].imshow(_retrieve_input_img(query_img[0,:,:,:].detach().cpu()))
-        # fig.savefig(fname)
+        fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
+        axes_array[0,0].imshow(_retrieve_input_img(self._maps.ref_img[0,:,:,:].detach().cpu()))
+        axes_array[0,1].imshow(_retrieve_input_img(query_img[0,:,:,:].detach().cpu()))
+        fig.savefig(fname)
 
         # # Punish pixels
         # sh = query_img.shape
@@ -172,9 +175,22 @@ class PoseOptimizer():
         # self._w2 = nn.Parameter(self._w2)
         # self._w3 = nn.Parameter(self._w3)
 
-        self._w = nn.Parameter(R_to_w(self._R0.detach()))
+        self._R_refpt_mode = 'eye'
+        # self._R_refpt_mode = 'R0'
+        # self._R_refpt_mode = 'R_prev'
 
-        self._optimizer = torch.optim.SGD(
+        if self._R_refpt_mode == 'eye':
+            self._w = nn.Parameter(R_to_w(self._R0.detach()))
+            self._R_refpt = None
+        else:
+            self._w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
+            self._R_refpt = self._R0.detach()
+
+        if self._R_refpt_mode in ('eye', 'R0'):
+            self._optimizer = self._init_optimizer()
+
+    def _init_optimizer(self):
+        return torch.optim.SGD(
             [
                 # self._t,
                 self._w,
@@ -186,7 +202,8 @@ class PoseOptimizer():
             # lr = 5e-1,
             # lr = 1e-2,
             # lr = 1e-3,
-            lr = 1e-5,
+            # lr = 1e-5,
+            lr = 1e-6,
             # lr = 1e-8,
             # lr = 4e-6,
             # lr = 0e-6,
@@ -198,7 +215,13 @@ class PoseOptimizer():
         for j in range(300):
             # self._w = torch.stack([self._w1, self._w2, self._w3], dim=1)
 
-            self._err_est = self._pipeline(self._t, self._w, fname='experiments/out_{:03}.png'.format(j+1))
+            if self._R_refpt_mode == 'R_prev':
+                self._w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
+                self._optimizer = self._init_optimizer()
+
+            
+            self._err_est = self._pipeline(self._t, self._w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
+            # print(R_refpt)
             # print(self._w)
             # print(self._err_est)
             self._optimizer.zero_grad()
@@ -206,7 +229,9 @@ class PoseOptimizer():
             agg_loss = torch.sum(self._err_est)
             agg_loss.backward()
             self._optimizer.step()
-        self._err_est = self._pipeline(self._t, self._w)
+            if self._R_refpt_mode == 'R_prev':
+                self._R_refpt = torch.bmm(w_to_R(self._w), self._R_refpt).detach()
+        self._err_est = self._pipeline(self._t, self._w, R_refpt=self._R_refpt)
         # print(self._w)
         # print(self._err_est)
         assert False
