@@ -155,19 +155,23 @@ class PoseOptimizer():
         # deg_perturb = 0.
         deg_perturb = 5.
         # deg_perturb = 20.
-        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 0., 1.]), deg_perturb*3.1416/180.)[:3,:3]).float().cuda()
+        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3]).float().cuda()
         self._R0 = torch.matmul(R_perturb[None,:,:], R0)
 
         self._t0 = t0
         self._t = nn.Parameter(self._t0.detach())
 
-        w = R_to_w(self._R0.detach())
-        # R_test = w_to_R(w)
-        # print(self._R0)
-        # print(R_test)
-        # self._w1 = nn.Parameter(w[:,0])
+        # w = R_to_w(self._R0.detach())
+        # # R_test = w_to_R(w)
+        # # print(self._R0)
+        # # print(R_test)
+        # self._w1 = w[:,0]
         # self._w2 = w[:,1]
         # self._w3 = w[:,2]
+        # # self._w1 = nn.Parameter(self._w1)
+        # self._w2 = nn.Parameter(self._w2)
+        # self._w3 = nn.Parameter(self._w3)
+
         self._w = nn.Parameter(R_to_w(self._R0.detach()))
 
         self._optimizer = torch.optim.SGD(
@@ -175,6 +179,8 @@ class PoseOptimizer():
                 # self._t,
                 self._w,
                 # self._w1,
+                # self._w2,
+                # self._w3,
             ],
             # lr = 1.,
             # lr = 5e-1,
