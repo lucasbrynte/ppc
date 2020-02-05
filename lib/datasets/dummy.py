@@ -37,6 +37,8 @@ ExtraInput = namedtuple('ExtraInput', [
     'crop_box_normalized',
     'real_ref',
     'HK',
+    'R1',
+    't1',
     'R2',
     't2',
 ])
@@ -1115,6 +1117,8 @@ class DummyDataset(Dataset):
             crop_box_normalized = torch.tensor(crop_box_normalized).float(),
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
             HK = torch.tensor(HK, dtype=torch.float32),
+            R1 = torch.tensor(R1, dtype=torch.float32),
+            t1 = torch.tensor(t1, dtype=torch.float32),
             R2 = torch.tensor(R2, dtype=torch.float32),
             t2 = torch.tensor(t2, dtype=torch.float32),
         )

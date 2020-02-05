@@ -8,7 +8,7 @@ from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
-from lib.pose_optimizer import PoseOptimizer
+from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -132,16 +132,21 @@ class Main():
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             assert self._configs.data.query_rendering_method == 'neural'
             maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-            pose_optimizer = PoseOptimizer(
+            pose_pipeline = FullPosePipeline(
                 self._model,
                 self._neural_rendering_wrapper,
                 self._loss_handler,
                 maps,
                 batch.extra_input.HK.cuda(),
-                batch.extra_input.R2.cuda(),
-                batch.extra_input.t2.cuda(),
                 batch.meta_data.obj_id,
                 batch.meta_data.ambient_weight,
+            )
+            pose_optimizer = PoseOptimizer(
+                pose_pipeline,
+                batch.extra_input.R1.cuda(),
+                batch.extra_input.t1.cuda(),
+                # batch.extra_input.R2.cuda(),
+                # batch.extra_input.t2.cuda(),
             )
             pose_optimizer.optimize()
 
