@@ -212,7 +212,12 @@ class PoseOptimizer():
         )
 
     def optimize(self):
-        for j in range(300):
+        bs = self._R0.shape[0]
+        dtype = self._R0.dtype
+        device = self._R0.device
+        N = 300
+        self._err_est = torch.empty((bs, N), dtype=dtype, device=device)
+        for j in range(N):
             # self._w = torch.stack([self._w1, self._w2, self._w3], dim=1)
 
             if self._R_refpt_mode == 'R_prev':
@@ -220,18 +225,15 @@ class PoseOptimizer():
                 self._optimizer = self._init_optimizer()
 
             
-            self._err_est = self._pipeline(self._t, self._w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
+            self._err_est[:,j] = self._pipeline(self._t, self._w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             # print(R_refpt)
             # print(self._w)
-            # print(self._err_est)
+            # print(self._err_est[:,j])
             self._optimizer.zero_grad()
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
-            agg_loss = torch.sum(self._err_est)
+            agg_loss = torch.sum(self._err_est[:,j])
             agg_loss.backward()
             self._optimizer.step()
             if self._R_refpt_mode == 'R_prev':
                 self._R_refpt = torch.bmm(w_to_R(self._w), self._R_refpt).detach()
-        self._err_est = self._pipeline(self._t, self._w, R_refpt=self._R_refpt)
-        # print(self._w)
-        # print(self._err_est)
         assert False
