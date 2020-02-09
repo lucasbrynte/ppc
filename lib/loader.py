@@ -85,7 +85,8 @@ class Loader:
         scheme_def = AttrDict(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name])
 
         batch_size = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['batch_size']
-        if self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['data']['pushopt']:
+        if self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['data']['pushopt'] and \
+            self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['data']['pushopt_prob'] is None:
             assert batch_size % 2 == 0
             batch_size //= 2
 

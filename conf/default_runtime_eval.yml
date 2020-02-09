@@ -13,6 +13,7 @@ default_schemeset_opts:
       plot_signal_stats: false
     data:
       pushopt: false
+      pushopt_prob: None
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images

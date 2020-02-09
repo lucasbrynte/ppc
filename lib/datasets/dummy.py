@@ -256,7 +256,14 @@ class DummyDataset(Dataset):
                 t1, # Ref pose sent in as query pose!
                 query_shading_params,
             )
-            return [sample, sample_at_opt]
+            pushopt_prob = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt_prob']
+            if pushopt_prob is None:
+                return [sample, sample_at_opt]
+            else:
+                if np.random.random() <= pushopt_prob:
+                    return [sample_at_opt]
+                else:
+                    return [sample]
         else:
             return [sample]
 
