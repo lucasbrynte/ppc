@@ -1,4 +1,5 @@
 import torch
+# from torch import nn
 import numpy as np
 from attrdict import AttrDict
 from importlib import import_module
@@ -13,6 +14,39 @@ from lib.utils import get_device, get_module_parameters
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
+
+# class GELU(nn.Module):
+#     r"""Applies the Gaussian Error Linear Units function:
+# 
+#     .. math::
+#         \text{GELU}(x) = x * \Phi(x)
+#     where :math:`\Phi(x)` is the Cumulative Distribution Function for Gaussian Distribution.
+# 
+#     Shape:
+#         - Input: :math:`(N, *)` where `*` means, any number of additional
+#           dimensions
+#         - Output: :math:`(N, *)`, same shape as the input
+# 
+#     .. image:: scripts/activation_images/GELU.png
+# 
+#     Examples::
+# 
+#         >>> m = nn.GELU()
+#         >>> input = torch.randn(2)
+#         >>> output = m(input)
+#     """
+#     def forward(self, input):
+#         return nn.functional.gelu(input)
+# 
+# def replace_relu_activations(model, new_activation):
+#     """
+#     https://discuss.pytorch.org/t/how-to-replace-all-relu-activations-in-a-pretrained-network/31591/7
+#     """
+#     for child_name, child in model.named_children():
+#         if isinstance(child, nn.ReLU):
+#             setattr(model, child_name, new_activation())
+#         else:
+#             replace_relu_activations(child, new_activation)
 
 class Main():
     def __init__(self, configs):
@@ -37,6 +71,8 @@ class Main():
 
     def _init_model(self):
         model = self._model_module.Model(self._configs)
+        # replace_relu_activations(model, GELU)
+        # replace_relu_activations(model, nn.Softplus)
         return model
 
     def _setup_optimizer(self):
