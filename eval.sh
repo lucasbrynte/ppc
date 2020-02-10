@@ -10,8 +10,8 @@ CONFIGNAME=dummy
 # CHECKPOINT_FNAME=best_model.pth.tar
 # CHECKPOINT_FNAME=epoch010.pth.tar
 CHECKPOINT_FNAME=latest_model.pth.tar
-EVALMDOE=eval
-# EVALMDOE=eval_poseopt
+# EVALMODE=eval
+EVALMODE=eval_poseopt
 
 
 TMP_SUFFIX=$(openssl rand -hex 4)
@@ -38,7 +38,7 @@ xhost + # allow connections to X server
 for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
         $CONTAINER python $PROFILE_ARGS main.py \
-        $EVALMDOE \
+        $EVALMODE \
         --overwrite-experiment \
         --config-name $CONFIGNAME \
         --experiment-name $NEW_EXPERIMENT_PREFIX/$OBJ \
