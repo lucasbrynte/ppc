@@ -168,11 +168,20 @@ class PoseOptimizer():
         self._t0 = t0
         self._t = nn.Parameter(self._t0.detach())
 
+        self._N = 300
+
         self._R_refpt_mode = 'eye'
         # self._R_refpt_mode = 'R0'
         # self._R_refpt_mode = 'R_prev'
         self._w_dir = None
         # self._w_dir = [1.0, 0.0, 0.0]
+        self._xrange = None
+        # # x_delta = 0.001
+        # # x_delta = 0.01
+        # # x_delta = 0.1
+        # x_delta = 0.5
+        # # x_delta = 1.5
+        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device)
 
         if self._R_refpt_mode == 'eye':
             w = R_to_w(self._R0.detach())
@@ -184,13 +193,14 @@ class PoseOptimizer():
         if self._w_dir is None:
             self._x = w
             self._x2w = lambda x: x
+            assert self._xrange is None
         else:
             assert self._R_refpt_mode in ('eye', 'R0')
             self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device).detach()
             assert self._w_dir.shape == (3,)
             self._w0 = w.detach()
-            self._x = torch.tensor(0.0, dtype=self._dtype, device=self._device).detach()
             self._x2w = lambda x: self._w0 + x*self._w_dir
+            self._x = torch.tensor(0.0, dtype=self._dtype, device=self._device).detach()
         self._x = nn.Parameter(self._x)
 
         if self._R_refpt_mode in ('eye', 'R0'):
@@ -217,9 +227,11 @@ class PoseOptimizer():
         )
 
     def optimize(self):
-        N = 300
         self._err_est = []
-        for j in range(N):
+        for j in range(self._N):
+            if self._xrange is not None:
+                self._x = self._xrange[j]
+
             w = self._x2w(self._x)
 
             if self._R_refpt_mode == 'R_prev':
@@ -231,13 +243,22 @@ class PoseOptimizer():
             # print(x)
             # print(w)
             print(self._err_est[j])
-            self._optimizer.zero_grad()
+            if self._xrange is None:
+                self._optimizer.zero_grad()
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
-            agg_loss = torch.sum(self._err_est[j])
-            agg_loss.backward()
+            if self._xrange is None:
+                agg_loss = torch.sum(self._err_est[j])
+                agg_loss.backward()
+                self._optimizer.step()
             self._err_est[j] = self._err_est[j].detach()
-            self._optimizer.step()
             if self._R_refpt_mode == 'R_prev':
                 self._R_refpt = torch.bmm(w_to_R(w), self._R_refpt).detach()
+
+        self._err_est = torch.stack(self._err_est, dim=1)
+
+        if self._xrange is not None:
+            fig, axes_array = plt.subplots(nrows=1, ncols=1, squeeze=False)
+            axes_array[0,0].plot(self._xrange.detach().cpu().numpy(), self._err_est[0,:].detach().cpu().numpy())
+            fig.savefig('experiments/00_func.png')
 
         assert False
