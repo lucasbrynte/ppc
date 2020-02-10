@@ -154,37 +154,44 @@ class PoseOptimizer():
     ):
         self._pipeline = pipeline
 
+        self._batch_size = R0.shape[0]
+        self._dtype = R0.dtype
+        self._device = R0.device
+
         # self._R0 = R0
-        # deg_perturb = 0.
-        deg_perturb = 5.
+        deg_perturb = 0.
+        # deg_perturb = 5.
         # deg_perturb = 20.
-        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3]).float().cuda()
+        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device).float().cuda()
         self._R0 = torch.matmul(R_perturb[None,:,:], R0)
 
         self._t0 = t0
         self._t = nn.Parameter(self._t0.detach())
 
-        # w = R_to_w(self._R0.detach())
-        # # R_test = w_to_R(w)
-        # # print(self._R0)
-        # # print(R_test)
-        # self._w1 = w[:,0]
-        # self._w2 = w[:,1]
-        # self._w3 = w[:,2]
-        # # self._w1 = nn.Parameter(self._w1)
-        # self._w2 = nn.Parameter(self._w2)
-        # self._w3 = nn.Parameter(self._w3)
-
         self._R_refpt_mode = 'eye'
         # self._R_refpt_mode = 'R0'
         # self._R_refpt_mode = 'R_prev'
+        self._w_dir = None
+        # self._w_dir = [1.0, 0.0, 0.0]
 
         if self._R_refpt_mode == 'eye':
-            self._w = nn.Parameter(R_to_w(self._R0.detach()))
+            w = R_to_w(self._R0.detach())
             self._R_refpt = None
         else:
-            self._w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
+            w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
             self._R_refpt = self._R0.detach()
+
+        if self._w_dir is None:
+            self._x = w
+            self._x2w = lambda x: x
+        else:
+            assert self._R_refpt_mode in ('eye', 'R0')
+            self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device).detach()
+            assert self._w_dir.shape == (3,)
+            self._w0 = w.detach()
+            self._x = torch.tensor(0.0, dtype=self._dtype, device=self._device).detach()
+            self._x2w = lambda x: self._w0 + x*self._w_dir
+        self._x = nn.Parameter(self._x)
 
         if self._R_refpt_mode in ('eye', 'R0'):
             self._optimizer = self._init_optimizer()
@@ -193,17 +200,15 @@ class PoseOptimizer():
         return torch.optim.SGD(
             [
                 # self._t,
-                self._w,
-                # self._w1,
-                # self._w2,
-                # self._w3,
+                self._x,
             ],
             # lr = 1.,
             # lr = 5e-1,
             # lr = 1e-2,
             # lr = 1e-3,
-            # lr = 1e-5,
-            lr = 1e-6,
+            lr = 1e-5,
+            # lr = 1e-6,
+            # lr = 1e-7,
             # lr = 1e-8,
             # lr = 4e-6,
             # lr = 0e-6,
@@ -212,28 +217,27 @@ class PoseOptimizer():
         )
 
     def optimize(self):
-        bs = self._R0.shape[0]
-        dtype = self._R0.dtype
-        device = self._R0.device
         N = 300
-        self._err_est = torch.empty((bs, N), dtype=dtype, device=device)
+        self._err_est = []
         for j in range(N):
-            # self._w = torch.stack([self._w1, self._w2, self._w3], dim=1)
+            w = self._x2w(self._x)
 
             if self._R_refpt_mode == 'R_prev':
-                self._w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
+                w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
                 self._optimizer = self._init_optimizer()
 
-            
-            self._err_est[:,j] = self._pipeline(self._t, self._w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
+            self._err_est.append(self._pipeline(self._t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1)))
             # print(R_refpt)
-            # print(self._w)
-            # print(self._err_est[:,j])
+            # print(x)
+            # print(w)
+            print(self._err_est[j])
             self._optimizer.zero_grad()
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
-            agg_loss = torch.sum(self._err_est[:,j])
+            agg_loss = torch.sum(self._err_est[j])
             agg_loss.backward()
+            self._err_est[j] = self._err_est[j].detach()
             self._optimizer.step()
             if self._R_refpt_mode == 'R_prev':
-                self._R_refpt = torch.bmm(w_to_R(self._w), self._R_refpt).detach()
+                self._R_refpt = torch.bmm(w_to_R(w), self._R_refpt).detach()
+
         assert False
