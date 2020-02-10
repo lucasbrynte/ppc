@@ -168,20 +168,31 @@ class PoseOptimizer():
         self._t0 = t0
         self._t = nn.Parameter(self._t0.detach())
 
+        # self._N = 10
+        # self._N = 50
         self._N = 300
 
         self._R_refpt_mode = 'eye'
         # self._R_refpt_mode = 'R0'
         # self._R_refpt_mode = 'R_prev'
-        self._w_dir = None
-        # self._w_dir = [1.0, 0.0, 0.0]
+
+        # Optim
+        self._optimize = True
+        # self._w_dir = None
+        self._w_dir = [1.0, 0.0, 0.0]
         self._xrange = None
+
+        # # Plot along line
+        # self._optimize = False
+        # self._w_dir = [1.0, 0.0, 0.0]
+        # # self._xrange = None
         # # x_delta = 0.001
         # # x_delta = 0.01
         # # x_delta = 0.1
         # x_delta = 0.5
         # # x_delta = 1.5
         # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device)
+        # self._xrange = [ nn.Parameter(x) for x in self._xrange ]
 
         if self._R_refpt_mode == 'eye':
             w = R_to_w(self._R0.detach())
@@ -193,7 +204,7 @@ class PoseOptimizer():
         if self._w_dir is None:
             self._x = w
             self._x2w = lambda x: x
-            assert self._xrange is None
+            assert self._optimize
         else:
             assert self._R_refpt_mode in ('eye', 'R0')
             self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device).detach()
@@ -227,9 +238,11 @@ class PoseOptimizer():
         )
 
     def optimize(self):
-        self._err_est = []
+        err_est_list = []
+        grads_list = []
+        x_list = []
         for j in range(self._N):
-            if self._xrange is not None:
+            if not self._optimize:
                 self._x = self._xrange[j]
 
             w = self._x2w(self._x)
@@ -238,27 +251,44 @@ class PoseOptimizer():
                 w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
                 self._optimizer = self._init_optimizer()
 
-            self._err_est.append(self._pipeline(self._t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1)))
+            err_est = self._pipeline(self._t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             # print(R_refpt)
             # print(x)
             # print(w)
-            print(self._err_est[j])
-            if self._xrange is None:
-                self._optimizer.zero_grad()
+            print(err_est)
+            self._optimizer.zero_grad()
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
-            if self._xrange is None:
-                agg_loss = torch.sum(self._err_est[j])
-                agg_loss.backward()
+            agg_loss = torch.sum(err_est)
+            agg_loss.backward()
+
+            # Store iterations
+            x_list.append(self._x.detach().clone())
+            if self._optimize:
+                grads_list.append(self._x.grad.data.clone())
+            else:
+                grads_list.append(self._xrange[j].grad.data)
+
+            if self._optimize:
                 self._optimizer.step()
-            self._err_est[j] = self._err_est[j].detach()
+
+            # Store iterations
+            err_est_list.append(err_est.detach())
+
             if self._R_refpt_mode == 'R_prev':
                 self._R_refpt = torch.bmm(w_to_R(w), self._R_refpt).detach()
 
-        self._err_est = torch.stack(self._err_est, dim=1)
+        grads_list = torch.stack(grads_list, dim=0)
+        err_est_list = torch.stack(err_est_list, dim=0)
+        x_list = torch.stack(x_list, dim=0)
 
-        if self._xrange is not None:
-            fig, axes_array = plt.subplots(nrows=1, ncols=1, squeeze=False)
-            axes_array[0,0].plot(self._xrange.detach().cpu().numpy(), self._err_est[0,:].detach().cpu().numpy())
+        if len(x_list.shape) == 1:
+            # Scalar parameter x.
+            fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
+            axes_array[0,0].plot(x_list.detach().cpu().numpy())
+            axes_array[0,1].plot(err_est_list[:,0].detach().cpu().numpy())
+            axes_array[0,2].plot(grads_list.detach().cpu().numpy())
+            axes_array[1,1].plot(x_list.detach().cpu().numpy(), err_est_list[:,0].detach().cpu().numpy())
+            axes_array[1,2].plot(x_list.detach().cpu().numpy(), grads_list.detach().cpu().numpy())
             fig.savefig('experiments/00_func.png')
 
         assert False
