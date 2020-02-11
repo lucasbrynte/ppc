@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.autograd import grad
 from lib.expm.expm32 import expm32
 from lib.expm.expm64 import expm64
 from lib.utils import get_rotation_axis_angle
@@ -166,7 +167,8 @@ class PoseOptimizer():
         self._R0 = torch.matmul(R_perturb[None,:,:], R0)
 
         self._t0 = t0
-        self._t = nn.Parameter(self._t0.detach())
+        self._x2t = lambda x: self._t0
+        # self._x2t = lambda x: self._t0.clone().detach().requires_grad_(True)
 
         # self._N = 10
         # self._N = 50
@@ -190,10 +192,10 @@ class PoseOptimizer():
         # # x_delta = 0.1
         # x_delta = 0.5
         # # x_delta = 1.5
-        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device)
+        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)
         # # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)
         # # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)
-        # self._xrange = [ nn.Parameter(x) for x in self._xrange ]
+        # self._xrange = list(self._xrange)
 
         if self._R_refpt_mode == 'eye':
             w = R_to_w(self._R0.detach())
@@ -218,7 +220,6 @@ class PoseOptimizer():
     def _init_optimizer(self):
         return torch.optim.SGD(
             [
-                # self._t,
                 self._x,
             ],
             # lr = 1.,
@@ -243,9 +244,9 @@ class PoseOptimizer():
             if not self._optimize:
                 self._x = self._xrange[j]
 
+            t = self._x2t(self._x)
             w = self._x2w(self._x)
-
-            err_est = self._pipeline(self._t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est = self._pipeline(t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             # print(R_refpt)
             # print(x)
             # print(w)
