@@ -199,7 +199,7 @@ class PoseOptimizer():
             w = R_to_w(self._R0.detach())
             self._R_refpt = None
         else:
-            w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
+            w = self._R0.new_zeros((self._R0.shape[0], 3))
             self._R_refpt = self._R0.detach()
 
         if self._w_dir is None:
