@@ -255,7 +255,7 @@ class PoseOptimizer():
             # print(R_refpt)
             # print(x)
             # print(w)
-            print(err_est)
+            print(j, err_est)
             self._optimizer.zero_grad()
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
             agg_loss = torch.sum(err_est)
@@ -286,6 +286,15 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
             axes_array[0,0].plot(x_list.detach().cpu().numpy())
             axes_array[0,1].plot(err_est_list[:,0].detach().cpu().numpy())
+
+            # Some printouts for detecting actual steps in function (constant floating point numbers)
+            # tmp = err_est_list[:,0].detach().cpu().numpy()
+            # print('{:e}'.format(tmp.min()))
+            # print('{:e}'.format(tmp.max()))
+            # print(np.sum(tmp==tmp[0]))
+            # print(np.sum(tmp!=tmp[0]))
+            # print(np.sum(tmp==tmp[-1]))
+
             axes_array[0,2].plot(grads_list.detach().cpu().numpy())
             axes_array[1,1].plot(x_list.detach().cpu().numpy(), err_est_list[:,0].detach().cpu().numpy())
             axes_array[1,2].plot(x_list.detach().cpu().numpy(), grads_list.detach().cpu().numpy())
