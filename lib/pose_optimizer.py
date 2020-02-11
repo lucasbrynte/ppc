@@ -192,6 +192,8 @@ class PoseOptimizer():
         # x_delta = 0.5
         # # x_delta = 1.5
         # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device)
+        # # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)
+        # # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)
         # self._xrange = [ nn.Parameter(x) for x in self._xrange ]
 
         if self._R_refpt_mode == 'eye':
