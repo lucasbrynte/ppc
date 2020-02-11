@@ -253,6 +253,10 @@ class PoseOptimizer():
             print(j, err_est)
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
             agg_loss = torch.sum(err_est)
+
+            # curr_grad = grad((agg_loss,), (self._x,))[0]
+            # self._optimizer.zero_grad()
+            # self._x.grad = curr_grad
             self._optimizer.zero_grad()
             agg_loss.backward()
 
