@@ -174,7 +174,6 @@ class PoseOptimizer():
 
         self._R_refpt_mode = 'eye'
         # self._R_refpt_mode = 'R0'
-        # self._R_refpt_mode = 'R_prev'
 
         # Optim
         self._optimize = True
@@ -208,16 +207,13 @@ class PoseOptimizer():
             self._x2w = lambda x: x
             assert self._optimize
         else:
-            assert self._R_refpt_mode in ('eye', 'R0')
             self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device).detach()
             assert self._w_dir.shape == (3,)
             self._w0 = w.detach()
             self._x2w = lambda x: self._w0 + x*self._w_dir
             self._x = torch.tensor(0.0, dtype=self._dtype, device=self._device).detach()
         self._x = nn.Parameter(self._x)
-
-        if self._R_refpt_mode in ('eye', 'R0'):
-            self._optimizer = self._init_optimizer()
+        self._optimizer = self._init_optimizer()
 
     def _init_optimizer(self):
         return torch.optim.SGD(
@@ -249,10 +245,6 @@ class PoseOptimizer():
 
             w = self._x2w(self._x)
 
-            if self._R_refpt_mode == 'R_prev':
-                w = nn.Parameter(self._R0.new_zeros((self._R0.shape[0], 3)))
-                self._optimizer = self._init_optimizer()
-
             err_est = self._pipeline(self._t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             # print(R_refpt)
             # print(x)
@@ -275,9 +267,6 @@ class PoseOptimizer():
 
             # Store iterations
             err_est_list.append(err_est.detach())
-
-            if self._R_refpt_mode == 'R_prev':
-                self._R_refpt = torch.bmm(w_to_R(w), self._R_refpt).detach()
 
         grads_list = torch.stack(grads_list, dim=0)
         err_est_list = torch.stack(err_est_list, dim=0)
