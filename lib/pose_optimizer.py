@@ -266,9 +266,9 @@ class PoseOptimizer():
             # Store iterations
             x_list.append(self._x.detach().clone())
             if self._optimize:
-                grads_list.append(self._x.grad.data.clone())
+                grads_list.append(self._x.grad.clone())
             else:
-                grads_list.append(self._xrange[j].grad.data)
+                grads_list.append(self._xrange[j].grad)
 
             if self._optimize:
                 self._optimizer.step()
