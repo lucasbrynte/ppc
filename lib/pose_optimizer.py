@@ -236,6 +236,12 @@ class PoseOptimizer():
             # momentum = 0.5,
         )
 
+    def eval_func(self, x, R_refpt=None, fname='out.png'):
+        t = self._x2t(self._x)
+        w = self._x2w(self._x)
+        err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
+        return err_est
+
     def optimize(self):
         err_est_list = []
         grads_list = []
@@ -244,12 +250,7 @@ class PoseOptimizer():
             if not self._optimize:
                 self._x = self._xrange[j]
 
-            t = self._x2t(self._x)
-            w = self._x2w(self._x)
-            err_est = self._pipeline(t, w, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
-            # print(R_refpt)
-            # print(x)
-            # print(w)
+            err_est = self.eval_func(self._x, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             print(j, err_est)
             # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
             agg_loss = torch.sum(err_est)
