@@ -209,11 +209,15 @@ class PoseOptimizer():
             self._x2w = lambda x: x
             assert self._optimize
         else:
-            self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device).detach()
-            assert self._w_dir.shape == (3,)
+            x_perturb = 0.0
+            # x_perturb = 0.5
+            self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
             self._w0 = w.detach()
             self._x2w = lambda x: self._w0 + x*self._w_dir
-            self._x = torch.tensor(0.0, dtype=self._dtype, device=self._device).detach()
+            self._x = torch.tensor([x_perturb], dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
+            assert self._w0.shape == (self._batch_size, 3)
+            assert self._w_dir.shape == (self._batch_size, 3)
+            assert self._x.shape == (self._batch_size, 1)
         self._x = nn.Parameter(self._x)
         self._optimizer = self._init_optimizer()
 
@@ -297,23 +301,23 @@ class PoseOptimizer():
         err_est_list = torch.stack(err_est_list, dim=0)
         x_list = torch.stack(x_list, dim=0)
 
-        if len(x_list.shape) == 1:
-            # Scalar parameter x.
-            fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
-            axes_array[0,0].plot(x_list.detach().cpu().numpy())
-            axes_array[0,1].plot(err_est_list[:,0].detach().cpu().numpy())
-
-            # Some printouts for detecting actual steps in function (constant floating point numbers)
-            # tmp = err_est_list[:,0].detach().cpu().numpy()
-            # print('{:e}'.format(tmp.min()))
-            # print('{:e}'.format(tmp.max()))
-            # print(np.sum(tmp==tmp[0]))
-            # print(np.sum(tmp!=tmp[0]))
-            # print(np.sum(tmp==tmp[-1]))
-
-            axes_array[0,2].plot(grads_list.detach().cpu().numpy())
-            axes_array[1,1].plot(x_list.detach().cpu().numpy(), err_est_list[:,0].detach().cpu().numpy())
-            axes_array[1,2].plot(x_list.detach().cpu().numpy(), grads_list.detach().cpu().numpy())
-            fig.savefig('experiments/00_func.png')
+        sample_idx = 0
+        # Scalar parameter x.
+        fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
+        axes_array[0,0].plot(x_list[:,sample_idx,:].detach().cpu().numpy())
+        axes_array[0,1].plot(err_est_list[:,sample_idx].detach().cpu().numpy())
+        
+        # Some printouts for detecting actual steps in function (constant floating point numbers)
+        # tmp = err_est_list[:,sample_idx].detach().cpu().numpy()
+        # print('{:e}'.format(tmp.min()))
+        # print('{:e}'.format(tmp.max()))
+        # print(np.sum(tmp==tmp[0]))
+        # print(np.sum(tmp!=tmp[0]))
+        # print(np.sum(tmp==tmp[-1]))
+        
+        axes_array[0,2].plot(grads_list[:,sample_idx,:].detach().cpu().numpy())
+        axes_array[1,1].plot(x_list[:,sample_idx,:].detach().cpu().numpy(), err_est_list[:,sample_idx].detach().cpu().numpy())
+        axes_array[1,2].plot(x_list[:,sample_idx,:].detach().cpu().numpy(), grads_list[:,sample_idx,:].detach().cpu().numpy())
+        fig.savefig('experiments/00_func.png')
 
         assert False
