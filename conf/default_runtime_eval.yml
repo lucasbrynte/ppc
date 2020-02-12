@@ -2,7 +2,8 @@ default_schemeset_opts:
   test:
     loading:
       nbr_batches: 3
-      batch_size: 32
+      batch_size: 1
+      # batch_size: 32
       shuffle: false
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
