@@ -242,6 +242,15 @@ class PoseOptimizer():
         err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
         return err_est
 
+    def eval_func_and_calc_analytical_grad(self, fname='out.png'):
+        """
+        Eval function and calculate analytical gradients
+        """
+        err_est = self.eval_func(self._x, R_refpt=self._R_refpt, fname=fname)
+        # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
+        agg_loss = torch.sum(err_est)
+        return err_est, grad((agg_loss,), (self._x,))[0]
+    
     def optimize(self):
         err_est_list = []
         grads_list = []
@@ -250,16 +259,11 @@ class PoseOptimizer():
             if not self._optimize:
                 self._x = self._xrange[j]
 
-            err_est = self.eval_func(self._x, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
             print(j, err_est)
-            # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
-            agg_loss = torch.sum(err_est)
-
-            # curr_grad = grad((agg_loss,), (self._x,))[0]
+            self._x.grad = curr_grad
             # self._optimizer.zero_grad()
-            # self._x.grad = curr_grad
-            self._optimizer.zero_grad()
-            agg_loss.backward()
+            # agg_loss.backward()
 
             # Store iterations
             x_list.append(self._x.detach().clone())
