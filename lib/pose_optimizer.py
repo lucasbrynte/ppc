@@ -237,8 +237,8 @@ class PoseOptimizer():
         )
 
     def eval_func(self, x, R_refpt=None, fname='out.png'):
-        t = self._x2t(self._x)
-        w = self._x2w(self._x)
+        t = self._x2t(x)
+        w = self._x2w(x)
         err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
         return err_est
 
