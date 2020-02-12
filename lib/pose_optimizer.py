@@ -279,7 +279,12 @@ class PoseOptimizer():
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-1, fname='experiments/out_{:03}.png'.format(j+1))
-            print(j, err_est, self._x, curr_grad)
+            print(
+                j,
+                err_est.detach().cpu().numpy(),
+                self._x.detach().cpu().numpy(),
+                curr_grad.detach().cpu().numpy(),
+            )
             self._x.grad = curr_grad
             # self._optimizer.zero_grad()
             # agg_loss.backward()
