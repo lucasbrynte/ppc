@@ -224,16 +224,16 @@ class PoseOptimizer():
             ],
             # lr = 1.,
             # lr = 5e-1,
-            # lr = 1e-2,
+            lr = 1e-2,
             # lr = 1e-3,
-            lr = 1e-5,
+            # lr = 1e-5,
             # lr = 1e-6,
             # lr = 1e-7,
             # lr = 1e-8,
             # lr = 4e-6,
             # lr = 0e-6,
-            momentum = 0.0,
-            # momentum = 0.5,
+            # momentum = 0.0,
+            momentum = 0.5,
         )
 
     def eval_func(self, x, R_refpt=None, fname='out.png'):
@@ -250,7 +250,21 @@ class PoseOptimizer():
         # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
         agg_loss = torch.sum(err_est)
         return err_est, grad((agg_loss,), (self._x,))[0]
-    
+
+    def eval_func_and_calc_numerical_grad(self, step_size, fname='out.png'):
+        """
+        Eval function and calculate numerical gradients
+        """
+        x1 = self._x
+        x2 = self._x + step_size
+        y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname=fname)
+        y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname)
+        err_est = y1
+        # TODO: x should be able to vary over batch. Get better control over compatible shapes here.shapes
+        grad = (y2-y1).squeeze()/(x2-x1)
+        grad = grad.detach()
+        return err_est, grad
+
     def optimize(self):
         err_est_list = []
         grads_list = []
@@ -259,8 +273,9 @@ class PoseOptimizer():
             if not self._optimize:
                 self._x = self._xrange[j]
 
-            err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
-            print(j, err_est)
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-1, fname='experiments/out_{:03}.png'.format(j+1))
+            print(j, err_est, self._x, curr_grad)
             self._x.grad = curr_grad
             # self._optimizer.zero_grad()
             # agg_loss.backward()
