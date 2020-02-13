@@ -207,23 +207,6 @@ class PoseOptimizer():
         self._w_basis = self._get_w_basis(R0, R_perturb)
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
 
-        # Optim
-        self._optimize = True
-        self._xrange = None
-
-        # # Plot along line
-        # self._optimize = False
-        # # self._xrange = None
-        # # x_delta = 0.001
-        # # x_delta = 0.01
-        # # x_delta = 0.1
-        # # x_delta = 0.5
-        # x_delta = 1.5
-        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
-        # # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-        # # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xrange = list(self._xrange)
-
         if self._R_refpt_mode == 'eye':
             w = R_to_w(self._R0.detach())
             self._R_refpt = None
@@ -246,7 +229,25 @@ class PoseOptimizer():
         print('w_basis: ', self._w_basis)
 
         self._x = nn.Parameter(self._x)
-        self._optimizer = self._init_optimizer()
+
+        self._optimize = True
+        # self._optimize = False
+
+        if self._optimize:
+            self._xrange = None
+            self._optimizer = self._init_optimizer()
+        else:
+            # Plot along line
+            # self._xrange = None
+            # x_delta = 0.001
+            # x_delta = 0.01
+            # x_delta = 0.1
+            # x_delta = 0.5
+            x_delta = 1.5
+            self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
+            # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+            # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+            self._xrange = list(self._xrange)
 
     def _get_w_basis(self, R0, R_perturb):
         if self._R_refpt_mode == 'eye':
