@@ -293,10 +293,11 @@ class PoseOptimizer():
         assert grad.shape == (self._batch_size, nbr_params)
         for x_idx in range(nbr_params):
             x2 = self._x.clone()
-            x2[:,x_idx] += step_size
+            forward_diff = np.random.random() < 0.5
+            x2[:,x_idx] += float(forward_diff)*step_size
             y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname).squeeze(1)
             assert y2.shape == (self._batch_size,)
-            grad[:,x_idx] = (y2-y1) / float(step_size)
+            grad[:,x_idx] = float(forward_diff) * (y2-y1) / float(step_size)
         grad = grad.detach()
         err_est = y1
         return err_est, grad
