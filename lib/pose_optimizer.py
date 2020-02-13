@@ -172,29 +172,34 @@ class PoseOptimizer():
 
         # self._N = 10
         # self._N = 50
-        self._N = 300
+        self._N = 100
+        # self._N = 300
 
         self._R_refpt_mode = 'eye'
         # self._R_refpt_mode = 'R0'
 
         # Optim
         self._optimize = True
-        # self._w_dir = None
-        self._w_dir = [1.0, 0.0, 0.0]
+        self._w_dir = None
+        # self._w_dir = [1.0, 0.0, 0.0]
+        # self._w_dir = [0.0, 1.0, 0.0]
+        # self._w_dir = [0.0, 0.0, 1.0]
         self._xrange = None
 
         # # Plot along line
         # self._optimize = False
-        # self._w_dir = [1.0, 0.0, 0.0]
+        # # self._w_dir = [1.0, 0.0, 0.0]
+        # # self._w_dir = [0.0, 1.0, 0.0]
+        # self._w_dir = [0.0, 0.0, 1.0]
         # # self._xrange = None
         # # x_delta = 0.001
         # # x_delta = 0.01
         # # x_delta = 0.1
-        # x_delta = 0.5
-        # # x_delta = 1.5
-        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)
-        # # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)
-        # # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)
+        # # x_delta = 0.5
+        # x_delta = 1.5
+        # self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
+        # # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        # # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
         # self._xrange = list(self._xrange)
 
         if self._R_refpt_mode == 'eye':
@@ -259,14 +264,20 @@ class PoseOptimizer():
         """
         Eval function and calculate numerical gradients
         """
+        nbr_params = self._x.shape[1]
+
         x1 = self._x
-        x2 = self._x + step_size
         y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname=fname)
-        y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname)
-        err_est = y1
-        # TODO: x should be able to vary over batch. Get better control over compatible shapes here.shapes
-        grad = (y2-y1).squeeze()/(x2-x1)
+        grad = torch.empty_like(self._x)
+        assert grad.shape == (self._batch_size, nbr_params)
+        for x_idx in range(nbr_params):
+            x2 = self._x.clone()
+            x2[:,x_idx] += step_size
+            y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname).squeeze(1)
+            assert y2.shape == (self._batch_size,)
+            grad[:,x_idx] = (y2-y1) / float(step_size)
         grad = grad.detach()
+        err_est = y1
         return err_est, grad
 
     def optimize(self):
