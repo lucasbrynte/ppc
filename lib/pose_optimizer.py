@@ -177,8 +177,8 @@ class PoseOptimizer():
         self._N = 100
         # self._N = 300
 
-        self._R_refpt_mode = 'eye'
-        # self._R_refpt_mode = 'R0'
+        # self._R_refpt_mode = 'eye'
+        self._R_refpt_mode = 'R0'
 
         # Optim
         self._optimize = True
