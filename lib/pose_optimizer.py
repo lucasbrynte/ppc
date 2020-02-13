@@ -229,22 +229,41 @@ class PoseOptimizer():
         self._optimizer = self._init_optimizer()
 
     def _init_optimizer(self):
-        return torch.optim.SGD(
+        # return torch.optim.SGD(
+        #     [
+        #         self._x,
+        #     ],
+        #     # lr = 1.,
+        #     # lr = 5e-1,
+        #     # lr = 1e-2,
+        #     # lr = 1e-3,
+        #     lr = 1e-4,
+        #     # lr = 1e-5,
+        #     # lr = 1e-6,
+        #     # lr = 1e-7,
+        #     # lr = 1e-8,
+        #     # lr = 4e-6,
+        #     # lr = 0e-6,
+        #     # momentum = 0.0,
+        #     momentum = 0.5,
+        #     # momentum = 0.9,
+        # )
+        # return torch.optim.Adadelta(
+        #     [
+        #         self._x,
+        #     ],
+        #     # rho = 0.9,
+        # )
+        return torch.optim.Adam(
             [
                 self._x,
             ],
-            # lr = 1.,
-            # lr = 5e-1,
+            # lr = 1e-2,
+            # betas = (0.9, 0.999),
+            # lr = 1e-2,
+            # betas = (0.0, 0.9),
             lr = 1e-2,
-            # lr = 1e-3,
-            # lr = 1e-5,
-            # lr = 1e-6,
-            # lr = 1e-7,
-            # lr = 1e-8,
-            # lr = 4e-6,
-            # lr = 0e-6,
-            # momentum = 0.0,
-            momentum = 0.5,
+            betas = (0.5, 0.99),
         )
 
     def eval_func(self, x, R_refpt=None, fname='out.png'):
@@ -291,7 +310,7 @@ class PoseOptimizer():
                 self._x = self._xrange[j]
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-1, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             print(
                 j,
                 err_est.detach().cpu().numpy(),
