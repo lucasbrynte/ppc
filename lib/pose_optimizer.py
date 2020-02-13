@@ -163,8 +163,10 @@ class PoseOptimizer():
         # deg_perturb = 0.
         # deg_perturb = 5.
         # deg_perturb = 10.
-        deg_perturb = 15.
-        # deg_perturb = 20.
+        # deg_perturb = 15.
+        deg_perturb = 20.
+        # deg_perturb = 30.
+        # deg_perturb = 40.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
         self._R0 = torch.matmul(R_perturb[None,:,:], R0)
 
@@ -262,7 +264,8 @@ class PoseOptimizer():
             # betas = (0.9, 0.999),
             # lr = 1e-2,
             # betas = (0.0, 0.9),
-            lr = 1e-2,
+            lr = 4e-2,
+            # lr = 1e-2,
             betas = (0.5, 0.99),
         )
 
