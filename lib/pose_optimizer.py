@@ -200,23 +200,19 @@ class PoseOptimizer():
         # self._R_refpt_mode = 'eye'
         self._R_refpt_mode = 'R0'
 
-        # Optim
-        self._optimize = True
-        # self._num_xdims = 1
-        self._num_xdims = 2
+        self._num_xdims = 1
+        # self._num_xdims = 2
         # self._num_xdims = 3
         # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
         self._w_basis = self._get_w_basis(R0, R_perturb)
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
+
+        # Optim
+        self._optimize = True
         self._xrange = None
 
         # # Plot along line
         # self._optimize = False
-        # self._num_xdims = 1
-        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
-        # # self._w_basis = self._w_basis[:,:,[0]]
-        # # self._w_basis = self._w_basis[:,:,[1]]
-        # self._w_basis = self._w_basis[:,:,[2]]
         # # self._xrange = None
         # # x_delta = 0.001
         # # x_delta = 0.01
