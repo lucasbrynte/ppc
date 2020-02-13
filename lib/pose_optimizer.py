@@ -193,16 +193,16 @@ class PoseOptimizer():
         # self._x2t = lambda x: self._t0.clone().detach().requires_grad_(True)
 
         # self._N = 10
-        # self._N = 50
-        self._N = 100
+        self._N = 40
+        # self._N = 100
         # self._N = 300
 
         # self._R_refpt_mode = 'eye'
         self._R_refpt_mode = 'R0'
 
-        self._num_xdims = 1
+        # self._num_xdims = 1
         # self._num_xdims = 2
-        # self._num_xdims = 3
+        self._num_xdims = 3
         # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
         self._w_basis = self._get_w_basis(R0, R_perturb)
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
@@ -236,6 +236,28 @@ class PoseOptimizer():
         if self._optimize:
             self._xrange = None
             self._optimizer = self._init_optimizer()
+            def get_cos_anneal_lr(x):
+                """
+                Cosine annealing.
+                """
+                x_max = 30
+                y_min = 1e-1
+                y_min = float(y_min)
+                x = float(min(x, x_max))
+                return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
+            def get_exp_lr(x):
+                """
+                Exponential decay
+                """
+                half_life = 5.
+                min_reduction = 5e-2
+                reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
+                return max(reduction, min_reduction)
+            self._scheduler = torch.optim.lr_scheduler.LambdaLR(
+                self._optimizer,
+                get_cos_anneal_lr,
+                # get_exp_lr,
+            )
         else:
             # Plot along line
             # self._xrange = None
@@ -304,7 +326,8 @@ class PoseOptimizer():
             # betas = (0.9, 0.999),
             # lr = 1e-2,
             # betas = (0.0, 0.9),
-            lr = 4e-2,
+            lr = 1e-1,
+            # lr = 5e-2,
             # lr = 1e-2,
             betas = (0.5, 0.99),
         )
@@ -357,6 +380,7 @@ class PoseOptimizer():
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             print(
                 j,
+                self._scheduler.get_lr(),
                 err_est.detach().cpu().numpy(),
                 self._x.detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy(),
@@ -374,6 +398,7 @@ class PoseOptimizer():
 
             if self._optimize:
                 self._optimizer.step()
+                self._scheduler.step()
 
             # Store iterations
             err_est_list.append(err_est.detach())
