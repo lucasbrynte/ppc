@@ -146,6 +146,24 @@ class FullPosePipeline(nn.Module):
         pred_features = self._loss_handler.apply_activation(pred_features_raw)
         return pred_features['avg_reproj_err'] # (batch_size, 1)
 
+def cross_normalized(v1,v2):
+    assert v1.shape[1] == 3
+    assert v2.shape[1] == 3
+    v3 = torch.cross(v1, v2, dim=1)
+    v3 /= v3.norm(dim=1, keepdim=True)
+    return v3
+
+def find_orthonormal(v1):
+    """
+    For each normalized vector in v1 batch, find an arbitrary orthonogonal and normalized vector, adn return these in new v2 batch.
+    """
+    bs = v1.shape[0]
+    assert v1.shape == (bs, 3)
+    tmp = torch.zeros_like(v1)
+    min_axis_indices = v1.abs().argmin(dim=1)
+    tmp[list(range(bs)),min_axis_indices] = 1.0
+    return cross_normalized(v1, tmp)
+
 class PoseOptimizer():
     def __init__(
         self,
@@ -167,8 +185,8 @@ class PoseOptimizer():
         deg_perturb = 20.
         # deg_perturb = 30.
         # deg_perturb = 40.
-        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
-        self._R0 = torch.matmul(R_perturb[None,:,:], R0)
+        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        self._R0 = torch.matmul(R_perturb, R0)
 
         self._t0 = t0
         self._x2t = lambda x: self._t0
@@ -184,17 +202,21 @@ class PoseOptimizer():
 
         # Optim
         self._optimize = True
-        self._w_dir = None
-        # self._w_dir = [1.0, 0.0, 0.0]
-        # self._w_dir = [0.0, 1.0, 0.0]
-        # self._w_dir = [0.0, 0.0, 1.0]
+        # self._num_xdims = 1
+        self._num_xdims = 2
+        # self._num_xdims = 3
+        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        self._w_basis = self._get_w_basis(R0, R_perturb)
+        self._w_basis = self._w_basis[:,:,:self._num_xdims]
         self._xrange = None
 
         # # Plot along line
         # self._optimize = False
-        # # self._w_dir = [1.0, 0.0, 0.0]
-        # # self._w_dir = [0.0, 1.0, 0.0]
-        # self._w_dir = [0.0, 0.0, 1.0]
+        # self._num_xdims = 1
+        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        # # self._w_basis = self._w_basis[:,:,[0]]
+        # # self._w_basis = self._w_basis[:,:,[1]]
+        # self._w_basis = self._w_basis[:,:,[2]]
         # # self._xrange = None
         # # x_delta = 0.001
         # # x_delta = 0.01
@@ -213,22 +235,43 @@ class PoseOptimizer():
             w = self._R0.new_zeros((self._R0.shape[0], 3))
             self._R_refpt = self._R0.detach()
 
-        if self._w_dir is None:
-            self._x = w
-            self._x2w = lambda x: x
-            assert self._optimize
-        else:
-            x_perturb = 0.0
-            # x_perturb = 0.5
-            self._w_dir = torch.tensor(self._w_dir, dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
-            self._w0 = w.detach()
-            self._x2w = lambda x: self._w0 + x*self._w_dir
-            self._x = torch.tensor([x_perturb], dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
-            assert self._w0.shape == (self._batch_size, 3)
-            assert self._w_dir.shape == (self._batch_size, 3)
-            assert self._x.shape == (self._batch_size, 1)
+        # x_perturb = 20.*3.1416/180.*np.array([0.0, 1.0, 0.0])
+        x_perturb = [0.0]*self._num_xdims
+        # x_perturb = [0.5]*self._num_xdims
+        self._w_basis = torch.tensor(self._w_basis, dtype=self._dtype, device=self._device)
+        self._w_basis_origin = w.detach()
+        self._x2w = lambda x: self._w_basis_origin + torch.bmm(self._w_basis, x[:,:,None]).squeeze(2)
+        # self._x2w = lambda x: self._w_basis_origin + x*self._w_basis
+        self._x = torch.tensor(x_perturb, dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
+        assert self._w_basis_origin.shape == (self._batch_size, 3)
+        assert self._w_basis.shape == (self._batch_size, 3, self._num_xdims)
+        assert self._x.shape == (self._batch_size, self._num_xdims)
+        print('w_basis_origin: ', self._w_basis_origin)
+        print('w_basis: ', self._w_basis)
+
         self._x = nn.Parameter(self._x)
         self._optimizer = self._init_optimizer()
+
+    def _get_w_basis(self, R0, R_perturb):
+        if self._R_refpt_mode == 'eye':
+            w_perturb = R_to_w(R0)
+        else:
+            w_perturb = R_to_w(R_perturb)
+        w_perturb_norm = w_perturb.norm(dim=1)
+        mask = w_perturb_norm > 1e-5
+        w_basis_vec1 = torch.zeros_like(w_perturb)
+        w_basis_vec1[mask,:] = w_perturb[mask,:] / w_perturb_norm[mask,None] # (batch_size, 3)
+        w_basis_vec1[~mask,0] = 1.0 # If direction was undefined - might as well use x-axis
+        w_basis_vec2 = find_orthonormal(w_basis_vec1)
+        w_basis_vec3 = cross_normalized(w_basis_vec1, w_basis_vec2)
+        w_basis = torch.stack([
+            w_basis_vec1,
+            w_basis_vec2,
+            w_basis_vec3,
+        ], dim=2) # (batch_size, 3, num_xdims)
+        w_basis /= w_basis.norm(dim=1, keepdim=True)
+        return w_basis
+
 
     def _init_optimizer(self):
         # return torch.optim.SGD(
@@ -357,6 +400,8 @@ class PoseOptimizer():
         # print(np.sum(tmp==tmp[-1]))
         
         axes_array[0,2].plot(grads_list[:,sample_idx,:].detach().cpu().numpy())
+        if self._num_xdims == 2:
+            axes_array[1,0].plot(x_list[:,sample_idx,0].detach().cpu().numpy(), x_list[:,sample_idx,1].detach().cpu().numpy())
         axes_array[1,1].plot(x_list[:,sample_idx,:].detach().cpu().numpy(), err_est_list[:,sample_idx].detach().cpu().numpy())
         axes_array[1,2].plot(x_list[:,sample_idx,:].detach().cpu().numpy(), grads_list[:,sample_idx,:].detach().cpu().numpy())
         fig.savefig('experiments/00_func.png')
