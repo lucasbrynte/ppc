@@ -160,8 +160,10 @@ class PoseOptimizer():
         self._device = R0.device
 
         # self._R0 = R0
-        deg_perturb = 0.
+        # deg_perturb = 0.
         # deg_perturb = 5.
+        # deg_perturb = 10.
+        deg_perturb = 15.
         # deg_perturb = 20.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
         self._R0 = torch.matmul(R_perturb[None,:,:], R0)
