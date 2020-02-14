@@ -192,6 +192,7 @@ class PoseOptimizer():
         self._x2t = lambda x: self._t0
         # self._x2t = lambda x: self._t0.clone().detach().requires_grad_(True)
 
+        # self._N = 4
         # self._N = 10
         self._N = 40
         # self._N = 100
