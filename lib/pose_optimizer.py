@@ -396,17 +396,14 @@ class PoseOptimizer():
         # Avoid list for xrange
         # meshgrid - even for 1D case.
 
-        self._xrange = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xrange = torch.linspace(-0.06, -0.03, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        self._xrange = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
         # self._xgrid = torch.meshgrid(*(self._num_xdims*[self._xrange]))
-        self._xrange = list(self._xrange)
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            x = self._xrange[j]
+            x = self._xrange[:,j,:]
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
