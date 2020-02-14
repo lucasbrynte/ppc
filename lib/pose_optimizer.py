@@ -380,7 +380,7 @@ class PoseOptimizer():
 
         sample_idx = 0
         # Scalar parameter x.
-        fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
+        fig, axes_array = plt.subplots(nrows=1, ncols=3, squeeze=False)
         axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
         axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
         axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
