@@ -228,48 +228,6 @@ class PoseOptimizer():
         print('w_basis_origin: ', self._w_basis_origin)
         print('w_basis: ', self._w_basis)
 
-        self._x = nn.Parameter(self._x)
-
-        self._optimize = True
-        # self._optimize = False
-
-        if self._optimize:
-            self._optimizer = self._init_optimizer()
-            def get_cos_anneal_lr(x):
-                """
-                Cosine annealing.
-                """
-                x_max = 30
-                y_min = 1e-1
-                y_min = float(y_min)
-                x = float(min(x, x_max))
-                return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
-            def get_exp_lr(x):
-                """
-                Exponential decay
-                """
-                half_life = 5.
-                min_reduction = 5e-2
-                reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
-                return max(reduction, min_reduction)
-            self._scheduler = torch.optim.lr_scheduler.LambdaLR(
-                self._optimizer,
-                get_cos_anneal_lr,
-                # get_exp_lr,
-            )
-        else:
-            # Plot along line
-            # self._xrange = None
-            # x_delta = 0.001
-            # x_delta = 0.01
-            # x_delta = 0.1
-            # x_delta = 0.5
-            x_delta = 1.5
-            self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
-            # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-            # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-            self._xrange = list(self._xrange)
-
     def _get_w_basis(self, R0, R_perturb):
         if self._R_refpt_mode == 'eye':
             w_perturb = R_to_w(R0)
@@ -368,34 +326,54 @@ class PoseOptimizer():
         return err_est, grad
 
     def optimize(self):
+        self._x = nn.Parameter(self._x)
+
+        self._optimizer = self._init_optimizer()
+        def get_cos_anneal_lr(x):
+            """
+            Cosine annealing.
+            """
+            x_max = 30
+            y_min = 1e-1
+            y_min = float(y_min)
+            x = float(min(x, x_max))
+            return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
+        def get_exp_lr(x):
+            """
+            Exponential decay
+            """
+            half_life = 5.
+            min_reduction = 5e-2
+            reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
+            return max(reduction, min_reduction)
+        self._scheduler = torch.optim.lr_scheduler.LambdaLR(
+            self._optimizer,
+            get_cos_anneal_lr,
+            # get_exp_lr,
+        )
+
         all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(self._N):
-            if not self._optimize:
-                self._x = self._xrange[j]
-
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
-                self._scheduler.get_lr() if self._optimize else None,
+                self._scheduler.get_lr(),
                 err_est.detach().cpu().numpy(),
                 self._x.detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy(),
             )
             self._x.grad = curr_grad
-            # self._optimizer.zero_grad()
-            # agg_loss.backward()
 
             # Store iterations
             all_x[:,j,:] = self._x.detach().clone()
             all_grads[:,j,:] = self._x.grad.clone()
 
-            if self._optimize:
-                self._optimizer.step()
-                self._scheduler.step()
+            self._optimizer.step()
+            self._scheduler.step()
 
             # Store iterations
             all_err_est[:,j] = err_est.detach()
@@ -405,20 +383,62 @@ class PoseOptimizer():
         fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
         axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
         axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
-        
-        # Some printouts for detecting actual steps in function (constant floating point numbers)
-        # tmp = all_err_est[sample_idx,:].detach().cpu().numpy()
-        # print('{:e}'.format(tmp.min()))
-        # print('{:e}'.format(tmp.max()))
-        # print(np.sum(tmp==tmp[0]))
-        # print(np.sum(tmp!=tmp[0]))
-        # print(np.sum(tmp==tmp[-1]))
-        
         axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
         if self._num_xdims == 2:
             axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
-        axes_array[1,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:].detach().cpu().numpy())
-        axes_array[1,2].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_grads[sample_idx,:,:].detach().cpu().numpy())
+        fig.savefig('experiments/00_func.png')
+
+        assert False
+
+    def evaluate(self):
+        assert self._num_xdims == 1
+
+        # Plot along line
+        # x_delta = 0.001
+        # x_delta = 0.01
+        # x_delta = 0.1
+        # x_delta = 0.5
+        x_delta = 1.5
+
+        # TODO
+        # Avoid list for xrange
+        # meshgrid - even for 1D case.
+
+        self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
+        # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        # self._xgrid = torch.meshgrid(*(self._num_xdims*[self._xrange]))
+        self._xrange = list(self._xrange)
+
+        all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
+        for j in range(self._N):
+            self._x = self._xrange[j]
+
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est = err_est.squeeze(1)
+            print(
+                j,
+                err_est.detach().cpu().numpy(),
+                self._x.detach().cpu().numpy(),
+                curr_grad.detach().cpu().numpy(),
+            )
+            self._x.grad = curr_grad
+
+            # Store iterations
+            all_x[:,j,:] = self._x.detach().clone()
+            all_grads[:,j,:] = self._x.grad.clone()
+
+            # Store iterations
+            all_err_est[:,j] = err_est.detach()
+
+        sample_idx = 0
+        # Scalar parameter x.
+        fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
+        axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:].detach().cpu().numpy())
+        axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_grads[sample_idx,:,:].detach().cpu().numpy())
         fig.savefig('experiments/00_func.png')
 
         assert False

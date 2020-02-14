@@ -185,6 +185,7 @@ class Main():
                 # batch.extra_input.t2.cuda(),
             )
             pose_optimizer.optimize()
+            # pose_optimizer.evaluate()
 
     def _run_epoch(
             self,
