@@ -325,10 +325,7 @@ class PoseOptimizer():
         err_est = y1
         return err_est, grad
 
-    def optimize(self):
-        self._x = nn.Parameter(self._x)
-
-        self._optimizer = self._init_optimizer()
+    def _init_scheduler(self):
         def get_cos_anneal_lr(x):
             """
             Cosine annealing.
@@ -338,6 +335,7 @@ class PoseOptimizer():
             y_min = float(y_min)
             x = float(min(x, x_max))
             return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
+
         def get_exp_lr(x):
             """
             Exponential decay
@@ -346,11 +344,18 @@ class PoseOptimizer():
             min_reduction = 5e-2
             reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
             return max(reduction, min_reduction)
-        self._scheduler = torch.optim.lr_scheduler.LambdaLR(
+
+        return torch.optim.lr_scheduler.LambdaLR(
             self._optimizer,
             get_cos_anneal_lr,
             # get_exp_lr,
         )
+
+    def optimize(self):
+        self._x = nn.Parameter(self._x)
+
+        self._optimizer = self._init_optimizer()
+        self._scheduler = self._init_scheduler()
 
         all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
