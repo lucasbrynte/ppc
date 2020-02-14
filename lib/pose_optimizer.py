@@ -376,14 +376,29 @@ class PoseOptimizer():
         assert False
 
     def evaluate(self):
+        def vec(T, N_each):
+            N = np.prod(N_each)
+            old_shape = list(T.shape)
+            assert np.all(np.array(old_shape[-self._num_xdims:]) == np.array(N_each))
+            new_shape = old_shape[:-self._num_xdims] + [N]
+            return T.view(new_shape)
+        def unvec(T, N_each):
+            N = np.prod(N_each)
+            old_shape = list(T.shape)
+            assert old_shape[-1] == N
+            new_shape = old_shape[:-1] + list(N_each)
+            return T.view(new_shape)
         self._num_xdims = 1
+        # self._num_xdims = 2
         x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
 
-        # N = 4
-        # N = 10
-        N = 40
-        # N = 100
-        # N = 300
+        # N_each = [4] * self._num_xdims
+        # N_each = [10] * self._num_xdims
+        N_each = [40] * self._num_xdims
+        # N_each = [100] * self._num_xdims
+        # N_each = [300] * self._num_xdims
+
+        N = np.prod(N_each)
 
         # Plot along line
         # x_delta = 0.001
@@ -392,18 +407,23 @@ class PoseOptimizer():
         # x_delta = 0.5
         x_delta = 1.5
 
-        # TODO
-        # Avoid list for xrange
-        # meshgrid - even for 1D case.
+        def get_range(a, b, N):
+            return torch.linspace(a, b, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)
+        all_x = torch.stack(
+            torch.meshgrid(*[ get_range(-x_delta, x_delta, N_each[x_idx]) for x_idx in range(self._num_xdims) ]),
+            dim=0,
+        ) # shape: (x_idx, idx0, idx1, idx2, ...). If x_idx=0, then the values are the ones corresponding to idx0
+        all_x = torch.stack(self._batch_size*[all_x], dim=0)
 
-        self._xrange = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
-        # self._xgrid = torch.meshgrid(*(self._num_xdims*[self._xrange]))
+        # all_x = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
+        # # self._xgrid = torch.meshgrid(*(self._num_xdims*[all_x]))
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty_like(all_x)
+        # all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        # all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            x = self._xrange[:,j,:]
+            x = vec(all_x, N_each)[:,:,j] # shape: (sample_idx, x_idx)
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
@@ -417,17 +437,17 @@ class PoseOptimizer():
             x.grad = curr_grad
 
             # Store iterations
-            all_x[:,j,:] = x.detach().clone()
-            all_grads[:,j,:] = x.grad.clone()
+            vec(all_x, N_each)[:,:,j] = x.detach().clone()
+            vec(all_grads, N_each)[:,:,j] = x.grad.clone()
 
             # Store iterations
-            all_err_est[:,j] = err_est.detach()
+            vec(all_err_est, N_each)[:,j] = err_est.detach()
 
         sample_idx = 0
         # Scalar parameter x.
         fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
-        axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:].detach().cpu().numpy())
-        axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_grads[sample_idx,:,:].detach().cpu().numpy())
+        axes_array[0,0].plot(vec(all_x, N_each)[sample_idx,:,:].detach().cpu().numpy().T, vec(all_err_est, N_each)[sample_idx,:].detach().cpu().numpy())
+        axes_array[0,1].plot(vec(all_x, N_each)[sample_idx,:,:].detach().cpu().numpy().T, vec(all_grads, N_each)[sample_idx,:,:].detach().cpu().numpy().T)
         fig.savefig('experiments/00_func.png')
 
         assert False
