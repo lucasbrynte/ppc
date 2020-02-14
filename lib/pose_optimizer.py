@@ -368,9 +368,9 @@ class PoseOptimizer():
         return err_est, grad
 
     def optimize(self):
-        err_est_list = []
-        grads_list = []
-        x_list = []
+        all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(self._N):
             if not self._optimize:
                 self._x = self._xrange[j]
@@ -390,39 +390,35 @@ class PoseOptimizer():
             # agg_loss.backward()
 
             # Store iterations
-            x_list.append(self._x.detach().clone())
-            grads_list.append(self._x.grad.clone())
+            all_x[:,j,:] = self._x.detach().clone()
+            all_grads[:,j,:] = self._x.grad.clone()
 
             if self._optimize:
                 self._optimizer.step()
                 self._scheduler.step()
 
             # Store iterations
-            err_est_list.append(err_est.detach())
-
-        grads_list = torch.stack(grads_list, dim=1)
-        err_est_list = torch.stack(err_est_list, dim=1)
-        x_list = torch.stack(x_list, dim=1)
+            all_err_est[:,j] = err_est.detach()
 
         sample_idx = 0
         # Scalar parameter x.
         fig, axes_array = plt.subplots(nrows=2, ncols=3, squeeze=False)
-        axes_array[0,0].plot(x_list[sample_idx,:,:].detach().cpu().numpy())
-        axes_array[0,1].plot(err_est_list[sample_idx,:].detach().cpu().numpy())
+        axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
+        axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
         
         # Some printouts for detecting actual steps in function (constant floating point numbers)
-        # tmp = err_est_list[sample_idx,:].detach().cpu().numpy()
+        # tmp = all_err_est[sample_idx,:].detach().cpu().numpy()
         # print('{:e}'.format(tmp.min()))
         # print('{:e}'.format(tmp.max()))
         # print(np.sum(tmp==tmp[0]))
         # print(np.sum(tmp!=tmp[0]))
         # print(np.sum(tmp==tmp[-1]))
         
-        axes_array[0,2].plot(grads_list[sample_idx,:,:].detach().cpu().numpy())
+        axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
         if self._num_xdims == 2:
-            axes_array[1,0].plot(x_list[sample_idx,:,0].detach().cpu().numpy(), x_list[sample_idx,:,1].detach().cpu().numpy())
-        axes_array[1,1].plot(x_list[sample_idx,:,:].detach().cpu().numpy(), err_est_list[sample_idx,:].detach().cpu().numpy())
-        axes_array[1,2].plot(x_list[sample_idx,:,:].detach().cpu().numpy(), grads_list[sample_idx,:,:].detach().cpu().numpy())
+            axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
+        axes_array[1,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:].detach().cpu().numpy())
+        axes_array[1,2].plot(all_x[sample_idx,:,:].detach().cpu().numpy(), all_grads[sample_idx,:,:].detach().cpu().numpy())
         fig.savefig('experiments/00_func.png')
 
         assert False
