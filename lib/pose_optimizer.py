@@ -168,16 +168,16 @@ class PoseOptimizer():
     def __init__(
         self,
         pipeline,
-        R0,
-        t0,
+        R_gt,
+        t_gt,
     ):
         self._pipeline = pipeline
 
-        self._batch_size = R0.shape[0]
-        self._dtype = R0.dtype
-        self._device = R0.device
+        self._batch_size = R_gt.shape[0]
+        self._dtype = R_gt.dtype
+        self._device = R_gt.device
 
-        # R_gt_perturbed = R0
+        # R_gt_perturbed = R_gt
         # deg_perturb = 0.
         # deg_perturb = 5.
         # deg_perturb = 10.
@@ -186,11 +186,11 @@ class PoseOptimizer():
         # deg_perturb = 30.
         # deg_perturb = 40.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        R_gt_perturbed = torch.matmul(R_perturb, R0)
+        R_gt_perturbed = torch.matmul(R_perturb, R_gt)
 
-        self._t0 = t0
-        self._x2t = lambda x: self._t0
-        # self._x2t = lambda x: self._t0.clone().detach().requires_grad_(True)
+        self._t_gt = t_gt
+        self._x2t = lambda x: self._t_gt
+        # self._x2t = lambda x: self._t_gt.clone().detach().requires_grad_(True)
 
         # self._R_refpt_mode = 'eye'
         self._R_refpt_mode = 'R0'
@@ -199,7 +199,7 @@ class PoseOptimizer():
         # self._num_xdims = 2
         self._num_xdims = 3
         # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
-        self._w_basis = self._get_w_basis(R0, R_perturb)
+        self._w_basis = self._get_w_basis(R_gt, R_perturb)
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
 
         if self._R_refpt_mode == 'eye':
@@ -223,9 +223,9 @@ class PoseOptimizer():
         print('w_basis_origin: ', self._w_basis_origin)
         print('w_basis: ', self._w_basis)
 
-    def _get_w_basis(self, R0, R_perturb):
+    def _get_w_basis(self, R_gt, R_perturb):
         if self._R_refpt_mode == 'eye':
-            w_perturb = R_to_w(R0)
+            w_perturb = R_to_w(R_gt)
         else:
             w_perturb = R_to_w(R_perturb)
         w_perturb_norm = w_perturb.norm(dim=1)
