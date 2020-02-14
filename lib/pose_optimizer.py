@@ -380,7 +380,7 @@ class PoseOptimizer():
             err_est = err_est.squeeze(1)
             print(
                 j,
-                self._scheduler.get_lr(),
+                self._scheduler.get_lr() if self._optimize else None,
                 err_est.detach().cpu().numpy(),
                 self._x.detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy(),
