@@ -187,33 +187,27 @@ class PoseOptimizer():
         # deg_perturb = 40.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
         R_gt_perturbed = torch.matmul(R_perturb, R_gt)
+        R0 = R_gt_perturbed.clone()
 
         self._t_gt = t_gt
         self._x2t = lambda x: self._t_gt
         # self._x2t = lambda x: self._t_gt.clone().detach().requires_grad_(True)
 
-        # self._R_refpt_mode = 'eye'
-        self._R_refpt_mode = 'R0'
+        # self._R_refpt = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        self._R_refpt = R_gt_perturbed.detach()
+        # self._R_refpt = R_gt.detach()
 
-        # self._num_xdims = 1
+        self._num_xdims = 1
         # self._num_xdims = 2
-        self._num_xdims = 3
+        # self._num_xdims = 3
         # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
-        self._w_basis = self._get_w_basis(R_gt, R_perturb)
+        self._w_basis_origin, self._w_basis = self._get_w_basis(R0, R_gt)
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
-
-        if self._R_refpt_mode == 'eye':
-            w = R_to_w(R_gt_perturbed.detach())
-            self._R_refpt = None
-        else:
-            w = R_gt_perturbed.new_zeros((R_gt_perturbed.shape[0], 3))
-            self._R_refpt = R_gt_perturbed.detach()
 
         # x_perturb = 20.*3.1416/180.*np.array([0.0, 1.0, 0.0])
         x_perturb = [0.0]*self._num_xdims
         # x_perturb = [0.5]*self._num_xdims
         self._w_basis = torch.tensor(self._w_basis, dtype=self._dtype, device=self._device)
-        self._w_basis_origin = w.detach()
         self._x2w = lambda x: self._w_basis_origin + torch.bmm(self._w_basis, x[:,:,None]).squeeze(2)
         # self._x2w = lambda x: self._w_basis_origin + x*self._w_basis
         self._x = torch.tensor(x_perturb, dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
@@ -223,11 +217,11 @@ class PoseOptimizer():
         print('w_basis_origin: ', self._w_basis_origin)
         print('w_basis: ', self._w_basis)
 
-    def _get_w_basis(self, R_gt, R_perturb):
-        if self._R_refpt_mode == 'eye':
-            w_perturb = R_to_w(R_gt)
-        else:
-            w_perturb = R_to_w(R_perturb)
+    def _get_w_basis(self, R0, R_gt):
+        # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
+        w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
+        w_gt = R_to_w(torch.matmul(R_gt, self._R_refpt.permute((0,2,1)))).detach()
+        w_perturb = w_gt - w_basis_origin
         w_perturb_norm = w_perturb.norm(dim=1)
         mask = w_perturb_norm > 1e-5
         w_basis_vec1 = torch.zeros_like(w_perturb)
@@ -241,7 +235,7 @@ class PoseOptimizer():
             w_basis_vec3,
         ], dim=2) # (batch_size, 3, num_xdims)
         w_basis /= w_basis.norm(dim=1, keepdim=True)
-        return w_basis
+        return w_basis_origin, w_basis
 
 
     def _init_optimizer(self):
