@@ -284,27 +284,27 @@ class PoseOptimizer():
         err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
         return err_est
 
-    def eval_func_and_calc_analytical_grad(self, fname='out.png'):
+    def eval_func_and_calc_analytical_grad(self, x, fname='out.png'):
         """
         Eval function and calculate analytical gradients
         """
-        err_est = self.eval_func(self._x, R_refpt=self._R_refpt, fname=fname)
+        err_est = self.eval_func(x, R_refpt=self._R_refpt, fname=fname)
         # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
         agg_loss = torch.sum(err_est)
-        return err_est, grad((agg_loss,), (self._x,))[0]
+        return err_est, grad((agg_loss,), (x,))[0]
 
-    def eval_func_and_calc_numerical_grad(self, step_size, fname='out.png'):
+    def eval_func_and_calc_numerical_grad(self, x, step_size, fname='out.png'):
         """
         Eval function and calculate numerical gradients
         """
-        nbr_params = self._x.shape[1]
+        nbr_params = x.shape[1]
 
-        x1 = self._x
+        x1 = x
         y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname=fname)
-        grad = torch.empty_like(self._x)
+        grad = torch.empty_like(x)
         assert grad.shape == (self._batch_size, nbr_params)
         for x_idx in range(nbr_params):
-            x2 = self._x.clone()
+            x2 = x.clone()
             forward_diff = np.random.random() < 0.5
             x2[:,x_idx] += float(forward_diff)*step_size
             y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname).squeeze(1)
@@ -356,8 +356,8 @@ class PoseOptimizer():
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(self._x, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(self._x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
@@ -422,8 +422,8 @@ class PoseOptimizer():
         for j in range(N):
             self._x = self._xrange[j]
 
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(self._x, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(self._x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
