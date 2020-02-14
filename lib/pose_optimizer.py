@@ -177,7 +177,7 @@ class PoseOptimizer():
         self._dtype = R0.dtype
         self._device = R0.device
 
-        # self._R0 = R0
+        # R_gt_perturbed = R0
         # deg_perturb = 0.
         # deg_perturb = 5.
         # deg_perturb = 10.
@@ -186,7 +186,7 @@ class PoseOptimizer():
         # deg_perturb = 30.
         # deg_perturb = 40.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        self._R0 = torch.matmul(R_perturb, R0)
+        R_gt_perturbed = torch.matmul(R_perturb, R0)
 
         self._t0 = t0
         self._x2t = lambda x: self._t0
@@ -203,11 +203,11 @@ class PoseOptimizer():
         self._w_basis = self._w_basis[:,:,:self._num_xdims]
 
         if self._R_refpt_mode == 'eye':
-            w = R_to_w(self._R0.detach())
+            w = R_to_w(R_gt_perturbed.detach())
             self._R_refpt = None
         else:
-            w = self._R0.new_zeros((self._R0.shape[0], 3))
-            self._R_refpt = self._R0.detach()
+            w = R_gt_perturbed.new_zeros((R_gt_perturbed.shape[0], 3))
+            self._R_refpt = R_gt_perturbed.detach()
 
         # x_perturb = 20.*3.1416/180.*np.array([0.0, 1.0, 0.0])
         x_perturb = [0.0]*self._num_xdims
