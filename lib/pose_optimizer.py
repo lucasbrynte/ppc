@@ -12,6 +12,8 @@ from lib.constants import TV_MEAN, TV_STD
 import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
+# This import registers the 3D projection, but is otherwise unused.
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 unused import
 
 def expm_frechet(A, E, expm):
     n = A.size(0)
@@ -178,11 +180,11 @@ class PoseOptimizer():
         self._device = R_gt.device
 
         # R_gt_perturbed = R_gt
-        # deg_perturb = 0.
+        deg_perturb = 0.
         # deg_perturb = 5.
         # deg_perturb = 10.
         # deg_perturb = 15.
-        deg_perturb = 20.
+        # deg_perturb = 20.
         # deg_perturb = 30.
         # deg_perturb = 40.
         R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
@@ -388,13 +390,18 @@ class PoseOptimizer():
             assert old_shape[-1] == N
             new_shape = old_shape[:-1] + list(N_each)
             return T.view(new_shape)
-        self._num_xdims = 1
-        # self._num_xdims = 2
+        # self._num_xdims = 1
+        self._num_xdims = 2
         x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
 
         # N_each = [4] * self._num_xdims
         # N_each = [10] * self._num_xdims
-        N_each = [40] * self._num_xdims
+        # N_each = [2] * self._num_xdims
+        # N_each = [7] * self._num_xdims
+        # N_each = [10] * self._num_xdims
+        N_each = [20] * self._num_xdims
+        # N_each = [25] * self._num_xdims
+        # N_each = [40] * self._num_xdims
         # N_each = [100] * self._num_xdims
         # N_each = [300] * self._num_xdims
 
@@ -407,10 +414,13 @@ class PoseOptimizer():
         # x_delta = 0.5
         x_delta = 1.5
 
+        x_range_limits = [ (-x_delta, x_delta) for x_idx in range(self._num_xdims) ]
+
         def get_range(a, b, N):
             return torch.linspace(a, b, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)
+        x_ranges = [ get_range(limits[0], limits[1], N_each[x_idx]) for x_idx, limits in zip(range(self._num_xdims), x_range_limits) ]
         all_x = torch.stack(
-            torch.meshgrid(*[ get_range(-x_delta, x_delta, N_each[x_idx]) for x_idx in range(self._num_xdims) ]),
+            torch.meshgrid(*x_ranges),
             dim=0,
         ) # shape: (x_idx, idx0, idx1, idx2, ...). If x_idx=0, then the values are the ones corresponding to idx0
         all_x = torch.stack(self._batch_size*[all_x], dim=0)
@@ -418,8 +428,10 @@ class PoseOptimizer():
         # all_x = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
         # # self._xgrid = torch.meshgrid(*(self._num_xdims*[all_x]))
 
-        all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty_like(all_x)
+        all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
+        all_grads = torch.empty([self._batch_size, self._num_xdims]+N_each, dtype=self._dtype, device=self._device)
+        # all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        # all_grads = torch.empty_like(all_x)
         # all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         # all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
@@ -443,11 +455,47 @@ class PoseOptimizer():
             # Store iterations
             vec(all_err_est, N_each)[:,j] = err_est.detach()
 
+        def plot_surf(axes_array, j, k, all_x, mapvals):
+            fig.delaxes(axes_array[j,k])
+            axes_array[j,k] = fig.add_subplot(nrows, ncols, j*ncols+k+1, projection='3d')
+            axes_array[j,k].plot_surface(
+                all_x[0,:,:],
+                all_x[1,:,:],
+                mapvals,
+            )
+            axes_array[j,k].set_xlabel('x1')
+            axes_array[j,k].set_ylabel('x2')
+
+        def plot_heatmap(axes_array, j, k, mapvals):
+            axes_array[j,k].imshow(
+                np.flipud(mapvals.T),
+                extent = [
+                    x_range_limits[0][0] - 0.5*(x_range_limits[0][1]-x_range_limits[0][0]) / (N_each[0]-1),
+                    x_range_limits[0][1] + 0.5*(x_range_limits[0][1]-x_range_limits[0][0]) / (N_each[0]-1),
+                    x_range_limits[1][0] - 0.5*(x_range_limits[1][1]-x_range_limits[1][0]) / (N_each[1]-1),
+                    x_range_limits[1][1] + 0.5*(x_range_limits[1][1]-x_range_limits[1][0]) / (N_each[1]-1),
+                ],
+            )
+            axes_array[j,k].set_xlabel('x1')
+            axes_array[j,k].set_ylabel('x2')
+
         sample_idx = 0
         # Scalar parameter x.
-        fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
-        axes_array[0,0].plot(vec(all_x, N_each)[sample_idx,:,:].detach().cpu().numpy().T, vec(all_err_est, N_each)[sample_idx,:].detach().cpu().numpy())
-        axes_array[0,1].plot(vec(all_x, N_each)[sample_idx,:,:].detach().cpu().numpy().T, vec(all_grads, N_each)[sample_idx,:,:].detach().cpu().numpy().T)
+        if self._num_xdims == 1:
+            nrows = 1
+            ncols = 2
+            fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
+            axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
+            axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_grads[sample_idx,:,:].detach().cpu().numpy().T)
+        elif self._num_xdims == 2:
+            nrows = 2
+            ncols = 2
+            fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
+            plot_surf(axes_array, 0, 0, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy())
+            plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+            plot_heatmap(axes_array, 1, 0, all_err_est[sample_idx,:,:].detach().cpu().numpy())
+            plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+
         fig.savefig('experiments/00_func.png')
 
         assert False
