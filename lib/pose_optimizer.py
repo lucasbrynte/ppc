@@ -192,12 +192,6 @@ class PoseOptimizer():
         self._x2t = lambda x: self._t0
         # self._x2t = lambda x: self._t0.clone().detach().requires_grad_(True)
 
-        # self._N = 4
-        # self._N = 10
-        self._N = 40
-        # self._N = 100
-        # self._N = 300
-
         # self._R_refpt_mode = 'eye'
         self._R_refpt_mode = 'R0'
 
@@ -353,15 +347,21 @@ class PoseOptimizer():
         )
 
     def optimize(self):
+        # N = 4
+        # N = 10
+        N = 40
+        # N = 100
+        # N = 300
+
         self._x = nn.Parameter(self._x)
 
         self._optimizer = self._init_optimizer()
         self._scheduler = self._init_scheduler()
 
-        all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
-        for j in range(self._N):
+        all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        for j in range(N):
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
@@ -399,6 +399,12 @@ class PoseOptimizer():
     def evaluate(self):
         assert self._num_xdims == 1
 
+        # N = 4
+        # N = 10
+        N = 40
+        # N = 100
+        # N = 300
+
         # Plot along line
         # x_delta = 0.001
         # x_delta = 0.01
@@ -410,16 +416,16 @@ class PoseOptimizer():
         # Avoid list for xrange
         # meshgrid - even for 1D case.
 
-        self._xrange = torch.linspace(-x_delta, x_delta, steps=self._N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xrange = torch.linspace(-0.06, -0.03, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=self._N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        self._xrange = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
+        # self._xrange = torch.linspace(-0.06, -0.03, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
+        # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
         # self._xgrid = torch.meshgrid(*(self._num_xdims*[self._xrange]))
         self._xrange = list(self._xrange)
 
-        all_err_est = torch.empty((self._batch_size, self._N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, self._N, self._num_xdims), dtype=self._dtype, device=self._device)
-        for j in range(self._N):
+        all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        for j in range(N):
             self._x = self._xrange[j]
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
