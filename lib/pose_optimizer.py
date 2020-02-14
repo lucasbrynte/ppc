@@ -197,25 +197,9 @@ class PoseOptimizer():
         self._R_refpt = R_gt_perturbed.detach()
         # self._R_refpt = R_gt.detach()
 
-        self._num_xdims = 1
-        # self._num_xdims = 2
-        # self._num_xdims = 3
+        # self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
         # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
         self._w_basis_origin, self._w_basis = self._get_w_basis(R0, R_gt)
-        self._w_basis = self._w_basis[:,:,:self._num_xdims]
-
-        # x_perturb = 20.*3.1416/180.*np.array([0.0, 1.0, 0.0])
-        x_perturb = [0.0]*self._num_xdims
-        # x_perturb = [0.5]*self._num_xdims
-        self._w_basis = torch.tensor(self._w_basis, dtype=self._dtype, device=self._device)
-        self._x2w = lambda x: self._w_basis_origin + torch.bmm(self._w_basis, x[:,:,None]).squeeze(2)
-        # self._x2w = lambda x: self._w_basis_origin + x*self._w_basis
-        self._x = torch.tensor(x_perturb, dtype=self._dtype, device=self._device)[None,:].repeat(self._batch_size, 1)
-        assert self._w_basis_origin.shape == (self._batch_size, 3)
-        assert self._w_basis.shape == (self._batch_size, 3, self._num_xdims)
-        assert self._x.shape == (self._batch_size, self._num_xdims)
-        print('w_basis_origin: ', self._w_basis_origin)
-        print('w_basis: ', self._w_basis)
 
     def _get_w_basis(self, R0, R_gt):
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
@@ -235,14 +219,13 @@ class PoseOptimizer():
             w_basis_vec3,
         ], dim=2) # (batch_size, 3, num_xdims)
         w_basis /= w_basis.norm(dim=1, keepdim=True)
+        w_basis = torch.tensor(w_basis, dtype=self._dtype, device=self._device)
         return w_basis_origin, w_basis
 
 
-    def _init_optimizer(self):
+    def _init_optimizer(self, params):
         # return torch.optim.SGD(
-        #     [
-        #         self._x,
-        #     ],
+        #     params,
         #     # lr = 1.,
         #     # lr = 5e-1,
         #     # lr = 1e-2,
@@ -260,14 +243,12 @@ class PoseOptimizer():
         # )
         # return torch.optim.Adadelta(
         #     [
-        #         self._x,
+        #         x,
         #     ],
         #     # rho = 0.9,
         # )
         return torch.optim.Adam(
-            [
-                self._x,
-            ],
+            params,
             # lr = 1e-2,
             # betas = (0.9, 0.999),
             # lr = 1e-2,
@@ -341,36 +322,43 @@ class PoseOptimizer():
         )
 
     def optimize(self):
+        num_xdims = 1
+        # num_xdims = 2
+        # num_xdims = 3
+        self._x2w = lambda x: self._w_basis_origin + torch.bmm(self._w_basis[:,:,:num_xdims], x[:,:,None]).squeeze(2)
+        x = torch.zeros((self._batch_size, num_xdims), dtype=self._dtype, device=self._device)
+
+        x = nn.Parameter(x)
+        self._optimizer = self._init_optimizer([
+            x,
+        ])
+        self._scheduler = self._init_scheduler()
+
         # N = 4
         # N = 10
         N = 40
         # N = 100
         # N = 300
 
-        self._x = nn.Parameter(self._x)
-
-        self._optimizer = self._init_optimizer()
-        self._scheduler = self._init_scheduler()
-
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, N, num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, N, num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(self._x, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(self._x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
                 self._scheduler.get_lr(),
                 err_est.detach().cpu().numpy(),
-                self._x.detach().cpu().numpy(),
+                x.detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy(),
             )
-            self._x.grad = curr_grad
+            x.grad = curr_grad
 
             # Store iterations
-            all_x[:,j,:] = self._x.detach().clone()
-            all_grads[:,j,:] = self._x.grad.clone()
+            all_x[:,j,:] = x.detach().clone()
+            all_grads[:,j,:] = x.grad.clone()
 
             self._optimizer.step()
             self._scheduler.step()
@@ -384,14 +372,16 @@ class PoseOptimizer():
         axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
         axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
         axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
-        if self._num_xdims == 2:
+        if num_xdims == 2:
             axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
         fig.savefig('experiments/00_func.png')
 
         assert False
 
     def evaluate(self):
-        assert self._num_xdims == 1
+        num_xdims = 1
+        self._x2w = lambda x: self._w_basis_origin + torch.bmm(self._w_basis[:,:,:num_xdims], x[:,:,None]).squeeze(2)
+        x = torch.zeros((self._batch_size, num_xdims), dtype=self._dtype, device=self._device)
 
         # N = 4
         # N = 10
@@ -413,29 +403,29 @@ class PoseOptimizer():
         self._xrange = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[:,None,None].repeat(1, self._batch_size, 1)
         # self._xrange = torch.linspace(-0.06, -0.03, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
         # self._xrange = torch.linspace(-4e-2-5e-9, -4e-2-2.5e-9, steps=N, dtype=self._dtype, device=self._device)[:,None,None].repeat(1, self._batch_size, 1)
-        # self._xgrid = torch.meshgrid(*(self._num_xdims*[self._xrange]))
+        # self._xgrid = torch.meshgrid(*(num_xdims*[self._xrange]))
         self._xrange = list(self._xrange)
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_grads = torch.empty((self._batch_size, N, num_xdims), dtype=self._dtype, device=self._device)
+        all_x = torch.empty((self._batch_size, N, num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            self._x = self._xrange[j]
+            x = self._xrange[j]
 
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(self._x, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(self._x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
                 err_est.detach().cpu().numpy(),
-                self._x.detach().cpu().numpy(),
+                x.detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy(),
             )
-            self._x.grad = curr_grad
+            x.grad = curr_grad
 
             # Store iterations
-            all_x[:,j,:] = self._x.detach().clone()
-            all_grads[:,j,:] = self._x.grad.clone()
+            all_x[:,j,:] = x.detach().clone()
+            all_grads[:,j,:] = x.grad.clone()
 
             # Store iterations
             all_err_est[:,j] = err_est.detach()
