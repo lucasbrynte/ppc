@@ -234,7 +234,6 @@ class PoseOptimizer():
         # self._optimize = False
 
         if self._optimize:
-            self._xrange = None
             self._optimizer = self._init_optimizer()
             def get_cos_anneal_lr(x):
                 """
@@ -378,6 +377,7 @@ class PoseOptimizer():
 
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            err_est = err_est.squeeze(1)
             print(
                 j,
                 self._scheduler.get_lr(),
@@ -391,10 +391,7 @@ class PoseOptimizer():
 
             # Store iterations
             x_list.append(self._x.detach().clone())
-            if self._optimize:
-                grads_list.append(self._x.grad.clone())
-            else:
-                grads_list.append(self._xrange[j].grad)
+            grads_list.append(self._x.grad.clone())
 
             if self._optimize:
                 self._optimizer.step()
