@@ -15,10 +15,10 @@ default_schemeset_opts:
       # plot_signals_interval: null
       # plot_signal_stats_interval: null
     data:
-      pushopt: false # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
-      pushopt_prob: None
-      # pushopt: true # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
-      # pushopt_prob: 0.5
+      # pushopt: false # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
+      # pushopt_prob: None
+      pushopt: true # if enabled, every sample will be paired with another sample at ground-truth, in order to push down the predicted optimum there.
+      pushopt_prob: 0.5
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images
@@ -83,8 +83,8 @@ data_sampling_scheme_defs:
         # - scheme_name: 90deg_std_mild_depth
         #   # override: {background: from_ref}
 
-        - scheme_name: 20deg_std
-          # override: {background: from_ref}
+        # - scheme_name: 20deg_std
+        #   # override: {background: from_ref}
 
         # - scheme_name: rot_only_5deg_std
         #   # override: {background: from_ref}
@@ -93,8 +93,8 @@ data_sampling_scheme_defs:
         #   # override: {blur_opts: {apply_blur: false}}
         #   # override: {background: from_ref}
 
-        # - scheme_name: rot_only_90deg_std
-        #   # override: {background: from_ref}
+        - scheme_name: rot_only_90deg_std
+          # override: {background: from_ref}
         # - scheme_name: transl_10perc
         #   # override: {background: from_ref}
         # - scheme_name: depth_1_1
