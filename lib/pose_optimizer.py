@@ -377,7 +377,7 @@ class PoseOptimizer():
 
         assert False
 
-    def evaluate(self):
+    def evaluate(self, calc_grad=False):
         def vec(T, N_each):
             N = np.prod(N_each)
             old_shape = list(T.shape)
@@ -429,28 +429,30 @@ class PoseOptimizer():
         # # self._xgrid = torch.meshgrid(*(self._num_xdims*[all_x]))
 
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
-        all_grads = torch.empty([self._batch_size, self._num_xdims]+N_each, dtype=self._dtype, device=self._device)
-        # all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        # all_grads = torch.empty_like(all_x)
-        # all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
-        # all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        if calc_grad:
+            all_grads = torch.empty([self._batch_size, self._num_xdims]+N_each, dtype=self._dtype, device=self._device)
         for j in range(N):
             x = vec(all_x, N_each)[:,:,j] # shape: (sample_idx, x_idx)
 
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            if calc_grad:
+                # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
+                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            else:
+                err_est = self.eval_func(x, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
             err_est = err_est.squeeze(1)
             print(
                 j,
                 err_est.detach().cpu().numpy(),
                 x.detach().cpu().numpy(),
-                curr_grad.detach().cpu().numpy(),
+                curr_grad.detach().cpu().numpy() if calc_grad else None,
             )
-            x.grad = curr_grad
+            if calc_grad:
+                x.grad = curr_grad
 
             # Store iterations
             vec(all_x, N_each)[:,:,j] = x.detach().clone()
-            vec(all_grads, N_each)[:,:,j] = x.grad.clone()
+            if calc_grad:
+                vec(all_grads, N_each)[:,:,j] = x.grad.clone()
 
             # Store iterations
             vec(all_err_est, N_each)[:,j] = err_est.detach()
@@ -483,18 +485,24 @@ class PoseOptimizer():
         # Scalar parameter x.
         if self._num_xdims == 1:
             nrows = 1
-            ncols = 2
+            ncols = 1
+            if calc_grad:
+                ncols += 1
             fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            if calc_grad:
+                axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_grads[sample_idx,:,:].detach().cpu().numpy().T)
         elif self._num_xdims == 2:
             nrows = 2
-            ncols = 2
+            ncols = 1
+            if calc_grad:
+                ncols += 1
             fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
             plot_surf(axes_array, 0, 0, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
             plot_heatmap(axes_array, 1, 0, all_err_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+            if calc_grad:
+                plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
         fig.savefig('experiments/00_func.png')
 
