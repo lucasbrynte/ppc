@@ -252,10 +252,14 @@ class PoseOptimizer():
             # betas = (0.9, 0.999),
             # lr = 1e-2,
             # betas = (0.0, 0.9),
-            lr = 1e-1,
+            # lr = 1e-1,
             # lr = 5e-2,
+            lr = 3e-2,
             # lr = 1e-2,
-            betas = (0.5, 0.99),
+            # lr = 3e-3,
+            # betas = (0.95, 0.99),
+            betas = (0.8, 0.99),
+            # betas = (0.5, 0.99),
         )
 
     def eval_func(self, x, R_refpt=None, fname='out.png'):
@@ -300,8 +304,10 @@ class PoseOptimizer():
             """
             Cosine annealing.
             """
-            x_max = 30
-            y_min = 1e-1
+            # x_max = 30
+            x_max = 50
+            # y_min = 1e-1
+            y_min = 1e-2
             y_min = float(y_min)
             x = float(min(x, x_max))
             return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
@@ -311,6 +317,8 @@ class PoseOptimizer():
             Exponential decay
             """
             half_life = 5.
+            # min_reduction = 1.0
+            # min_reduction = 1e-1
             min_reduction = 5e-2
             reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
             return max(reduction, min_reduction)
@@ -319,12 +327,13 @@ class PoseOptimizer():
             self._optimizer,
             get_cos_anneal_lr,
             # get_exp_lr,
+            # lambda x: 1.0,
         )
 
     def optimize(self):
-        self._num_xdims = 1
+        # self._num_xdims = 1
         # self._num_xdims = 2
-        # self._num_xdims = 3
+        self._num_xdims = 3
         x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
 
         x = nn.Parameter(x)
@@ -335,8 +344,8 @@ class PoseOptimizer():
 
         # N = 4
         # N = 10
-        N = 40
-        # N = 100
+        # N = 40
+        N = 100
         # N = 300
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
