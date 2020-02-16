@@ -203,7 +203,9 @@ class PoseOptimizer():
         R_gt_perturbed = torch.matmul(R_perturb, R_gt)
         R0 = R_gt_perturbed.clone()
 
+        self._R_gt = R_gt
         self._t_gt = t_gt
+
         # self._R_refpt = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
         self._R_refpt = R_gt_perturbed.detach()
         # self._R_refpt = R_gt.detach()
