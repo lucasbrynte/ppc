@@ -258,7 +258,7 @@ class PoseOptimizer():
             # lr = 1e-2,
             # lr = 3e-3,
             # betas = (0.95, 0.99),
-            betas = (0.8, 0.99),
+            betas = (0.8, 0.9),
             # betas = (0.5, 0.99),
         )
 
