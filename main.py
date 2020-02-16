@@ -268,6 +268,8 @@ class Main():
                 self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror))
                 self._loss_handler.record_batch_of_perbatch_signals('relative_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(relative_feat_abserror, discard_signal=loss_notapplied))
                 self._loss_handler.record_batch_of_perbatch_signals('interp_feat_abserror_avg_filtered', self._loss_handler.calc_batch_signal_avg(interp_feat_abserror, discard_signal=loss_notapplied))
+            if mode == TRAIN:
+                self._loss_handler.record_batch_of_perbatch_signals('lr', {'lr': torch.tensor([ group['lr'] for group in self._optimizer.param_groups ]).mean()})
 
             # Per-sample signals, e.g. feature values & corresponding errors
             self._loss_handler.record_batch_of_persample_signals('loss_notapplied', loss_notapplied)
