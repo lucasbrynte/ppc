@@ -274,10 +274,18 @@ class PoseOptimizer():
             # betas = (0.5, 0.99),
         )
 
-    def eval_func(self, x, R_refpt=None, fname='out.png'):
+    def _x2t(self, x):
         t = self._t_gt
         # t = self._t_gt.clone().detach().requires_grad_(True)
+        return t
+
+    def _x2w(self, x):
         w = self._w_basis_origin + torch.bmm(self._w_basis[:,:,:self._num_xdims], x[:,:,None]).squeeze(2)
+        return w
+
+    def eval_func(self, x, R_refpt=None, fname='out.png'):
+        t = self._x2t(x)
+        w = self._x2w(x)
         err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
         return err_est
 
