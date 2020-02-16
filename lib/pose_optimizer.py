@@ -179,6 +179,7 @@ class PoseOptimizer():
         self._dtype = R_gt.dtype
         self._device = R_gt.device
 
+        get_perturb = lambda deg_perturb, axis_perturb: torch.tensor(get_rotation_axis_angle(np.array(axis_perturb), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
         # R_gt_perturbed = R_gt
         deg_perturb = 0.
         # deg_perturb = 5.
@@ -187,7 +188,18 @@ class PoseOptimizer():
         # deg_perturb = 20.
         # deg_perturb = 30.
         # deg_perturb = 40.
-        R_perturb = torch.tensor(get_rotation_axis_angle(np.array([0., 1., 0.]), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        axis_perturb = [0., 1., 0.]
+        deg_perturb = self._batch_size*[deg_perturb]
+        axis_perturb = self._batch_size*[axis_perturb]
+        # axis_perturb = [
+        #     [1., 0., 0.],
+        #     [-1., 0., 0.],
+        #     [0., 1., 0.],
+        #     [0., -1., 0.],
+        #     [0., 0., 1.],
+        #     [0., 0., -1.],
+        # ]
+        R_perturb = torch.stack([ get_perturb(curr_deg, curr_axis) for curr_deg, curr_axis in zip(deg_perturb, axis_perturb) ], dim=0)
         R_gt_perturbed = torch.matmul(R_perturb, R_gt)
         R0 = R_gt_perturbed.clone()
 
