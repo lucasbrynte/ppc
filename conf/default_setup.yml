@@ -58,15 +58,16 @@ tasks:
   #   loss_decay: null
   # norm_pixel_offset:
   #   target: norm_pixel_offset
-  #   loss_func: L2
+  #   loss_func: L1
   #   loss_weight: 1.e-2
   #   clamp_before_loss: false
   #   prior_loss: null
-  #   loss_decay:
-  #     # - {method: relative, min_denominator: 0.5}
-  #     # - {method: relative, min_denominator: 0.1}
-  #     # - {method: relative, min_denominator: 0.05}
-  #     - {method: relative, min_denominator: 0.01}
+  #   loss_decay: null
+  #   # loss_decay:
+  #   #   # - {method: relative, min_denominator: 0.5}
+  #   #   - {method: relative, min_denominator: 0.1}
+  #   #   # - {method: relative, min_denominator: 0.05}
+  #   #   # - {method: relative, min_denominator: 0.01}
   # delta_angle_total:
   #   target: delta_angle_total
   #   loss_func: L1
