@@ -386,18 +386,21 @@ class PoseOptimizer():
             # Store iterations
             all_err_est[:,j] = err_est.detach()
 
-        sample_idx = 0
-        # Scalar parameter x.
-        nrows = 1
-        if self._num_xdims == 2:
-            nrows += 1
-        fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
-        axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
-        axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
-        axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
-        if self._num_xdims == 2:
-            axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
-        fig.savefig('experiments/00_func.png')
+        def plot(sample_idx):
+            # Scalar parameter x.
+            nrows = 1
+            if self._num_xdims == 2:
+                nrows += 1
+            fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
+            axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
+            axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
+            axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
+            if self._num_xdims == 2:
+                axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
+            fig.savefig('experiments/00_func{:02d}.png'.format(sample_idx))
+
+        for sample_idx in range(self._batch_size):
+            plot(sample_idx)
 
         assert False
 
