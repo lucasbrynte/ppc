@@ -93,7 +93,7 @@ class FullPosePipeline(nn.Module):
         loss_handler,
         maps,
         HK,
-        obj_id,
+        obj_id_list,
         ambient_weight,
     ):
         super().__init__()
@@ -102,7 +102,7 @@ class FullPosePipeline(nn.Module):
         self._loss_handler = loss_handler
         self._maps = maps
         self._HK = HK
-        self._obj_id = obj_id
+        self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
 
     def forward(self, t, w, R_refpt=None, fname='out.png'):
@@ -122,7 +122,7 @@ class FullPosePipeline(nn.Module):
             self._HK,
             R,
             t,
-            self._obj_id,
+            self._obj_id_list,
             self._ambient_weight,
         )
 
