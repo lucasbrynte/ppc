@@ -285,7 +285,8 @@ class PoseOptimizer():
         nbr_params = x.shape[1]
 
         x1 = x
-        y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname=fname)
+        y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname=fname).squeeze(1)
+        assert y1.shape == (self._batch_size,)
         grad = torch.empty_like(x)
         assert grad.shape == (self._batch_size, nbr_params)
         for x_idx in range(nbr_params):
@@ -354,7 +355,6 @@ class PoseOptimizer():
         for j in range(N):
             # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
             err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est = err_est.squeeze(1)
             print(
                 j,
                 self._scheduler.get_lr(),
@@ -451,7 +451,7 @@ class PoseOptimizer():
                 err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
             else:
                 err_est = self.eval_func(x, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est = err_est.squeeze(1)
+                err_est = err_est.squeeze(1)
             print(
                 j,
                 err_est.detach().cpu().numpy(),
