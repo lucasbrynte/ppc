@@ -36,6 +36,7 @@ Maps = namedtuple('Maps', [
 ExtraInput = namedtuple('ExtraInput', [
     'crop_box_normalized',
     'real_ref',
+    'K',
     'HK',
     'R1',
     't1',
@@ -1123,6 +1124,7 @@ class DummyDataset(Dataset):
         extra_input = ExtraInput(
             crop_box_normalized = torch.tensor(crop_box_normalized).float(),
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
+            K = torch.tensor(self._K, dtype=torch.float32),
             HK = torch.tensor(HK, dtype=torch.float32),
             R1 = torch.tensor(R1, dtype=torch.float32),
             t1 = torch.tensor(t1, dtype=torch.float32),

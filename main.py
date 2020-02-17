@@ -179,6 +179,7 @@ class Main():
             )
             pose_optimizer = PoseOptimizer(
                 pose_pipeline,
+                batch.extra_input.K.cuda(),
                 batch.extra_input.R1.cuda(),
                 batch.extra_input.t1.cuda(),
                 # batch.extra_input.R2.cuda(),

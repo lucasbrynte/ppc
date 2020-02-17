@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import torch
 from torch import nn
@@ -170,10 +171,12 @@ class PoseOptimizer():
     def __init__(
         self,
         pipeline,
+        K,
         R_gt,
         t_gt,
     ):
         self._pipeline = pipeline
+        self._K = K
 
         self._batch_size = R_gt.shape[0]
         self._dtype = R_gt.dtype
@@ -322,6 +325,75 @@ class PoseOptimizer():
         err_est = y1
         return err_est, grad
 
+    def calc_metrics(self, R_est, t_est, R_gt, t_gt):
+        # Concatenate model points into batch, possibly dependent on sample object ids. Shape: (batch_size, 3, num_pts)
+        bs = R_est.shape[0]
+        if len(set(self._pipeline._obj_id_list)) == 1:
+            obj_id = self._pipeline._obj_id_list[0]
+            pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1).expand(bs,-1,-1)
+        else:
+            pts_objframe = torch.cat([ self._pipeline._neural_rendering_wrapper._models[curr_obj_id]['vertices'] for curr_obj_id in self._pipeline._obj_id_list ], dim=0).permute(0,2,1)
+
+        # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
+        # # pts_camframe_gt: R_gt @ pts_objframe + t_gt
+        # # pts_camframe_est: R_est @ pts_objframe + t_est
+        # # pts_objframe = R_est.T @ (pts_camframe_est - t_est)
+        # # pts_objframe \approx R_est.T @ (pts_camframe_gt - t_est) = R_est.T @ (R_gt @ pts_objframe + t_gt - t_est) = (R_est.T @ R_gt) @ pts_objframe + R_est.T @ (t_gt - t_est)
+        # # => R_combined = R_est.T @ R_gt
+        # # => t_combined = R_est.T @ (t_gt - t_est)
+        # R_combined = torch.bmm(R_est.permute(0,2,1), R_gt)
+        # t_combined = torch.bmm(R_est.permute(0,2,1), t_gt - t_est)
+
+        pts_camframe_est = torch.bmm(R_est, pts_objframe) + t_est
+        pts_camframe_gt = torch.bmm(R_gt, pts_objframe) + t_gt
+
+        eps = 1e-5
+        pflat = lambda pts: pts[:,:2,:] / torch.max(pts[:,[2],:], torch.tensor(eps, device=self._device))
+        pts_reproj_est = pflat(torch.bmm(self._K, pts_camframe_est))
+        pts_reproj_gt = pflat(torch.bmm(self._K, pts_camframe_gt))
+
+        add_metric = torch.mean(torch.norm(pts_camframe_est.squeeze(2) - pts_camframe_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        avg_reproj_metric = torch.mean(torch.norm(pts_reproj_est.squeeze(2) - pts_reproj_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+
+        R_rel = torch.bmm(R_est.permute(0,2,1), R_gt)
+        t_rel = t_gt - t_est
+        deg_err = 180. / np.pi * R_to_w(R_rel).norm(dim=1)
+        cm_err = 10.*t_rel.norm(dim=1).squeeze(1) # mm -> cm
+
+        return [ {
+            'obj_id': obj_id,
+            'add_metric': add_metric,
+            'avg_reproj_metric': avg_reproj_metric,
+            'deg_err': deg_err,
+            'cm_err': cm_err,
+        } for (
+            obj_id,
+            add_metric,
+            avg_reproj_metric,
+            deg_err,
+            cm_err,
+        ) in zip(
+            self._pipeline._obj_id_list,
+            add_metric.detach().cpu().numpy().tolist(),
+            avg_reproj_metric.detach().cpu().numpy().tolist(),
+            deg_err.detach().cpu().numpy().tolist(),
+            cm_err.detach().cpu().numpy().tolist(),
+        ) ]
+
+    def eval_pose(self, x_est, err_est, R_gt, t_gt):
+        t_est = self._x2t(x_est)
+        w_est = self._x2w(x_est)
+        R_est = w_to_R(w_est)
+        if self._R_refpt is not None:
+            R_est = torch.bmm(R_est, self._R_refpt)
+
+        metrics = self.calc_metrics(R_est, t_est, R_gt, t_gt)
+        for metric, curr_err_est in zip(metrics, err_est.detach().cpu().numpy().tolist()):
+            metric.update({
+                'err_est': curr_err_est,
+            })
+        return metrics
+
     def _init_scheduler(self):
         def get_cos_anneal_lr(x):
             """
@@ -395,6 +467,24 @@ class PoseOptimizer():
 
             # Store iterations
             all_err_est[:,j] = err_est.detach()
+
+        best_iter = torch.argmin(all_err_est, dim=1)
+        best_err_est = torch.min(all_err_est, dim=1)[0]
+        first_err_est = all_err_est[:,0]
+        last_err_est = all_err_est[:,-1]
+        best_x = torch.stack([ all_x[:,:,x_idx][list(range(self._batch_size)),best_iter] for x_idx in range(self._num_xdims) ], dim=1)
+        first_x = all_x[:,0,:]
+        last_x = all_x[:,-1,:]
+        assert best_iter.shape == (self._batch_size,)
+        assert best_x.shape == (self._batch_size, self._num_xdims)
+        assert first_x.shape == (self._batch_size, self._num_xdims)
+        assert last_x.shape == (self._batch_size, self._num_xdims)
+        best_metrics = self.eval_pose(best_x, best_err_est, self._R_gt, self._t_gt)
+        first_metrics = self.eval_pose(first_x, first_err_est, self._R_gt, self._t_gt)
+        last_metrics = self.eval_pose(last_x, last_err_est, self._R_gt, self._t_gt)
+        print(json.dumps(best_metrics, indent=4))
+        print(json.dumps(first_metrics, indent=4))
+        print(json.dumps(last_metrics, indent=4))
 
         def plot(sample_idx):
             # Scalar parameter x.
