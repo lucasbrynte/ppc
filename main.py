@@ -197,30 +197,49 @@ class Main():
                     # N = 40,
                     N = 100,
                     # N = 300,
+
                     # optim_run_names = ['init_gt'],
                     # deg_perturb = [0.],
                     # axis_perturb = [
                     #     [1., 0., 0.],
                     # ]
+
+                    # optim_run_names = [
+                    #     'init_gt',
+                    #     'init_gt_plus_x',
+                    #     'init_gt_minus_x',
+                    #     'init_gt_plus_y',
+                    #     'init_gt_minus_y',
+                    #     'init_gt_plus_z',
+                    #     'init_gt_minus_z',
+                    # ],
+                    # # deg_perturb = [0.] + 6*[10.],
+                    # deg_perturb = [0.] + 6*[20.],
+                    # axis_perturb = [
+                    #     [1., 0., 0.],
+                    #     [1., 0., 0.],
+                    #     [-1., 0., 0.],
+                    #     [0., 1., 0.],
+                    #     [0., -1., 0.],
+                    #     [0., 0., 1.],
+                    #     [0., 0., -1.],
+                    # ],
+
                     optim_run_names = [
                         'init_gt',
-                        'init_gt_plus_x',
-                        'init_gt_minus_x',
-                        'init_gt_plus_y',
-                        'init_gt_minus_y',
-                        'init_gt_plus_z',
-                        'init_gt_minus_z',
+                        'tetra_perturb1',
+                        'tetra_perturb2',
+                        'tetra_perturb3',
+                        'tetra_perturb4',
                     ],
-                    # deg_perturb = [0.] + 6*[10.],
-                    deg_perturb = [0.] + 6*[20.],
+                    # deg_perturb = [0.] + 4*[10.],
+                    deg_perturb = [0.] + 4*[20.],
                     axis_perturb = [
                         [1., 0., 0.],
-                        [1., 0., 0.],
-                        [-1., 0., 0.],
-                        [0., 1., 0.],
-                        [0., -1., 0.],
-                        [0., 0., 1.],
-                        [0., 0., -1.],
+                        [1., 0., -1./np.sqrt(2)],
+                        [-1., 0., -1./np.sqrt(2)],
+                        [0., 1., 1./np.sqrt(2)],
+                        [0., -1., 1./np.sqrt(2)],
                     ],
                 )
                 # pose_optimizer.evaluate(calc_grad=False)
