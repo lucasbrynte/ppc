@@ -724,5 +724,8 @@ class PoseOptimizer():
                 plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
         fig.savefig('experiments/00_func.png')
+        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-train100.png')
+        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-109.png')
+        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-112.png')
 
         assert False
