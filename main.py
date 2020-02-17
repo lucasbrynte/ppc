@@ -180,12 +180,28 @@ class Main():
             pose_optimizer = PoseOptimizer(
                 pose_pipeline,
                 batch.extra_input.K.cuda(),
-                batch.extra_input.R1.cuda(),
-                batch.extra_input.t1.cuda(),
-                # batch.extra_input.R2.cuda(),
-                # batch.extra_input.t2.cuda(),
+                batch.extra_input.R1.cuda(), # R_gt
+                batch.extra_input.t1.cuda(), # t_gt
+                batch.extra_input.R1.cuda(), # R_refpt
             )
-            pose_optimizer.optimize()
+            pose_optimizer.optimize(
+                batch.extra_input.R1.cuda(), # R0_before_perturb
+                batch.extra_input.t1.cuda(), # t0_before_perturb
+                # deg_perturb = [0.],
+                # axis_perturb = [
+                #     [1., 0., 0.],
+                # ]
+                deg_perturb = [0.] + 6*[20.],
+                axis_perturb = [
+                    [1., 0., 0.],
+                    [1., 0., 0.],
+                    [-1., 0., 0.],
+                    [0., 1., 0.],
+                    [0., -1., 0.],
+                    [0., 0., 1.],
+                    [0., 0., -1.],
+                ],
+            )
             # pose_optimizer.evaluate(calc_grad=False)
 
     def _run_epoch(

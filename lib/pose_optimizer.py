@@ -106,7 +106,7 @@ class FullPosePipeline(nn.Module):
         self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
 
-    def forward(self, t, w, R_refpt=None, fname='out.png'):
+    def forward(self, t, w, R_refpt=None, batch_interleaved_repeat_factor=1, fname='out.png'):
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -116,14 +116,17 @@ class FullPosePipeline(nn.Module):
         # theta = torch.acos(0.5*(trace-1.0))
         # return theta
 
+        HK = self._HK.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        obj_id_list = [ obj_id for obj_id in self._obj_id_list for _ in range(batch_interleaved_repeat_factor) ]
+
         R = w_to_R(w)
         if R_refpt is not None:
             R = torch.bmm(R, R_refpt)
         query_img = self._neural_rendering_wrapper.render(
-            self._HK,
+            HK,
             R,
             t,
-            self._obj_id_list,
+            obj_id_list,
             self._ambient_weight,
         )
 
@@ -141,6 +144,7 @@ class FullPosePipeline(nn.Module):
         # # return torch.mean(punish_img**2, dim=(1,2,3))
 
         maps = self._maps._asdict()
+        maps['ref_img'] = maps['ref_img'].repeat_interleave(batch_interleaved_repeat_factor, dim=0)
         maps['query_img'] = query_img
         maps = self._maps.__class__(**maps)
         nn_out = self._model((maps, None))
@@ -174,48 +178,52 @@ class PoseOptimizer():
         K,
         R_gt,
         t_gt,
+        R_refpt,
     ):
         self._pipeline = pipeline
-        self._K = K
+        self._orig_K = K
 
-        self._batch_size = R_gt.shape[0]
+        self._orig_batch_size = R_gt.shape[0]
         self._dtype = R_gt.dtype
         self._device = R_gt.device
 
-        get_perturb = lambda deg_perturb, axis_perturb: torch.tensor(get_rotation_axis_angle(np.array(axis_perturb), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
-        # R_gt_perturbed = R_gt
-        deg_perturb = 0.
-        # deg_perturb = 5.
-        # deg_perturb = 10.
-        # deg_perturb = 15.
-        # deg_perturb = 20.
-        # deg_perturb = 30.
-        # deg_perturb = 40.
-        axis_perturb = [0., 1., 0.]
-        deg_perturb = self._batch_size*[deg_perturb]
-        axis_perturb = self._batch_size*[axis_perturb]
-        # axis_perturb = [
-        #     [1., 0., 0.],
-        #     [-1., 0., 0.],
-        #     [0., 1., 0.],
-        #     [0., -1., 0.],
-        #     [0., 0., 1.],
-        #     [0., 0., -1.],
-        # ]
-        R_perturb = torch.stack([ get_perturb(curr_deg, curr_axis) for curr_deg, curr_axis in zip(deg_perturb, axis_perturb) ], dim=0)
-        R_gt_perturbed = torch.matmul(R_perturb, R_gt)
-        R0 = R_gt_perturbed.clone()
+        self._orig_R_gt = R_gt
+        self._orig_t_gt = t_gt
 
-        self._R_gt = R_gt
-        self._t_gt = t_gt
+        self._orig_R_refpt = R_refpt
+        # # self._orig_R_refpt = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        # self._orig_R_refpt = R0.detach()
+        # # self._orig_R_refpt = R0_before_perturb.detach()
+        # # self._orig_R_refpt = R_gt.detach()
 
-        # self._R_refpt = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        self._R_refpt = R_gt_perturbed.detach()
-        # self._R_refpt = R_gt.detach()
+    def _repeat_onedim(self, T, nbr_reps, dim=0, interleave=False):
+        if interleave:
+            return torch.repeat_interleave(T, nbr_reps, dim=dim)
+        else:
+            old_shape = T.shape
+            rep_def = len(old_shape) * [1]
+            rep_def[dim] = nbr_reps
+            return T.repeat(*rep_def)
 
-        # self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
-        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
-        self._w_basis_origin, self._w_basis = self._get_w_basis(R0, R_gt)
+    @property
+    def _batch_size(self):
+        return self._orig_batch_size * self._num_optim_runs
+
+    @property
+    def _K(self):
+        return self._repeat_onedim(self._orig_K, self._num_optim_runs, dim=0, interleave=True)
+
+    @property
+    def _R_gt(self):
+        return self._repeat_onedim(self._orig_R_gt, self._num_optim_runs, dim=0, interleave=True)
+
+    @property
+    def _t_gt(self):
+        return self._repeat_onedim(self._orig_t_gt, self._num_optim_runs, dim=0, interleave=True)
+
+    @property
+    def _R_refpt(self):
+        return self._repeat_onedim(self._orig_R_refpt, self._num_optim_runs, dim=0, interleave=True)
 
     def _get_w_basis(self, R0, R_gt):
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
@@ -291,7 +299,7 @@ class PoseOptimizer():
     def eval_func(self, x, R_refpt=None, fname='out.png'):
         t = self._x2t(x)
         w = self._x2w(x)
-        err_est = self._pipeline(t, w, R_refpt=R_refpt, fname=fname)
+        err_est = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname=fname)
         return err_est
 
     def eval_func_and_calc_analytical_grad(self, x, fname='out.png'):
@@ -427,7 +435,31 @@ class PoseOptimizer():
             # lambda x: 1.0,
         )
 
-    def optimize(self):
+    def optimize(
+            self,
+            R0_before_perturb,
+            t0_before_perturb,
+            deg_perturb = [0.],
+            axis_perturb = [[0., 1., 0.]],
+        ):
+        self._num_optim_runs = len(deg_perturb)
+        assert len(axis_perturb) == len(deg_perturb)
+
+        get_perturb = lambda deg_perturb, axis_perturb: torch.tensor(get_rotation_axis_angle(np.array(axis_perturb), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
+        R_perturb = torch.stack([ get_perturb(curr_deg, curr_axis) for curr_deg, curr_axis in zip(deg_perturb, axis_perturb) ], dim=0)
+
+        # NOTE: interleave=True along optim runs, and False along batch, since this allows for reshaping to (batch_size, num_optim_runs, ..., ...) in the end
+        R0_before_perturb = self._repeat_onedim(R0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
+        t0_before_perturb = self._repeat_onedim(t0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
+        R_perturb = self._repeat_onedim(R_perturb, self._orig_batch_size, dim=0, interleave=False)
+
+        R0 = torch.matmul(R_perturb, R0_before_perturb)
+        t0 = t0_before_perturb
+
+        # self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
+        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
+
         # self._num_xdims = 1
         # self._num_xdims = 2
         self._num_xdims = 3
@@ -507,6 +539,11 @@ class PoseOptimizer():
         assert False
 
     def evaluate(self, calc_grad=False):
+        self._num_optim_runs = 1
+        self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
+        self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        # self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
+
         def vec(T, N_each):
             N = np.prod(N_each)
             old_shape = list(T.shape)
