@@ -349,11 +349,6 @@ class PoseOptimizer():
         pts_camframe_est = torch.bmm(R_est, pts_objframe) + t_est
         pts_camframe_gt = torch.bmm(R_gt, pts_objframe) + t_gt
 
-        eps = 1e-5
-        pflat = lambda pts: pts[:,:2,:] / torch.max(pts[:,[2],:], torch.tensor(eps, device=self._device))
-        pts_reproj_est = pflat(torch.bmm(self._K, pts_camframe_est))
-        pts_reproj_gt = pflat(torch.bmm(self._K, pts_camframe_gt))
-
         add_metric_unnorm = torch.mean(torch.norm(pts_camframe_est.squeeze(2) - pts_camframe_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
         add_metric = add_metric_unnorm / object_diameter
         return list(zip(
