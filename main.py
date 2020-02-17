@@ -197,10 +197,20 @@ class Main():
                     # N = 40,
                     N = 100,
                     # N = 300,
+                    # optim_run_names = ['init_gt'],
                     # deg_perturb = [0.],
                     # axis_perturb = [
                     #     [1., 0., 0.],
                     # ]
+                    optim_run_names = [
+                        'init_gt',
+                        'init_gt_plus_x',
+                        'init_gt_minus_x',
+                        'init_gt_plus_y',
+                        'init_gt_minus_y',
+                        'init_gt_plus_z',
+                        'init_gt_minus_z',
+                    ],
                     # deg_perturb = [0.] + 6*[10.],
                     deg_perturb = [0.] + 6*[20.],
                     axis_perturb = [

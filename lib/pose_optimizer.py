@@ -457,6 +457,7 @@ class PoseOptimizer():
             R0_before_perturb,
             t0_before_perturb,
             N = 100,
+            optim_run_names = ['default'],
             deg_perturb = [0.],
             axis_perturb = [[0., 1., 0.]],
         ):
@@ -548,7 +549,8 @@ class PoseOptimizer():
             fig.savefig(fname)
 
         for sample_idx in range(self._batch_size):
-            fname = 'experiments/00_func_sample{:02d}_run{:02d}.png'.format(sample_idx//self._num_optim_runs, sample_idx%self._num_optim_runs)
+            run_idx = sample_idx % self._num_optim_runs
+            fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx//self._num_optim_runs, run_idx, optim_run_names[run_idx])
             plot(sample_idx, fname)
 
         assert False
