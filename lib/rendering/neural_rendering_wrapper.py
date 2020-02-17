@@ -120,9 +120,17 @@ class NeuralRenderingWrapper():
         self._renderer.light_direction = light_dir_objframe
 
         # Find desired model
-        vertices = torch.cat([self._models[curr_obj_id]['vertices'] for curr_obj_id in obj_id], dim=0)
-        faces = torch.cat([self._models[curr_obj_id]['faces'] for curr_obj_id in obj_id], dim=0)
-        textures = torch.cat([self._models[curr_obj_id]['textures'] for curr_obj_id in obj_id], dim=0)
+        bs = len(obj_id)
+        if len(set(obj_id)) == 1:
+            # Repeatedly copying this single model may be avoided by torch.expand
+            curr_obj_id = obj_id[0]
+            vertices = self._models[curr_obj_id]['vertices'].expand(bs,-1,-1)
+            faces = self._models[curr_obj_id]['faces'].expand(bs,-1,-1)
+            textures = self._models[curr_obj_id]['textures'].expand(bs,-1,-1,-1,-1,-1)
+        else:
+            vertices = torch.cat([ self._models[curr_obj_id]['vertices'] for curr_obj_id in obj_id ], dim=0)
+            faces = torch.cat([ self._models[curr_obj_id]['faces'] for curr_obj_id in obj_id ], dim=0)
+            textures = torch.cat([ self._models[curr_obj_id]['textures'] for curr_obj_id in obj_id ], dim=0)
 
         # images, _, _ = self._renderer(vertices, faces, textures)  # [batch_size, RGB, image_size, image_size]
         img = self._renderer(vertices, faces, textures, mode='rgb', K=HK, R=R, t=t.permute((0,2,1)))  # [batch_size, RGB, image_size, image_size]
