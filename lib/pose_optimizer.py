@@ -333,7 +333,7 @@ class PoseOptimizer():
         err_est = y1
         return err_est, grad
 
-    def calc_add_metric(self, pts_objframe, R_est, t_est, R_gt, t_gt):
+    def calc_add_metric(self, pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt):
         # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
         # # pts_camframe_gt: R_gt @ pts_objframe + t_gt
         # # pts_camframe_est: R_est @ pts_objframe + t_est
@@ -352,7 +352,12 @@ class PoseOptimizer():
         pts_reproj_est = pflat(torch.bmm(self._K, pts_camframe_est))
         pts_reproj_gt = pflat(torch.bmm(self._K, pts_camframe_gt))
 
-        return torch.mean(torch.norm(pts_camframe_est.squeeze(2) - pts_camframe_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        add_metric_unnorm = torch.mean(torch.norm(pts_camframe_est.squeeze(2) - pts_camframe_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        add_metric = add_metric_unnorm / object_diameter
+        return list(zip(
+            add_metric.detach().cpu().numpy().tolist(),
+            add_metric_unnorm.detach().cpu().numpy().tolist(),
+        ))
 
     def calc_avg_reproj_metric(self, pts_objframe, R_est, t_est, R_gt, t_gt):
         pts_camframe_est = torch.bmm(R_est, pts_objframe) + t_est
@@ -363,15 +368,18 @@ class PoseOptimizer():
         pts_reproj_est = pflat(torch.bmm(self._K, pts_camframe_est))
         pts_reproj_gt = pflat(torch.bmm(self._K, pts_camframe_gt))
 
-        return torch.mean(torch.norm(pts_reproj_est.squeeze(2) - pts_reproj_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        avg_reproj_err = torch.mean(torch.norm(pts_reproj_est.squeeze(2) - pts_reproj_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        return avg_reproj_err.detach().cpu().numpy().tolist()
 
-    def calc_cm_err(self, t_est, t_gt):
-        t_rel = t_gt - t_est
-        return 10.*t_rel.norm(dim=1).squeeze(1) # mm -> cm
-
-    def calc_deg_err(self, R_est, R_gt):
+    def calc_deg_cm_err(self, R_est, t_est, R_gt, t_gt):
         R_rel = torch.bmm(R_est.permute(0,2,1), R_gt)
-        return 180. / np.pi * R_to_w(R_rel).norm(dim=1)
+        deg_err = 180. / np.pi * R_to_w(R_rel).norm(dim=1)
+        t_rel = t_gt - t_est
+        cm_err = 10.*t_rel.norm(dim=1).squeeze(1) # mm -> cm
+        return list(zip(
+            deg_err.detach().cpu().numpy().tolist(),
+            cm_err.detach().cpu().numpy().tolist(),
+        ))
 
     def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt):
         t_est = self._x2t(x_est)
@@ -384,23 +392,23 @@ class PoseOptimizer():
         pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
         pts_objframe = pts_objframe.expand(self._batch_size,-1,-1)
 
+        # Determine object diameter
+        object_diameter = self._pipeline._neural_rendering_wrapper._models_info[obj_id]['diameter']
+
         metrics = [ {
             'add_metric': add_metric,
             'avg_reproj_metric': avg_reproj_metric,
-            'deg_err': deg_err,
-            'cm_err': cm_err,
+            'deg_cm_err': deg_cm_err,
             'err_est': curr_err_est,
         } for (
             add_metric,
             avg_reproj_metric,
-            deg_err,
-            cm_err,
+            deg_cm_err,
             curr_err_est
         ) in zip(
-            self.calc_add_metric(pts_objframe, R_est, t_est, R_gt, t_gt).detach().cpu().numpy().tolist(),
-            self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).detach().cpu().numpy().tolist(),
-            self.calc_deg_err(R_est, R_gt).detach().cpu().numpy().tolist(),
-            self.calc_cm_err(t_est, t_gt).detach().cpu().numpy().tolist(),
+            self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt),
+            self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt),
+            self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt),
             err_est.detach().cpu().numpy().tolist(),
         ) ]
         return metrics
