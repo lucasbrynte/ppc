@@ -179,10 +179,12 @@ class PoseOptimizer():
         R_gt,
         t_gt,
         R_refpt,
+        ref_img_path,
         numerical_grad = True,
     ):
         self._pipeline = pipeline
         self._orig_K = K
+        self._ref_img_path = ref_img_path
         self._numerical_grad = numerical_grad
 
         self._orig_batch_size = R_gt.shape[0]
@@ -414,26 +416,29 @@ class PoseOptimizer():
         avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
         deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
-        metrics = []
-        for sample_idx in range(self._orig_batch_size):
-            metrics.append({})
-            for run_idx, run_name in enumerate(self._optim_runs.keys()):
-                metrics[-1][run_name] = [ {
-                    'add_metric': add_metric.tolist(),
-                    'avg_reproj_metric': avg_reproj_metric.tolist(),
-                    'deg_cm_err': deg_cm_err.tolist(),
-                    'err_est': curr_err_est.tolist(),
-                } for (
-                    add_metric,
-                    avg_reproj_metric,
-                    deg_cm_err,
-                    curr_err_est
-                ) in zip(
-                    add_metrics[sample_idx,run_idx,:,:],
-                    avg_reproj_metrics[sample_idx,run_idx,:],
-                    deg_cm_errors[sample_idx,run_idx,:,:],
-                    err_est_numpy[sample_idx,run_idx,:],
-                ) ]
+        metrics = [ {
+            'ref_img_path': ref_img_path,
+            'optim_runs': self._optim_runs,
+            'optim_run_names_sorted': list(self._optim_runs.keys()),
+            'metrics': {
+                'add_metric': add_metric.tolist(),
+                'avg_reproj_metric': avg_reproj_metric.tolist(),
+                'deg_cm_err': deg_cm_err.tolist(),
+                'err_est': curr_err_est.tolist(),
+            },
+        } for (
+            ref_img_path,
+            add_metric,
+            avg_reproj_metric,
+            deg_cm_err,
+            curr_err_est
+        ) in zip(
+            self._ref_img_path,
+            add_metrics,
+            avg_reproj_metrics,
+            deg_cm_errors,
+            err_est_numpy,
+        ) ]
         return metrics
 
     def eval_pose(self, all_x, all_err_est):

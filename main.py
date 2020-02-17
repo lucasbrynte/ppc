@@ -186,6 +186,7 @@ class Main():
                     batch.extra_input.R1.cuda(), # R_gt
                     batch.extra_input.t1.cuda(), # t_gt
                     batch.extra_input.R1.cuda(), # R_refpt
+                    batch.meta_data.ref_img_path,
                     numerical_grad = numerical_grad,
                 )
                 pose_optimizer.optimize(
