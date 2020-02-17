@@ -106,7 +106,7 @@ class FullPosePipeline(nn.Module):
         self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
 
-    def forward(self, t, w, R_refpt=None, batch_interleaved_repeat_factor=1, fname='out.png'):
+    def forward(self, t, w, R_refpt=None, batch_interleaved_repeat_factor=1, fname=None):
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -130,10 +130,11 @@ class FullPosePipeline(nn.Module):
             self._ambient_weight,
         )
 
-        fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
-        axes_array[0,0].imshow(_retrieve_input_img(self._maps.ref_img[0,:,:,:].detach().cpu()))
-        axes_array[0,1].imshow(_retrieve_input_img(query_img[0,:,:,:].detach().cpu()))
-        fig.savefig(fname)
+        if fname is not None:
+            fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
+            axes_array[0,0].imshow(_retrieve_input_img(self._maps.ref_img[0,:,:,:].detach().cpu()))
+            axes_array[0,1].imshow(_retrieve_input_img(query_img[0,:,:,:].detach().cpu()))
+            fig.savefig(fname)
 
         # # Punish pixels
         # sh = query_img.shape
@@ -304,13 +305,13 @@ class PoseOptimizer():
         w = self._w_basis_origin + torch.bmm(self._w_basis[:,:,:self._num_xdims], x[:,:,None]).squeeze(2)
         return w
 
-    def eval_func(self, x, R_refpt=None, fname='out.png'):
+    def eval_func(self, x, R_refpt=None, fname=None):
         t = self._x2t(x)
         w = self._x2w(x)
         err_est = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname=fname)
         return err_est
 
-    def eval_func_and_calc_analytical_grad(self, x, fname='out.png'):
+    def eval_func_and_calc_analytical_grad(self, x, fname=None):
         """
         Eval function and calculate analytical gradients
         """
@@ -319,7 +320,7 @@ class PoseOptimizer():
         agg_loss = torch.sum(err_est)
         return err_est, grad((agg_loss,), (x,))[0]
 
-    def eval_func_and_calc_numerical_grad(self, x, step_size, fname='out.png'):
+    def eval_func_and_calc_numerical_grad(self, x, step_size, fname=None):
         """
         Eval function and calculate numerical gradients
         """
@@ -505,6 +506,8 @@ class PoseOptimizer():
             optim_runs = {
                 'default': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.]},
             },
+            enable_plotting = False,
+            print_iterates = False,
         ):
         self._optim_runs = order_dict(optim_runs)
         deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
@@ -544,16 +547,17 @@ class PoseOptimizer():
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
             if self._numerical_grad:
-                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname = 'experiments/out_{:03}.png'.format(j+1) if enable_plotting else None)
             else:
-                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
-            print(
-                j,
-                self._scheduler.get_lr(),
-                err_est.detach().cpu().numpy(),
-                x.detach().cpu().numpy(),
-                curr_grad.detach().cpu().numpy(),
-            )
+                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname = 'experiments/out_{:03}.png'.format(j+1) if enable_plotting else None)
+            if print_iterates:
+                print(
+                    j,
+                    self._scheduler.get_lr(),
+                    err_est.detach().cpu().numpy(),
+                    x.detach().cpu().numpy(),
+                    curr_grad.detach().cpu().numpy(),
+                )
             x.grad = curr_grad
 
             # Store iterations
@@ -567,7 +571,7 @@ class PoseOptimizer():
             all_err_est[:,j] = err_est.detach()
 
         all_metrics = self.eval_pose(all_x, all_err_est)
-        print(json.dumps(all_metrics[-1], indent=4))
+        # print(json.dumps(all_metrics[-1], indent=4))
 
         def plot(sample_idx, fname):
             # Scalar parameter x.
@@ -582,12 +586,11 @@ class PoseOptimizer():
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
             fig.savefig(fname)
 
-        for sample_idx in range(self._orig_batch_size):
-            for run_idx, run_name in enumerate(self._optim_runs.keys()):
-                fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx, run_idx, run_name)
-                plot(sample_idx*self._num_optim_runs + run_idx, fname)
-
-        assert False
+        if enable_plotting:
+            for sample_idx in range(self._orig_batch_size):
+                for run_idx, run_name in enumerate(self._optim_runs.keys()):
+                    fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx, run_idx, run_name)
+                    plot(sample_idx*self._num_optim_runs + run_idx, fname)
 
     def evaluate(self, calc_grad=False):
         self._num_optim_runs = 1

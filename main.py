@@ -220,6 +220,11 @@ class Main():
                         'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)]},
                         'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)]},
                     },
+
+                    # enable_plotting = True,
+                    # print_iterates = True,
+                    enable_plotting = False,
+                    print_iterates = False,
                 )
                 # pose_optimizer.evaluate(calc_grad=False)
 
