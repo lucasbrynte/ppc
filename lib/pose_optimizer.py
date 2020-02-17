@@ -361,19 +361,16 @@ class PoseOptimizer():
         cm_err = 10.*t_rel.norm(dim=1).squeeze(1) # mm -> cm
 
         return [ {
-            'obj_id': obj_id,
             'add_metric': add_metric,
             'avg_reproj_metric': avg_reproj_metric,
             'deg_err': deg_err,
             'cm_err': cm_err,
         } for (
-            obj_id,
             add_metric,
             avg_reproj_metric,
             deg_err,
             cm_err,
         ) in zip(
-            self._pipeline._obj_id_list,
             add_metric.detach().cpu().numpy().tolist(),
             avg_reproj_metric.detach().cpu().numpy().tolist(),
             deg_err.detach().cpu().numpy().tolist(),
@@ -389,7 +386,7 @@ class PoseOptimizer():
 
         # Define batch of model points
         pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
-        pts_objframe = pts_objframe.expand(bs,-1,-1)
+        pts_objframe = pts_objframe.expand(self._batch_size,-1,-1)
 
         metrics = self.calc_metrics(pts_objframe, R_est, t_est, R_gt, t_gt)
         for metric, curr_err_est in zip(metrics, err_est.detach().cpu().numpy().tolist()):
