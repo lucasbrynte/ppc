@@ -165,50 +165,55 @@ class Main():
     def _run_epoch_with_posesearch(self, mode, schemeset):
         assert mode == TEST
         self._model.eval() # Although gradients are computed - batch norm, dropout etc should be in eval mode.
-        for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
-            assert self._configs.data.query_rendering_method == 'neural'
-            maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-            pose_pipeline = FullPosePipeline(
-                self._model,
-                self._neural_rendering_wrapper,
-                self._loss_handler,
-                maps,
-                batch.extra_input.HK.cuda(),
-                batch.meta_data.obj_id,
-                batch.meta_data.ambient_weight,
-            )
-            pose_optimizer = PoseOptimizer(
-                pose_pipeline,
-                batch.extra_input.K.cuda(),
-                batch.extra_input.R1.cuda(), # R_gt
-                batch.extra_input.t1.cuda(), # t_gt
-                batch.extra_input.R1.cuda(), # R_refpt
-            )
-            pose_optimizer.optimize(
-                batch.extra_input.R1.cuda(), # R0_before_perturb
-                batch.extra_input.t1.cuda(), # t0_before_perturb
-                # N = 1,
-                # N = 4,
-                # N = 10,
-                # N = 40,
-                N = 100,
-                # N = 300,
-                # deg_perturb = [0.],
-                # axis_perturb = [
-                #     [1., 0., 0.],
-                # ]
-                deg_perturb = [0.] + 6*[20.],
-                axis_perturb = [
-                    [1., 0., 0.],
-                    [1., 0., 0.],
-                    [-1., 0., 0.],
-                    [0., 1., 0.],
-                    [0., -1., 0.],
-                    [0., 0., 1.],
-                    [0., 0., -1.],
-                ],
-            )
-            # pose_optimizer.evaluate(calc_grad=False)
+        numerical_grad = True
+        # numerical_grad = False
+        with torch.set_grad_enabled(not numerical_grad):
+            for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
+                assert self._configs.data.query_rendering_method == 'neural'
+                maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
+                pose_pipeline = FullPosePipeline(
+                    self._model,
+                    self._neural_rendering_wrapper,
+                    self._loss_handler,
+                    maps,
+                    batch.extra_input.HK.cuda(),
+                    batch.meta_data.obj_id,
+                    batch.meta_data.ambient_weight,
+                )
+                pose_optimizer = PoseOptimizer(
+                    pose_pipeline,
+                    batch.extra_input.K.cuda(),
+                    batch.extra_input.R1.cuda(), # R_gt
+                    batch.extra_input.t1.cuda(), # t_gt
+                    batch.extra_input.R1.cuda(), # R_refpt
+                    numerical_grad = numerical_grad,
+                )
+                pose_optimizer.optimize(
+                    batch.extra_input.R1.cuda(), # R0_before_perturb
+                    batch.extra_input.t1.cuda(), # t0_before_perturb
+                    # N = 1,
+                    # N = 4,
+                    # N = 10,
+                    # N = 40,
+                    N = 100,
+                    # N = 300,
+                    # deg_perturb = [0.],
+                    # axis_perturb = [
+                    #     [1., 0., 0.],
+                    # ]
+                    # deg_perturb = [0.] + 6*[10.],
+                    deg_perturb = [0.] + 6*[20.],
+                    axis_perturb = [
+                        [1., 0., 0.],
+                        [1., 0., 0.],
+                        [-1., 0., 0.],
+                        [0., 1., 0.],
+                        [0., -1., 0.],
+                        [0., 0., 1.],
+                        [0., 0., -1.],
+                    ],
+                )
+                # pose_optimizer.evaluate(calc_grad=False)
 
     def _run_epoch(
             self,

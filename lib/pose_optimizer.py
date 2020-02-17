@@ -179,9 +179,11 @@ class PoseOptimizer():
         R_gt,
         t_gt,
         R_refpt,
+        numerical_grad = True,
     ):
         self._pipeline = pipeline
         self._orig_K = K
+        self._numerical_grad = numerical_grad
 
         self._orig_batch_size = R_gt.shape[0]
         self._dtype = R_gt.dtype
@@ -491,8 +493,10 @@ class PoseOptimizer():
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
-            err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            if self._numerical_grad:
+                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+            else:
+                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
             print(
                 j,
                 self._scheduler.get_lr(),
@@ -612,8 +616,10 @@ class PoseOptimizer():
             x = vec(all_x, N_each)[:,:,j] # shape: (sample_idx, x_idx)
 
             if calc_grad:
-                # err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
-                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+                if self._numerical_grad:
+                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname='experiments/out_{:03}.png'.format(j+1))
+                else:
+                    err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname='experiments/out_{:03}.png'.format(j+1))
             else:
                 err_est = self.eval_func(x, R_refpt=self._R_refpt, fname='experiments/out_{:03}.png'.format(j+1))
                 err_est = err_est.squeeze(1)
