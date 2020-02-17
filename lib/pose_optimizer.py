@@ -346,75 +346,116 @@ class PoseOptimizer():
         # R_combined = torch.bmm(R_est.permute(0,2,1), R_gt)
         # t_combined = torch.bmm(R_est.permute(0,2,1), t_gt - t_est)
 
-        pts_camframe_est = torch.bmm(R_est, pts_objframe) + t_est
-        pts_camframe_gt = torch.bmm(R_gt, pts_objframe) + t_gt
+        pts_camframe_est = torch.matmul(R_est, pts_objframe) + t_est
+        pts_camframe_gt = torch.matmul(R_gt, pts_objframe) + t_gt
 
-        add_metric_unnorm = torch.mean(torch.norm(pts_camframe_est.squeeze(2) - pts_camframe_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
+        add_metric_unnorm = torch.mean(torch.norm(pts_camframe_est.squeeze(3) - pts_camframe_gt.squeeze(3), dim=2), dim=2) # The old dim=3 is the new dim=2
         add_metric = add_metric_unnorm / object_diameter
-        return list(zip(
-            add_metric.detach().cpu().numpy().tolist(),
-            add_metric_unnorm.detach().cpu().numpy().tolist(),
-        ))
+        return np.stack([
+            add_metric.detach().cpu().numpy(),
+            add_metric_unnorm.detach().cpu().numpy(),
+        ], axis=2)
 
     def calc_avg_reproj_metric(self, pts_objframe, R_est, t_est, R_gt, t_gt):
-        pts_camframe_est = torch.bmm(R_est, pts_objframe) + t_est
-        pts_camframe_gt = torch.bmm(R_gt, pts_objframe) + t_gt
+        pts_camframe_est = torch.matmul(R_est, pts_objframe) + t_est
+        pts_camframe_gt = torch.matmul(R_gt, pts_objframe) + t_gt
 
         eps = 1e-5
-        pflat = lambda pts: pts[:,:2,:] / torch.max(pts[:,[2],:], torch.tensor(eps, device=self._device))
-        pts_reproj_est = pflat(torch.bmm(self._K, pts_camframe_est))
-        pts_reproj_gt = pflat(torch.bmm(self._K, pts_camframe_gt))
+        pflat = lambda pts: pts[:,:,:2,:] / torch.max(pts[:,:,[2],:], torch.tensor(eps, device=self._device))
+        pts_reproj_est = pflat(torch.matmul(self._K[:,None,:,:], pts_camframe_est))
+        pts_reproj_gt = pflat(torch.matmul(self._K[:,None,:,:], pts_camframe_gt))
 
-        avg_reproj_err = torch.mean(torch.norm(pts_reproj_est.squeeze(2) - pts_reproj_gt.squeeze(2), dim=1), dim=1) # The old dim=2 is the new dim=1
-        return avg_reproj_err.detach().cpu().numpy().tolist()
+        avg_reproj_err = torch.mean(torch.norm(pts_reproj_est.squeeze(3) - pts_reproj_gt.squeeze(3), dim=2), dim=2) # The old dim=3 is the new dim=2
+        return avg_reproj_err.detach().cpu().numpy()
 
     def calc_deg_cm_err(self, R_est, t_est, R_gt, t_gt):
-        R_rel = torch.bmm(R_est.permute(0,2,1), R_gt)
-        deg_err = 180. / np.pi * R_to_w(R_rel).norm(dim=1)
-        t_rel = t_gt - t_est
-        cm_err = 10.*t_rel.norm(dim=1).squeeze(1) # mm -> cm
-        return list(zip(
-            deg_err.detach().cpu().numpy().tolist(),
-            cm_err.detach().cpu().numpy().tolist(),
-        ))
+        R_rel = torch.matmul(R_est.permute(0,1,3,2), R_gt)
 
-    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt):
-        t_est = self._x2t(x_est)
-        w_est = self._x2w(x_est)
-        R_est = w_to_R(w_est)
+        N = R_est.shape[1]
+        R_to_w_wrapper = lambda R: torch.stack([ R_to_w(R[:,j,:,:]) for j in range(N) ], dim=1)
+
+        deg_err = 180. / np.pi * R_to_w_wrapper(R_rel).norm(dim=2)
+        t_rel = t_gt - t_est
+        cm_err = 10.*t_rel.norm(dim=2).squeeze(2) # mm -> cm
+        return np.stack([
+            deg_err.detach().cpu().numpy(),
+            cm_err.detach().cpu().numpy(),
+        ], axis=2)
+
+    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt, optim_run_names):
+        R_gt = R_gt[:,None,:,:]
+        t_gt = t_gt[:,None,:,:]
+
+        N = x_est.shape[1]
+        t_est = torch.stack(
+            [ self._x2t(x_est[:,j,:]) for j in range(N) ],
+            dim=1,
+        )
+        R_est = torch.stack(
+            [ w_to_R(self._x2w(x_est[:,j,:])) for j in range(N) ],
+            dim=1,
+        )
         if self._R_refpt is not None:
-            R_est = torch.bmm(R_est, self._R_refpt)
+            R_est = torch.matmul(R_est, self._R_refpt[:,None,:,:])
 
         # Define batch of model points
         pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
-        pts_objframe = pts_objframe.expand(self._batch_size,-1,-1)
+        pts_objframe = pts_objframe[:,None,:,:] # Extra dimension for iterations
+        pts_objframe = pts_objframe.expand(self._batch_size,-1,-1,-1)
 
         # Determine object diameter
         object_diameter = self._pipeline._neural_rendering_wrapper._models_info[obj_id]['diameter']
 
-        metrics = [ {
-            'add_metric': add_metric,
-            'avg_reproj_metric': avg_reproj_metric,
-            'deg_cm_err': deg_cm_err,
-            'err_est': curr_err_est,
-        } for (
-            add_metric,
-            avg_reproj_metric,
-            deg_cm_err,
-            curr_err_est
-        ) in zip(
-            self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt),
-            self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt),
-            self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt),
-            err_est.detach().cpu().numpy().tolist(),
-        ) ]
+        add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N, 2)
+        avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N)
+        deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N, 2)
+        err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(optim_run_names), N)
+        metrics = []
+        for sample_idx in range(self._orig_batch_size):
+            metrics.append({})
+            for run_idx, run_name in enumerate(optim_run_names):
+                metrics[-1][run_name] = [ {
+                    'add_metric': add_metric.tolist(),
+                    'avg_reproj_metric': avg_reproj_metric.tolist(),
+                    'deg_cm_err': deg_cm_err.tolist(),
+                    'err_est': curr_err_est.tolist(),
+                } for (
+                    add_metric,
+                    avg_reproj_metric,
+                    deg_cm_err,
+                    curr_err_est
+                ) in zip(
+                    add_metrics[sample_idx,run_idx,:,:],
+                    avg_reproj_metrics[sample_idx,run_idx,:],
+                    deg_cm_errors[sample_idx,run_idx,:,:],
+                    err_est_numpy[sample_idx,run_idx,:],
+                ) ]
         return metrics
 
-    def eval_pose(self, x_est, err_est, R_gt, t_gt):
+    def eval_pose(self, all_x, all_err_est, optim_run_names):
         # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
         assert len(set(self._pipeline._obj_id_list)) == 1
         obj_id = self._pipeline._obj_id_list[0]
-        return self.eval_pose_single_object(obj_id, x_est, err_est, R_gt, t_gt)
+        all_metrics = self.eval_pose_single_object(obj_id, all_x, all_err_est, self._R_gt, self._t_gt, optim_run_names)
+        return all_metrics
+
+        # best_iter = torch.argmin(all_err_est, dim=1)
+        # best_err_est = torch.min(all_err_est, dim=1)[0]
+        # first_err_est = all_err_est[:,0]
+        # last_err_est = all_err_est[:,-1]
+        # best_x = torch.stack([ all_x[:,:,x_idx][list(range(self._batch_size)),best_iter] for x_idx in range(self._num_xdims) ], dim=1)
+        # first_x = all_x[:,0,:]
+        # last_x = all_x[:,-1,:]
+        # assert best_iter.shape == (self._batch_size,)
+        # assert best_x.shape == (self._batch_size, self._num_xdims)
+        # assert first_x.shape == (self._batch_size, self._num_xdims)
+        # assert last_x.shape == (self._batch_size, self._num_xdims)
+        # best_metrics = self.eval_pose(best_x, best_err_est)
+        # first_metrics = self.eval_pose(first_x, first_err_est)
+        # last_metrics = self.eval_pose(last_x, last_err_est)
+        # print(json.dumps(best_metrics, indent=4))
+        # print(json.dumps(first_metrics, indent=4))
+        # print(json.dumps(last_metrics, indent=4))
 
     def _init_scheduler(self):
         def get_cos_anneal_lr(x):
@@ -516,23 +557,8 @@ class PoseOptimizer():
             # Store iterations
             all_err_est[:,j] = err_est.detach()
 
-        best_iter = torch.argmin(all_err_est, dim=1)
-        best_err_est = torch.min(all_err_est, dim=1)[0]
-        first_err_est = all_err_est[:,0]
-        last_err_est = all_err_est[:,-1]
-        best_x = torch.stack([ all_x[:,:,x_idx][list(range(self._batch_size)),best_iter] for x_idx in range(self._num_xdims) ], dim=1)
-        first_x = all_x[:,0,:]
-        last_x = all_x[:,-1,:]
-        assert best_iter.shape == (self._batch_size,)
-        assert best_x.shape == (self._batch_size, self._num_xdims)
-        assert first_x.shape == (self._batch_size, self._num_xdims)
-        assert last_x.shape == (self._batch_size, self._num_xdims)
-        best_metrics = self.eval_pose(best_x, best_err_est, self._R_gt, self._t_gt)
-        first_metrics = self.eval_pose(first_x, first_err_est, self._R_gt, self._t_gt)
-        last_metrics = self.eval_pose(last_x, last_err_est, self._R_gt, self._t_gt)
-        print(json.dumps(best_metrics, indent=4))
-        print(json.dumps(first_metrics, indent=4))
-        print(json.dumps(last_metrics, indent=4))
+        all_metrics = self.eval_pose(all_x, all_err_est, optim_run_names)
+        print(json.dumps(all_metrics, indent=4))
 
         def plot(sample_idx, fname):
             # Scalar parameter x.
