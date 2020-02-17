@@ -187,6 +187,12 @@ class Main():
             pose_optimizer.optimize(
                 batch.extra_input.R1.cuda(), # R0_before_perturb
                 batch.extra_input.t1.cuda(), # t0_before_perturb
+                # N = 1,
+                # N = 4,
+                # N = 10,
+                # N = 40,
+                N = 100,
+                # N = 300,
                 # deg_perturb = [0.],
                 # axis_perturb = [
                 #     [1., 0., 0.],

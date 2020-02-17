@@ -439,6 +439,7 @@ class PoseOptimizer():
             self,
             R0_before_perturb,
             t0_before_perturb,
+            N = 100,
             deg_perturb = [0.],
             axis_perturb = [[0., 1., 0.]],
         ):
@@ -470,12 +471,6 @@ class PoseOptimizer():
             x,
         ])
         self._scheduler = self._init_scheduler()
-
-        # N = 4
-        # N = 10
-        # N = 40
-        N = 100
-        # N = 300
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
