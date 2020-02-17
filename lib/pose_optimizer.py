@@ -5,7 +5,7 @@ from torch import nn
 from torch.autograd import grad
 from lib.expm.expm32 import expm32
 from lib.expm.expm64 import expm64
-from lib.utils import get_rotation_axis_angle
+from lib.utils import get_rotation_axis_angle, order_dict
 
 from torchvision.transforms.functional import normalize
 from lib.constants import TV_MEAN, TV_STD
@@ -208,6 +208,10 @@ class PoseOptimizer():
             return T.repeat(*rep_def)
 
     @property
+    def _num_optim_runs(self):
+        return len(self._optim_runs)
+
+    @property
     def _batch_size(self):
         return self._orig_batch_size * self._num_optim_runs
 
@@ -382,7 +386,7 @@ class PoseOptimizer():
             cm_err.detach().cpu().numpy(),
         ], axis=2)
 
-    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt, optim_run_names):
+    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt):
         R_gt = R_gt[:,None,:,:]
         t_gt = t_gt[:,None,:,:]
 
@@ -406,14 +410,14 @@ class PoseOptimizer():
         # Determine object diameter
         object_diameter = self._pipeline._neural_rendering_wrapper._models_info[obj_id]['diameter']
 
-        add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N, 2)
-        avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N)
-        deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(optim_run_names), N, 2)
-        err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(optim_run_names), N)
+        add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+        deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
         metrics = []
         for sample_idx in range(self._orig_batch_size):
             metrics.append({})
-            for run_idx, run_name in enumerate(optim_run_names):
+            for run_idx, run_name in enumerate(self._optim_runs.keys()):
                 metrics[-1][run_name] = [ {
                     'add_metric': add_metric.tolist(),
                     'avg_reproj_metric': avg_reproj_metric.tolist(),
@@ -432,11 +436,11 @@ class PoseOptimizer():
                 ) ]
         return metrics
 
-    def eval_pose(self, all_x, all_err_est, optim_run_names):
+    def eval_pose(self, all_x, all_err_est):
         # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
         assert len(set(self._pipeline._obj_id_list)) == 1
         obj_id = self._pipeline._obj_id_list[0]
-        all_metrics = self.eval_pose_single_object(obj_id, all_x, all_err_est, self._R_gt, self._t_gt, optim_run_names)
+        all_metrics = self.eval_pose_single_object(obj_id, all_x, all_err_est, self._R_gt, self._t_gt)
         return all_metrics
 
         # best_iter = torch.argmin(all_err_est, dim=1)
@@ -493,13 +497,13 @@ class PoseOptimizer():
             R0_before_perturb,
             t0_before_perturb,
             N = 100,
-            optim_run_names = ['default'],
-            deg_perturb = [0.],
-            axis_perturb = [[0., 1., 0.]],
+            optim_runs = {
+                'default': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.]},
+            },
         ):
-        deg_perturb = np.array(deg_perturb)
-        axis_perturb = np.array(axis_perturb)
-        self._num_optim_runs = deg_perturb.shape[0]
+        self._optim_runs = order_dict(optim_runs)
+        deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
+        axis_perturb = np.array([ run_spec['axis_perturb'] for run_spec in self._optim_runs.values() ])
         assert deg_perturb.shape == (self._num_optim_runs,)
         assert axis_perturb.shape == (self._num_optim_runs, 3)
         axis_perturb /= np.linalg.norm(axis_perturb, axis=1, keepdims=True)
@@ -557,8 +561,8 @@ class PoseOptimizer():
             # Store iterations
             all_err_est[:,j] = err_est.detach()
 
-        all_metrics = self.eval_pose(all_x, all_err_est, optim_run_names)
-        print(json.dumps(all_metrics, indent=4))
+        all_metrics = self.eval_pose(all_x, all_err_est)
+        print(json.dumps(all_metrics[-1], indent=4))
 
         def plot(sample_idx, fname):
             # Scalar parameter x.
@@ -573,10 +577,10 @@ class PoseOptimizer():
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
             fig.savefig(fname)
 
-        for sample_idx in range(self._batch_size):
-            run_idx = sample_idx % self._num_optim_runs
-            fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx//self._num_optim_runs, run_idx, optim_run_names[run_idx])
-            plot(sample_idx, fname)
+        for sample_idx in range(self._orig_batch_size):
+            for run_idx, run_name in enumerate(self._optim_runs.keys()):
+                fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx, run_idx, run_name)
+                plot(sample_idx*self._num_optim_runs + run_idx, fname)
 
         assert False
 

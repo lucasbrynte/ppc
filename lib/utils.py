@@ -2,6 +2,7 @@ import os
 import ruamel.yaml as yaml
 import pickle
 from attrdict import AttrDict
+from collections import OrderedDict
 import math
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -63,6 +64,9 @@ def read_attrdict_from_default_and_specific_yaml(default_config_path, specific_c
     if os.path.isfile(specific_config_path):
         configs += read_yaml_as_attrdict(specific_config_path)
     return configs
+
+def order_dict(d):
+    return OrderedDict((key, d[key]) for key in sorted(d.keys()))
 
 def numpy_to_pt(image, normalize_flag=False):
     """Numpy array to pytorch tensor."""
