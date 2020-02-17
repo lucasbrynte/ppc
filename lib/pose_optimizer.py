@@ -325,15 +325,18 @@ class PoseOptimizer():
         err_est = y1
         return err_est, grad
 
-    def calc_metrics(self, R_est, t_est, R_gt, t_gt):
-        # Concatenate model points into batch, possibly dependent on sample object ids. Shape: (batch_size, 3, num_pts)
-        bs = R_est.shape[0]
-        if len(set(self._pipeline._obj_id_list)) == 1:
-            obj_id = self._pipeline._obj_id_list[0]
+    def get_model_pts(self, obj_id_list):
+        bs = len(obj_id_list)
+        if len(set(obj_id_list)) == 1:
+            # Repeatedly copying this single model may be avoided by torch.expand
+            obj_id = obj_id_list[0]
             pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1).expand(bs,-1,-1)
         else:
-            pts_objframe = torch.cat([ self._pipeline._neural_rendering_wrapper._models[curr_obj_id]['vertices'] for curr_obj_id in self._pipeline._obj_id_list ], dim=0).permute(0,2,1)
+            # Concatenate model points into batch, possibly dependent on sample object ids.
+            pts_objframe = torch.cat([ self._pipeline._neural_rendering_wrapper._models[curr_obj_id]['vertices'] for curr_obj_id in obj_id_list ], dim=0).permute(0,2,1)
+        return pts_objframe # Shape: (batch_size, 3, num_pts)
 
+    def calc_metrics(self, pts_objframe, R_est, t_est, R_gt, t_gt):
         # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
         # # pts_camframe_gt: R_gt @ pts_objframe + t_gt
         # # pts_camframe_est: R_est @ pts_objframe + t_est
@@ -387,7 +390,8 @@ class PoseOptimizer():
         if self._R_refpt is not None:
             R_est = torch.bmm(R_est, self._R_refpt)
 
-        metrics = self.calc_metrics(R_est, t_est, R_gt, t_gt)
+        pts_objframe = self.get_model_pts(self._pipeline._obj_id_list)
+        metrics = self.calc_metrics(pts_objframe, R_est, t_est, R_gt, t_gt)
         for metric, curr_err_est in zip(metrics, err_est.detach().cpu().numpy().tolist()):
             metric.update({
                 'err_est': curr_err_est,
