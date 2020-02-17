@@ -325,17 +325,6 @@ class PoseOptimizer():
         err_est = y1
         return err_est, grad
 
-    def get_model_pts(self, obj_id_list):
-        bs = len(obj_id_list)
-        if len(set(obj_id_list)) == 1:
-            # Repeatedly copying this single model may be avoided by torch.expand
-            obj_id = obj_id_list[0]
-            pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1).expand(bs,-1,-1)
-        else:
-            # Concatenate model points into batch, possibly dependent on sample object ids.
-            pts_objframe = torch.cat([ self._pipeline._neural_rendering_wrapper._models[curr_obj_id]['vertices'] for curr_obj_id in obj_id_list ], dim=0).permute(0,2,1)
-        return pts_objframe # Shape: (batch_size, 3, num_pts)
-
     def calc_metrics(self, pts_objframe, R_est, t_est, R_gt, t_gt):
         # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
         # # pts_camframe_gt: R_gt @ pts_objframe + t_gt
@@ -383,20 +372,29 @@ class PoseOptimizer():
             cm_err.detach().cpu().numpy().tolist(),
         ) ]
 
-    def eval_pose(self, x_est, err_est, R_gt, t_gt):
+    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt):
         t_est = self._x2t(x_est)
         w_est = self._x2w(x_est)
         R_est = w_to_R(w_est)
         if self._R_refpt is not None:
             R_est = torch.bmm(R_est, self._R_refpt)
 
-        pts_objframe = self.get_model_pts(self._pipeline._obj_id_list)
+        # Define batch of model points
+        pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
+        pts_objframe = pts_objframe.expand(bs,-1,-1)
+
         metrics = self.calc_metrics(pts_objframe, R_est, t_est, R_gt, t_gt)
         for metric, curr_err_est in zip(metrics, err_est.detach().cpu().numpy().tolist()):
             metric.update({
                 'err_est': curr_err_est,
             })
         return metrics
+
+    def eval_pose(self, x_est, err_est, R_gt, t_gt):
+        # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
+        assert len(set(self._pipeline._obj_id_list)) == 1
+        obj_id = self._pipeline._obj_id_list[0]
+        return self.eval_pose_single_object(obj_id, x_est, err_est, R_gt, t_gt)
 
     def _init_scheduler(self):
         def get_cos_anneal_lr(x):
