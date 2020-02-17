@@ -324,7 +324,7 @@ class PoseOptimizer():
         assert grad.shape == (self._batch_size, nbr_params)
         for x_idx in range(nbr_params):
             x2 = x.clone()
-            forward_diff = (torch.rand(self._batch_size, device=self._device) < 0.5).float()
+            forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             x2[:,x_idx] += forward_diff*step_size
             y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname=fname).squeeze(1)
             assert y2.shape == (self._batch_size,)
