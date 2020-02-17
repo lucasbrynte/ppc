@@ -512,7 +512,7 @@ class PoseOptimizer():
         print(json.dumps(first_metrics, indent=4))
         print(json.dumps(last_metrics, indent=4))
 
-        def plot(sample_idx):
+        def plot(sample_idx, fname):
             # Scalar parameter x.
             nrows = 1
             if self._num_xdims == 2:
@@ -523,10 +523,11 @@ class PoseOptimizer():
             axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
             if self._num_xdims == 2:
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
-            fig.savefig('experiments/00_func{:02d}.png'.format(sample_idx))
+            fig.savefig(fname)
 
         for sample_idx in range(self._batch_size):
-            plot(sample_idx)
+            fname = 'experiments/00_func_sample{:02d}_run{:02d}.png'.format(sample_idx//self._num_optim_runs, sample_idx%self._num_optim_runs)
+            plot(sample_idx, fname)
 
         assert False
 
