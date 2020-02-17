@@ -461,8 +461,12 @@ class PoseOptimizer():
             deg_perturb = [0.],
             axis_perturb = [[0., 1., 0.]],
         ):
-        self._num_optim_runs = len(deg_perturb)
-        assert len(axis_perturb) == len(deg_perturb)
+        deg_perturb = np.array(deg_perturb)
+        axis_perturb = np.array(axis_perturb)
+        self._num_optim_runs = deg_perturb.shape[0]
+        assert deg_perturb.shape == (self._num_optim_runs,)
+        assert axis_perturb.shape == (self._num_optim_runs, 3)
+        axis_perturb /= np.linalg.norm(axis_perturb, axis=1, keepdims=True)
 
         get_perturb = lambda deg_perturb, axis_perturb: torch.tensor(get_rotation_axis_angle(np.array(axis_perturb), deg_perturb*3.1416/180.)[:3,:3], dtype=self._dtype, device=self._device)
         R_perturb = torch.stack([ get_perturb(curr_deg, curr_axis) for curr_deg, curr_axis in zip(deg_perturb, axis_perturb) ], dim=0)
