@@ -107,6 +107,8 @@ class DummyDataset(Dataset):
         self._ref_sampling_schemes = getattr(getattr(self._configs.runtime.ref_sampling_schemes, self._mode), schemeset_name)
         self._query_sampling_schemes = getattr(getattr(self._configs.runtime.query_sampling_schemes, self._mode), schemeset_name)
 
+        self.configure_sequences_and_lengths()
+
         self._pids_path = '/tmp/sixd_kp_pids/{}_{}'.format(self._mode, schemeset_name)
         if os.path.exists(self._pids_path):
             shutil.rmtree(self._pids_path)
@@ -176,9 +178,8 @@ class DummyDataset(Dataset):
     def set_deterministic_ref_scheme_sampling(self, flag):
         if flag:
             assert all(scheme.ref_source == 'real' for scheme in self._ref_sampling_schemes)
+            self.set_len(sum(self._sequence_lengths))
         self._deterministic_ref_scheme_sampling = flag
-        self.configure_sequences_and_lengths()
-        self.set_len(sum(self._sequence_lengths))
 
     def set_len(self, nbr_samples):
         self._len = nbr_samples
