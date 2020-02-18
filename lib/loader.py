@@ -81,7 +81,11 @@ class Loader:
         return loader
 
     def _get_loader_config(self, mode, schemeset_name, nbr_samples):
-        self._datasets[mode][schemeset_name].set_len(nbr_samples)
+        if nbr_samples is None:
+            self._datasets[mode][schemeset_name].set_deterministic_ref_scheme_sampling(True)
+        else:
+            self._datasets[mode][schemeset_name].set_deterministic_ref_scheme_sampling(False)
+            self._datasets[mode][schemeset_name].set_len(nbr_samples)
         scheme_def = AttrDict(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name])
 
         batch_size = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['batch_size']
