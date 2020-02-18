@@ -420,10 +420,14 @@ class PoseOptimizer():
         avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
         deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
+        R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
+        t_est_numpy = t_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 1)
         metrics = [ {
             'ref_img_path': ref_img_path,
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
+            'R_est': curr_R_est.tolist(),
+            't_est': curr_t_est.tolist(),
             'metrics': {
                 'add_metric': add_metric.tolist(),
                 'avg_reproj_metric': avg_reproj_metric.tolist(),
@@ -435,13 +439,17 @@ class PoseOptimizer():
             add_metric,
             avg_reproj_metric,
             deg_cm_err,
-            curr_err_est
+            curr_err_est,
+            curr_R_est,
+            curr_t_est,
         ) in zip(
             self._ref_img_path,
             add_metrics,
             avg_reproj_metrics,
             deg_cm_errors,
             err_est_numpy,
+            R_est_numpy,
+            t_est_numpy,
         ) ]
         return metrics
 
