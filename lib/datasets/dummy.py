@@ -214,17 +214,17 @@ class DummyDataset(Dataset):
     # Finally allow nbr_batches = None
     def __getitem__(self, sample_index_in_epoch):
         if self._deterministic_ref_scheme_sampling:
-            ref_scheme_idx, frame_idx = self._sample_idx_to_ref_scheme_idx_and_frame_idx(sample_index_in_epoch)
+            ref_scheme_idx, fixed_frame_idx = self._sample_idx_to_ref_scheme_idx_and_frame_idx(sample_index_in_epoch)
         else:
             ref_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.ref_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.ref_schemeset])
-            frame_idx = None
+            fixed_frame_idx = None
         if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['loading']['coupled_ref_and_query_scheme_sampling']:
             # Ref & query schemes are sampled jointly. Lists need to be of same length to be able to map elements.
             assert len(query_sampling_scheme_list) == len(ref_sampling_scheme_list)
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, frame_idx=frame_idx)
+        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
@@ -779,7 +779,7 @@ class DummyDataset(Dataset):
 
         return safe_anno_mask
 
-    def _read_pose_from_anno(self, ref_scheme_idx, frame_idx=None):
+    def _read_pose_from_anno(self, ref_scheme_idx, fixed_frame_idx=None):
         seq = self._get_seq(ref_scheme_idx)
 
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
@@ -790,7 +790,9 @@ class DummyDataset(Dataset):
         for j in range(NBR_ATTEMPTS):
             if self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx is not None:
                 frame_idx = self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx
-            elif frame_idx is None:
+            elif fixed_frame_idx is not None:
+                frame_idx = fixed_frame_idx
+            else:
                 frame_idx = np.random.choice(nbr_frames)
             gts_in_frame = all_gts[frame_idx]
 
@@ -798,6 +800,8 @@ class DummyDataset(Dataset):
             enumerated_and_filtered_gts = [(instance_idx, gt) for instance_idx, gt in enumerate(gts_in_frame) if gt['obj_id'] == self._obj_id]
             nbr_instances = len(enumerated_and_filtered_gts)
             if nbr_instances == 0:
+                if self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx is not None or fixed_frame_idx is not None:
+                    assert False, 'No {} instance found in seq {}, frame {}'.format(self._obj_label, seq, frame_idx)
                 continue
             instance_idx, gt = random.choice(enumerated_and_filtered_gts)
 
@@ -813,7 +817,7 @@ class DummyDataset(Dataset):
             width = crop_box[2] - crop_box[0]
             height = crop_box[3] - crop_box[1]
             # print(width, height)
-            if width < 25 or height < 25:
+            if fixed_frame_idx is None and (width < 25 or height < 25):
                 # print("Rejected T1, due to crop_box", crop_box)
                 continue
 
@@ -1056,7 +1060,7 @@ class DummyDataset(Dataset):
             target_vals[target_name] = torch.tensor(target).float()
         return self.Targets(**target_vals)
 
-    def _generate_ref_img_and_anno(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, frame_idx=None):
+    def _generate_ref_img_and_anno(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=None):
         # ======================================================================
         # NOTE: The reference pose / image is independent from the sample_index_in_epoch,
         # which only controls the perturbation, and thus the query image
@@ -1068,7 +1072,7 @@ class DummyDataset(Dataset):
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            R1, t1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, frame_idx=frame_idx)
+            R1, t1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, fixed_frame_idx=fixed_frame_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             T1_model2world, T1_occluders, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
 
@@ -1085,7 +1089,7 @@ class DummyDataset(Dataset):
             ret = self._get_ref_img_synthetic(ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam)
             if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
-                return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, frame_idx=frame_idx)
+                return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
             else:
                 img1, instance_seg1, ref_bg, safe_anno_mask = ret
                 ref_img_path = None
