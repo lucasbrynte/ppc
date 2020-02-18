@@ -261,7 +261,7 @@ class PoseOptimizer():
             w_basis_vec3,
         ], dim=2) # (batch_size, 3, self._num_xdims)
         w_basis /= w_basis.norm(dim=1, keepdim=True)
-        w_basis = torch.tensor(w_basis, dtype=self._dtype, device=self._device)
+        w_basis = w_basis.detach()
         return w_basis_origin, w_basis
 
 
