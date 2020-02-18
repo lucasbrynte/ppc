@@ -173,7 +173,7 @@ class DummyDataset(Dataset):
             seq = self._get_seq(ref_scheme_idx)
             all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
             self._sequence_frames_filtered.append([ frame_idx for frame_idx in all_gts if check_obj_in_frame(all_gts[frame_idx]) ])
-            self._sequence_lengths.append(len(all_gts))
+            self._sequence_lengths.append(len(self._sequence_frames_filtered[-1]))
 
     def set_deterministic_ref_scheme_sampling(self, flag):
         if flag:
