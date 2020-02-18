@@ -169,6 +169,7 @@ class Main():
         # numerical_grad = False
         with torch.set_grad_enabled(not numerical_grad):
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
+                print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
                 assert self._configs.data.query_rendering_method == 'neural'
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
                 pose_pipeline = FullPosePipeline(
@@ -181,6 +182,7 @@ class Main():
                     batch.meta_data.ambient_weight,
                 )
                 pose_optimizer = PoseOptimizer(
+                    self._configs,
                     pose_pipeline,
                     batch.extra_input.K.cuda(),
                     batch.extra_input.R1.cuda(), # R_gt
@@ -225,6 +227,7 @@ class Main():
                     # print_iterates = True,
                     enable_plotting = False,
                     print_iterates = False,
+                    store_eval = True,
                 )
                 # pose_optimizer.evaluate(calc_grad=False)
 

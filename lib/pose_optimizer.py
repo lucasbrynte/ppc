@@ -1,3 +1,4 @@
+import os
 import json
 import numpy as np
 import torch
@@ -175,6 +176,7 @@ def find_orthonormal(v1):
 class PoseOptimizer():
     def __init__(
         self,
+        configs,
         pipeline,
         K,
         R_gt,
@@ -183,6 +185,7 @@ class PoseOptimizer():
         ref_img_path,
         numerical_grad = True,
     ):
+        self._configs = configs
         self._pipeline = pipeline
         self._orig_K = K
         self._ref_img_path = ref_img_path
@@ -467,6 +470,16 @@ class PoseOptimizer():
         # print(json.dumps(first_metrics, indent=4))
         # print(json.dumps(last_metrics, indent=4))
 
+    def store_eval(self, metrics):
+        root_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
+        img_dir, img_fname = os.path.split(metrics['ref_img_path'])
+        seq, rgb_dir = os.path.split(img_dir)
+        assert rgb_dir == 'rgb'
+        json_fname = '.'.join([img_fname.split('.')[0], 'json'])
+        os.makedirs(os.path.join(root_path, seq), exist_ok=True)
+        with open(os.path.join(root_path, seq, json_fname), 'w') as f:
+            json.dump(metrics, f)
+
     def _init_scheduler(self):
         def get_cos_anneal_lr(x):
             """
@@ -508,6 +521,7 @@ class PoseOptimizer():
             },
             enable_plotting = False,
             print_iterates = False,
+            store_eval = False,
         ):
         self._optim_runs = order_dict(optim_runs)
         deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
@@ -570,8 +584,11 @@ class PoseOptimizer():
             # Store iterations
             all_err_est[:,j] = err_est.detach()
 
-        all_metrics = self.eval_pose(all_x, all_err_est)
-        # print(json.dumps(all_metrics[-1], indent=4))
+        if store_eval:
+            all_metrics = self.eval_pose(all_x, all_err_est)
+            for metrics in all_metrics:
+                # print(json.dumps(metrics, indent=4))
+                self.store_eval(metrics)
 
         def plot(sample_idx, fname):
             # Scalar parameter x.
