@@ -185,6 +185,7 @@ class Main():
                     self._configs,
                     pose_pipeline,
                     batch.extra_input.K.cuda(),
+                    batch.extra_input.HK.cuda(),
                     batch.extra_input.R1.cuda(), # R_gt
                     batch.extra_input.t1.cuda(), # t_gt
                     batch.extra_input.R1.cuda(), # R_refpt

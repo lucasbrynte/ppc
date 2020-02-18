@@ -179,6 +179,7 @@ class PoseOptimizer():
         configs,
         pipeline,
         K,
+        HK,
         R_gt,
         t_gt,
         R_refpt,
@@ -188,6 +189,7 @@ class PoseOptimizer():
         self._configs = configs
         self._pipeline = pipeline
         self._orig_K = K
+        self._orig_HK = HK
         self._ref_img_path = ref_img_path
         self._numerical_grad = numerical_grad
 
@@ -224,6 +226,10 @@ class PoseOptimizer():
     @property
     def _K(self):
         return self._repeat_onedim(self._orig_K, self._num_optim_runs, dim=0, interleave=True)
+
+    @property
+    def _HK(self):
+        return self._repeat_onedim(self._orig_HK, self._num_optim_runs, dim=0, interleave=True)
 
     @property
     def _R_gt(self):
@@ -366,14 +372,14 @@ class PoseOptimizer():
             add_metric_unnorm.detach().cpu().numpy(),
         ], axis=2)
 
-    def calc_avg_reproj_metric(self, pts_objframe, R_est, t_est, R_gt, t_gt):
+    def calc_avg_reproj_metric(self, K, pts_objframe, R_est, t_est, R_gt, t_gt):
         pts_camframe_est = torch.matmul(R_est, pts_objframe) + t_est
         pts_camframe_gt = torch.matmul(R_gt, pts_objframe) + t_gt
 
         eps = 1e-5
         pflat = lambda pts: pts[:,:,:2,:] / torch.max(pts[:,:,[2],:], torch.tensor(eps, device=self._device))
-        pts_reproj_est = pflat(torch.matmul(self._K[:,None,:,:], pts_camframe_est))
-        pts_reproj_gt = pflat(torch.matmul(self._K[:,None,:,:], pts_camframe_gt))
+        pts_reproj_est = pflat(torch.matmul(K, pts_camframe_est))
+        pts_reproj_gt = pflat(torch.matmul(K, pts_camframe_gt))
 
         avg_reproj_err = torch.mean(torch.norm(pts_reproj_est.squeeze(3) - pts_reproj_gt.squeeze(3), dim=2), dim=2) # The old dim=3 is the new dim=2
         return avg_reproj_err.detach().cpu().numpy()
@@ -417,7 +423,8 @@ class PoseOptimizer():
         object_diameter = self._pipeline._neural_rendering_wrapper._models_info[obj_id]['diameter']
 
         add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
-        avg_reproj_metrics = self.calc_avg_reproj_metric(pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+        avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+        avg_reproj_HK_metrics = self.calc_avg_reproj_metric(self._HK[:,None,:,:], pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
         deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
         R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
@@ -431,6 +438,7 @@ class PoseOptimizer():
             'metrics': {
                 'add_metric': add_metric.tolist(),
                 'avg_reproj_metric': avg_reproj_metric.tolist(),
+                'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
                 'deg_cm_err': deg_cm_err.tolist(),
                 'err_est': curr_err_est.tolist(),
             },
@@ -438,6 +446,7 @@ class PoseOptimizer():
             ref_img_path,
             add_metric,
             avg_reproj_metric,
+            avg_reproj_HK_metric,
             deg_cm_err,
             curr_err_est,
             curr_R_est,
@@ -446,6 +455,7 @@ class PoseOptimizer():
             self._ref_img_path,
             add_metrics,
             avg_reproj_metrics,
+            avg_reproj_HK_metrics,
             deg_cm_errors,
             err_est_numpy,
             R_est_numpy,
