@@ -160,18 +160,24 @@ class DummyDataset(Dataset):
         global_renderer = renderer
         return renderer
 
-    def configure_sequence_lengths(self):
+    def configure_sequences_and_lengths(self):
+        def check_obj_in_frame(gts_in_frame):
+            enumerated_and_filtered_gts = [(instance_idx, gt) for instance_idx, gt in enumerate(gts_in_frame) if gt['obj_id'] == self._obj_id]
+            nbr_instances = len(enumerated_and_filtered_gts)
+            return nbr_instances > 0
+        self._sequence_frames_filtered = []
         self._sequence_lengths = []
         for ref_scheme_idx in range(len(self._ref_sampling_schemes)):
             seq = self._get_seq(ref_scheme_idx)
             all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
+            self._sequence_frames_filtered.append([ frame_idx for frame_idx in all_gts if check_obj_in_frame(all_gts[frame_idx]) ])
             self._sequence_lengths.append(len(all_gts))
 
     def set_deterministic_ref_scheme_sampling(self, flag):
         if flag:
             assert all(scheme.ref_source == 'real' for scheme in self._ref_sampling_schemes)
         self._deterministic_ref_scheme_sampling = flag
-        self.configure_sequence_lengths()
+        self.configure_sequences_and_lengths()
         self.set_len(sum(self._sequence_lengths))
 
     def set_len(self, nbr_samples):
@@ -784,7 +790,7 @@ class DummyDataset(Dataset):
 
         all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
         # NOTE: Last frame missing (from both data and annotations). Lost during pre-processing scripts in ~/research/3dod/preprocessing/rigidpose, due to wrong "sequence_length" entries in ~/object-pose-estimation/meta.json
-        nbr_frames = len(all_gts)
+        # nbr_frames = len(all_gts)
 
         NBR_ATTEMPTS = 50
         for j in range(NBR_ATTEMPTS):
@@ -792,8 +798,10 @@ class DummyDataset(Dataset):
                 frame_idx = self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx
             elif fixed_frame_idx is not None:
                 frame_idx = fixed_frame_idx
+                frame_idx = self._sequence_frames_filtered[ref_scheme_idx][frame_idx]
             else:
-                frame_idx = np.random.choice(nbr_frames)
+                frame_idx = np.random.choice(self._sequence_lengths[ref_scheme_idx])
+                frame_idx = self._sequence_frames_filtered[ref_scheme_idx][frame_idx]
             gts_in_frame = all_gts[frame_idx]
 
             # Filter annotated instances on object id
