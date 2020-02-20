@@ -559,8 +559,8 @@ class PoseOptimizer():
         R0 = torch.matmul(R_perturb, R0_before_perturb)
         t0 = t0_before_perturb
 
-        # self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
-        # self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        # self._w_basis_origin = torch.zeros((self._batch_size, 3, 1), dtype=self._dtype, device=self._device)
+        # self._w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
         self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
 
         # self._num_xdims = 1
@@ -629,8 +629,8 @@ class PoseOptimizer():
 
     def evaluate(self, calc_grad=False):
         self._num_optim_runs = 1
-        self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
-        self._w_basis = np.tile(np.eye(3)[None,:,:], (self._batch_size, 1, 1))
+        self._w_basis_origin = torch.zeros((self._batch_size, 3, 1), dtype=self._dtype, device=self._device)
+        self._w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
         # self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
 
         def vec(T, N_each):
