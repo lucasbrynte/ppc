@@ -307,10 +307,9 @@ class PoseOptimizer():
 
     def _x2t(self, x):
         # t = self._t_gt
-        # t = self._t_gt.clone().detach().requires_grad_(True)
         t = self._t_basis_origin
         if self._num_txdims > 0:
-            t += torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+            t = t + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
         return t
 
     def _x2w(self, x):
