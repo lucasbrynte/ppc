@@ -392,7 +392,7 @@ class PoseOptimizer():
 
         deg_err = 180. / np.pi * R_to_w_wrapper(R_rel).norm(dim=2)
         t_rel = t_gt - t_est
-        cm_err = 10.*t_rel.norm(dim=2).squeeze(2) # mm -> cm
+        cm_err = 1e-1*t_rel.norm(dim=2).squeeze(2) # mm -> cm
         return np.stack([
             deg_err.detach().cpu().numpy(),
             cm_err.detach().cpu().numpy(),
