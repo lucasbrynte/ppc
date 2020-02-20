@@ -331,11 +331,39 @@ class PoseOptimizer():
             # betas = (0.5, 0.99),
         )
 
-    def _x2t(self, x):
+    def _x2t(self, x, oblique_z_axis=True):
         # t = self._t_gt
-        t = self._t_basis_origin
-        if self._num_txdims > 0:
-            t = t + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+
+        # t = self._t_basis_origin
+        # if self._num_txdims > 0:
+        #     t = t + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+
+        t_origin = self._t_basis_origin
+
+        # if self._num_txdims == 2:
+        #     t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:1], x[:,-self._num_txdims:-1,None])
+        if self._num_txdims == 3 and oblique_z_axis:
+            # t_delta_xy is a 2D translation from t_origin, with preserved depth.
+            # Assuming first two t base vectors to be in this plane, e.g. x-axis & y-axis.
+            t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:2], x[:,-self._num_txdims:-1,None])
+
+            # Viewing ray of t_delta_xy. Unit length in depth direction.
+            viewing_ray = t_delta_xy / t_delta_xy[:,[-1],:]
+
+            # 3rd base vector is unused. Instead - interpret 3rd x coordinate as desired depth.
+            desired_depth_diff_to_t_origin = x[:,[-1],None]
+            desired_depth_diff_to_t_origin *= self._t_basis[:,2,2][:,None,None] # Apply scaling: (m) -> (mm)
+
+            # Realize the desired depth by translation along viewing ray, thus preserving projection of object center.
+            t_origin_depth = t_origin[:,[-1],:]
+            current_depth = t_delta_xy[:,[-1],:]
+            t_delta_z = viewing_ray * ((t_origin_depth+desired_depth_diff_to_t_origin) - current_depth)
+            t = t_delta_xy + t_delta_z
+        elif self._num_txdims > 0:
+            t = t_origin + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+        else:
+            assert self._num_txdims == 0
+            t = t_origin
         return t
 
     def _x2w(self, x):
