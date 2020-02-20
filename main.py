@@ -226,26 +226,26 @@ class Main():
                     #     'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)]},
                     # },
                 
+                    # optim_runs = {
+                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                    # },
+                
                     optim_runs = {
                         'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                        'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [30., 0., 60.]},
+                        'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 30., -60.]},
+                        'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -30., 60.]},
+                        'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 60.]},
+                        'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-30., 0., -60.]},
+                        'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., -60.]},
                     },
                 
                     # optim_runs = {
                     #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [5., 0., 0.]},
-                    #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 5., 0.]},
-                    #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -5., 0.]},
-                    #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 5.]},
-                    #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-5., 0., 0.]},
-                    #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., -5.]},
-                    # },
-                
-                    # optim_runs = {
-                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [5., 0., 0.]},
-                    #     'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 5., 0.]},
-                    #     'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 5.]},
-                    #     'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., -5.]},
+                    #     'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [30., 0., 60.]},
+                    #     'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 30., -60.]},
+                    #     'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 60.]},
+                    #     'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., -60.]},
                     # },
                 
                     num_wxdims = 3,
@@ -257,7 +257,14 @@ class Main():
                     # print_iterates = False,
                     store_eval = True,
                 )
-                # pose_optimizer.evaluate(calc_grad=False)
+                # pose_optimizer.evaluate(
+                #     num_wxdims = 0,
+                #     # num_txdims = 2,
+                #     # N_each = [20, 20],
+                #     num_txdims = 1,
+                #     N_each = [20],
+                #     calc_grad=False,
+                # )
 
     def _run_epoch(
             self,

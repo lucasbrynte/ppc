@@ -243,6 +243,11 @@ class PoseOptimizer():
     def _R_refpt(self):
         return self._repeat_onedim(self._orig_R_refpt, self._num_optim_runs, dim=0, interleave=True)
 
+    def _get_canonical_w_basis(self):
+        w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
+        w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        return w_basis_origin, w_basis
+
     def _get_w_basis(self, R0, R_gt):
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
         w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
@@ -264,6 +269,26 @@ class PoseOptimizer():
         w_basis = w_basis.detach()
         return w_basis_origin, w_basis
 
+    def _get_canonical_t_basis(self):
+        t_basis_origin = torch.zeros((self._batch_size, 3, 1), dtype=self._dtype, device=self._device)
+        t_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        return t_basis_origin, t_basis
+
+    def _get_t_basis(self, t0, t0_before_perturb, t_gt):
+        t_basis_origin = t0.detach()
+        # t_basis_origin = t_gt.detach()
+        t_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+
+        # t_basis *= 10. # x (cm) -> t (mm)
+        # t_basis *= 100. # x (dm) -> t (mm)
+
+        # xy
+        t_basis[:,:2,:] *= 100. # x (dm) -> t (mm)
+        # z
+        t_basis[:,2,:] *= 1000. # x (m) -> t (mm)
+        # t_basis[:,2,:] *= 600.
+
+        return t_basis_origin, t_basis
 
     def _init_optimizer(self, params):
         # return torch.optim.SGD(
@@ -299,9 +324,10 @@ class PoseOptimizer():
             # lr = 5e-2,
             lr = 3e-2,
             # lr = 1e-2,
-            # lr = 3e-3,
             # betas = (0.95, 0.99),
             betas = (0.8, 0.9),
+            # betas = (0.65, 0.9),
+            # betas = (0.5, 0.9),
             # betas = (0.5, 0.99),
         )
 
@@ -568,13 +594,8 @@ class PoseOptimizer():
         R0 = torch.matmul(R_perturb, R0_before_perturb)
         t0 = t0_before_perturb + t_perturb
 
-        # self._w_basis_origin = torch.zeros((self._batch_size, 3, 1), dtype=self._dtype, device=self._device)
-        # self._w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
         self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
-
-        self._t_basis_origin = t0.detach()
-        self._t_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        # self._t_basis *= 10. # x (cm) -> t (mm)
+        self._t_basis_origin, self._t_basis = self._get_t_basis(t0, t0_before_perturb, self._t_gt)
 
         # self._num_wxdims = 1
         # self._num_wxdims = 2
@@ -644,17 +665,25 @@ class PoseOptimizer():
                     fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx, run_idx, run_name)
                     plot(sample_idx*self._num_optim_runs + run_idx, fname)
 
-    def evaluate(self, calc_grad=False):
-        self._num_optim_runs = 1
-        self._w_basis_origin = torch.zeros((self._batch_size, 3, 1), dtype=self._dtype, device=self._device)
-        self._w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        # self._w_basis_origin, self._w_basis = self._get_w_basis(R0, self._R_gt)
+    def evaluate(
+        self,
+        # num_wxdims = 2,
+        # num_txdims = 0,
+        num_wxdims = 0,
+        num_txdims = 2,
+        N_each = [20, 20],
+        calc_grad=False,
+    ):
+        self._optim_runs = [None] # Dummy placeholder. len() == 1 -> proper behavior of various methods
+        self._w_basis_origin, self._w_basis = self._get_canonical_w_basis()
+        # self._t_basis_origin, self._t_basis = self._get_canonical_t_basis()
+        self._t_basis_origin, self._t_basis = self._get_t_basis(self._t_gt, self._t_gt, self._t_gt)
 
         def vec(T, N_each):
             N = np.prod(N_each)
             old_shape = list(T.shape)
-            assert np.all(np.array(old_shape[-self._num_wxdims:]) == np.array(N_each))
-            new_shape = old_shape[:-self._num_wxdims] + [N]
+            assert np.all(np.array(old_shape[-self._num_xdims:]) == np.array(N_each))
+            new_shape = old_shape[:-self._num_xdims] + [N]
             return T.view(new_shape)
         def unvec(T, N_each):
             N = np.prod(N_each)
@@ -662,23 +691,15 @@ class PoseOptimizer():
             assert old_shape[-1] == N
             new_shape = old_shape[:-1] + list(N_each)
             return T.view(new_shape)
-        # self._num_wxdims = 1
-        self._num_wxdims = 2
-        self._num_txdims = 0
+        # # self._num_wxdims = 1
+        # self._num_wxdims = 2
+        # self._num_txdims = 0
+        self._num_wxdims = num_wxdims
+        self._num_txdims = num_txdims
         self._num_xdims = self._num_wxdims + self._num_txdims
         x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
 
-        # N_each = [4] * self._num_wxdims
-        # N_each = [10] * self._num_wxdims
-        # N_each = [2] * self._num_wxdims
-        # N_each = [7] * self._num_wxdims
-        # N_each = [10] * self._num_wxdims
-        N_each = [20] * self._num_wxdims
-        # N_each = [25] * self._num_wxdims
-        # N_each = [40] * self._num_wxdims
-        # N_each = [100] * self._num_wxdims
-        # N_each = [300] * self._num_wxdims
-
+        assert len(N_each) == self._num_xdims
         N = np.prod(N_each)
 
         # Plot along line
@@ -688,7 +709,7 @@ class PoseOptimizer():
         # x_delta = 0.5
         x_delta = 1.5
 
-        x_range_limits = [ (-x_delta, x_delta) for x_idx in range(self._num_wxdims) ]
+        x_range_limits = [ (-x_delta, x_delta) for x_idx in range(self._num_xdims) ]
 
         def get_range(a, b, N):
             return torch.linspace(a, b, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)
@@ -720,6 +741,7 @@ class PoseOptimizer():
                 j,
                 err_est.detach().cpu().numpy(),
                 x.detach().cpu().numpy(),
+                # self._x2t(x).detach().cpu().numpy(),
                 curr_grad.detach().cpu().numpy() if calc_grad else None,
             )
             if calc_grad:
@@ -759,7 +781,7 @@ class PoseOptimizer():
 
         sample_idx = 0
         # Scalar parameter x.
-        if self._num_wxdims == 1:
+        if self._num_xdims == 1:
             nrows = 1
             ncols = 1
             if calc_grad:
@@ -768,7 +790,7 @@ class PoseOptimizer():
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
             if calc_grad:
                 axes_array[0,1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_grads[sample_idx,:,:].detach().cpu().numpy().T)
-        elif self._num_wxdims == 2:
+        elif self._num_xdims == 2:
             nrows = 2
             ncols = 1
             if calc_grad:
