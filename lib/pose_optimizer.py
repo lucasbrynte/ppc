@@ -300,47 +300,6 @@ class PoseOptimizer():
 
         return t_basis_origin, t_basis
 
-    def _init_optimizer(self, params):
-        # return torch.optim.SGD(
-        #     params,
-        #     # lr = 1.,
-        #     # lr = 5e-1,
-        #     # lr = 1e-2,
-        #     # lr = 1e-3,
-        #     lr = 1e-4,
-        #     # lr = 1e-5,
-        #     # lr = 1e-6,
-        #     # lr = 1e-7,
-        #     # lr = 1e-8,
-        #     # lr = 4e-6,
-        #     # lr = 0e-6,
-        #     # momentum = 0.0,
-        #     momentum = 0.5,
-        #     # momentum = 0.9,
-        # )
-        # return torch.optim.Adadelta(
-        #     [
-        #         x,
-        #     ],
-        #     # rho = 0.9,
-        # )
-        return torch.optim.Adam(
-            params,
-            # lr = 1e-2,
-            # betas = (0.9, 0.999),
-            # lr = 1e-2,
-            # betas = (0.0, 0.9),
-            # lr = 1e-1,
-            # lr = 5e-2,
-            lr = 3e-2,
-            # lr = 1e-2,
-            # betas = (0.95, 0.99),
-            betas = (0.8, 0.9),
-            # betas = (0.65, 0.9),
-            # betas = (0.5, 0.9),
-            # betas = (0.5, 0.99),
-        )
-
     def _x2t(self, x, oblique_z_axis=True):
         # t = self._t_gt
 
@@ -377,7 +336,9 @@ class PoseOptimizer():
         return t
 
     def _x2w(self, x):
-        w = self._w_basis_origin + torch.bmm(self._w_basis[:,:,:self._num_wxdims], x[:,:self._num_wxdims,None]).squeeze(2)
+        w = self._w_basis_origin.clone()
+        if self._num_wxdims > 0:
+            w = w + torch.bmm(self._w_basis[:,:,:self._num_wxdims], x[:,:self._num_wxdims,None]).squeeze(2)
         return w
 
     def eval_func(self, x, R_refpt=None, fname_dict={}):
@@ -395,7 +356,7 @@ class PoseOptimizer():
         agg_loss = torch.sum(err_est)
         return err_est, grad((agg_loss,), (x,))[0]
 
-    def eval_func_and_calc_numerical_grad(self, x, step_size, fname_dict={}):
+    def eval_func_and_calc_numerical_grad(self, x, step_sizes, fname_dict={}):
         """
         Eval function and calculate numerical gradients
         """
@@ -409,10 +370,10 @@ class PoseOptimizer():
         for x_idx in range(nbr_params):
             x2 = x.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
-            x2[:,x_idx] += forward_diff*step_size
+            x2[:,x_idx] += forward_diff*step_sizes[x_idx]
             y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname_dict=fname_dict).squeeze(1)
             assert y2.shape == (self._batch_size,)
-            grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
+            grad[:,x_idx] = forward_diff * (y2-y1) / float(step_sizes[x_idx])
         grad = grad.detach()
         err_est = y1
         return err_est, grad
@@ -563,7 +524,7 @@ class PoseOptimizer():
         with open(os.path.join(self._out_path, 'evaluation', seq, json_fname), 'w') as f:
             json.dump(metrics, f)
 
-    def _init_scheduler(self):
+    def _init_scheduler(self, optimizer):
         def get_cos_anneal_lr(x):
             """
             Cosine annealing.
@@ -588,7 +549,7 @@ class PoseOptimizer():
             return max(reduction, min_reduction)
 
         return torch.optim.lr_scheduler.LambdaLR(
-            self._optimizer,
+            optimizer,
             get_cos_anneal_lr,
             # get_exp_lr,
             # lambda x: 1.0,
@@ -641,38 +602,78 @@ class PoseOptimizer():
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
         self._num_xdims = self._num_wxdims + self._num_txdims
-        x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
+        # x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
+        wx = torch.zeros((self._batch_size, self._num_wxdims), dtype=self._dtype, device=self._device)
+        tx = torch.zeros((self._batch_size, self._num_txdims), dtype=self._dtype, device=self._device)
 
-        x = nn.Parameter(x)
-        self._optimizer = self._init_optimizer([
-            x,
-        ])
-        self._scheduler = self._init_scheduler()
+        wx = nn.Parameter(wx)
+        tx = nn.Parameter(tx)
+        self._w_optimizer = torch.optim.Adam(
+            [
+                wx,
+            ],
+            # lr = 1e-1,
+            # lr = 5e-2,
+            lr = 3e-2,
+            # lr = 1e-2,
+            # betas = (0.95, 0.99),
+            betas = (0.8, 0.9),
+        )
+        self._t_optimizer = torch.optim.Adam(
+            [
+                tx,
+            ],
+            lr = 1e-1,
+            # lr = 5e-2,
+            # lr = 3e-2,
+            # lr = 1e-2,
+            # lr = 1e-3,
+            # betas = (0.8, 0.9),
+            # betas = (0.65, 0.9),
+            # betas = (0.0, 0.0),
+            betas = (0.2, 0.5),
+            # betas = (0.5, 0.9),
+            # betas = (0.5, 0.99),
+        )
+        self._w_scheduler = self._init_scheduler(self._w_optimizer)
+        self._t_scheduler = self._init_scheduler(self._t_optimizer)
+
+        step_sizes = np.empty((self._num_xdims,))
+        step_sizes[:self._num_wxdims] = 1e-2
+        step_sizes[-self._num_txdims:] = 3e-3
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
+            x = torch.cat((wx, tx), dim=1)
+
             if self._numerical_grad:
-                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, step_sizes, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                curr_grad[curr_grad > 300.] = 300.
+                curr_grad[curr_grad < -300.] = -300.
             else:
                 err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
             if print_iterates:
                 print(
                     j,
-                    self._scheduler.get_lr(),
+                    self._w_scheduler.get_lr(),
                     err_est.detach().cpu().numpy(),
                     x.detach().cpu().numpy(),
                     curr_grad.detach().cpu().numpy(),
                 )
-            x.grad = curr_grad
+            wx.grad = curr_grad[:,:self._num_wxdims]
+            tx.grad = curr_grad[:,-self._num_txdims:]
 
             # Store iterations
             all_x[:,j,:] = x.detach().clone()
-            all_grads[:,j,:] = x.grad.clone()
+            # x_grad = torch.cat((wx.grad, tx.grad), dim=1)
+            all_grads[:,j,:] = curr_grad.detach().clone()
 
-            self._optimizer.step()
-            self._scheduler.step()
+            self._w_optimizer.step()
+            self._t_optimizer.step()
+            self._w_scheduler.step()
+            self._t_scheduler.step()
 
             # Store iterations
             all_err_est[:,j] = err_est.detach()
@@ -762,6 +763,10 @@ class PoseOptimizer():
         # all_x = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
         # # self._xgrid = torch.meshgrid(*(self._num_xdims*[all_x]))
 
+        step_sizes = np.array((self._num_xdims,))
+        step_sizes[:self._num_wxdims] = 1e-2
+        step_sizes[-self._num_txdims:] = 3e-3
+
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         if calc_grad:
             all_grads = torch.empty([self._batch_size, self._num_xdims]+N_each, dtype=self._dtype, device=self._device)
@@ -770,7 +775,7 @@ class PoseOptimizer():
 
             if calc_grad:
                 if self._numerical_grad:
-                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, step_sizes, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 else:
                     err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
