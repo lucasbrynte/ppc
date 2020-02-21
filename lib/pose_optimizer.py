@@ -524,35 +524,53 @@ class PoseOptimizer():
         with open(os.path.join(self._out_path, 'evaluation', seq, json_fname), 'w') as f:
             json.dump(metrics, f)
 
-    def _init_scheduler(self, optimizer):
+    def _init_cos_transition_scheduler(
+        self,
+        optimizer,
+        x_min = 0,
+        # x_max = 30,
+        x_max = 50,
+        # y_min = 1e-1,
+        y_min = 1e-2,
+        y_max = 1.0,
+    ):
+        y_min = float(y_min)
+        assert x_max > x_min
         def get_cos_anneal_lr(x):
             """
             Cosine annealing.
             """
-            # x_max = 30
-            x_max = 50
-            # y_min = 1e-1
-            y_min = 1e-2
-            y_min = float(y_min)
-            x = float(min(x, x_max))
-            return y_min + 0.5 * (1.0-y_min) * (1.0 + np.cos(x/x_max*np.pi))
-
-        def get_exp_lr(x):
-            """
-            Exponential decay
-            """
-            half_life = 5.
-            # min_reduction = 1.0
-            # min_reduction = 1e-1
-            min_reduction = 5e-2
-            reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
-            return max(reduction, min_reduction)
+            x = max(x, x_min)
+            x = min(x, x_max)
+            x = float(x)
+            return y_min + 0.5 * (y_max-y_min) * (1.0 + np.cos((x-x_min)/(x_max-x_min)*np.pi))
 
         return torch.optim.lr_scheduler.LambdaLR(
             optimizer,
             get_cos_anneal_lr,
-            # get_exp_lr,
-            # lambda x: 1.0,
+        )
+
+    # def _init_exp_scheduler(self, optimizer):
+    #     def get_exp_lr(x):
+    #         """
+    #         Exponential decay
+    #         """
+    #         half_life = 5.
+    #         # min_reduction = 1.0
+    #         # min_reduction = 1e-1
+    #         min_reduction = 5e-2
+    #         reduction = np.exp(float(x) * np.log(0.5**(1./half_life)))
+    #         return max(reduction, min_reduction)
+    # 
+    #     return torch.optim.lr_scheduler.LambdaLR(
+    #         optimizer,
+    #         get_exp_lr,
+    #     )
+
+    def _init_constant_scheduler(self, optimizer):
+        return torch.optim.lr_scheduler.LambdaLR(
+            optimizer,
+            lambda x: 1.0,
         )
 
     def optimize(
@@ -635,8 +653,10 @@ class PoseOptimizer():
             # betas = (0.5, 0.9),
             # betas = (0.5, 0.99),
         )
-        self._w_scheduler = self._init_scheduler(self._w_optimizer)
-        self._t_scheduler = self._init_scheduler(self._t_optimizer)
+        self._w_scheduler = self._init_cos_transition_scheduler(self._w_optimizer)
+        self._t_scheduler = self._init_cos_transition_scheduler(self._t_optimizer)
+        # self._w_scheduler = self._init_constant_scheduler(self._w_optimizer)
+        # self._t_scheduler = self._init_constant_scheduler(self._t_optimizer)
 
         step_sizes = np.empty((self._num_xdims,))
         step_sizes[:self._num_wxdims] = 1e-2
@@ -658,6 +678,7 @@ class PoseOptimizer():
                 print(
                     j,
                     self._w_scheduler.get_lr(),
+                    self._t_scheduler.get_lr(),
                     err_est.detach().cpu().numpy(),
                     x.detach().cpu().numpy(),
                     curr_grad.detach().cpu().numpy(),
