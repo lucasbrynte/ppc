@@ -90,6 +90,7 @@ def _retrieve_input_img(image_tensor):
 class FullPosePipeline(nn.Module):
     def __init__(
         self,
+        configs,
         model,
         neural_rendering_wrapper,
         loss_handler,
@@ -99,6 +100,7 @@ class FullPosePipeline(nn.Module):
         ambient_weight,
     ):
         super().__init__()
+        self._configs = configs
         self._model = model
         self._neural_rendering_wrapper = neural_rendering_wrapper
         self._loss_handler = loss_handler
@@ -106,6 +108,8 @@ class FullPosePipeline(nn.Module):
         self._HK = HK
         self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
+
+        self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
     def forward(self, t, w, R_refpt=None, batch_interleaved_repeat_factor=1, fname_dict={}):
         # # Punish w
@@ -137,8 +141,9 @@ class FullPosePipeline(nn.Module):
             fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
             axes_array[0,0].imshow(_retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu()))
             axes_array[0,1].imshow(_retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu()))
-            os.makedirs(os.path.dirname(fname), exist_ok=True)
-            fig.savefig(fname)
+            full_fpath = os.path.join(self._out_path, fname)
+            os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
+            fig.savefig(full_fpath)
 
         # # Punish pixels
         # sh = query_img.shape
@@ -208,6 +213,8 @@ class PoseOptimizer():
         # self._orig_R_refpt = R0.detach()
         # # self._orig_R_refpt = R0_before_perturb.detach()
         # # self._orig_R_refpt = R_gt.detach()
+
+        self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
     def _repeat_onedim(self, T, nbr_reps, dim=0, interleave=False):
         if interleave:
@@ -548,13 +555,12 @@ class PoseOptimizer():
         # print(json.dumps(last_metrics, indent=4))
 
     def store_eval(self, metrics):
-        root_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
         img_dir, img_fname = os.path.split(metrics['ref_img_path'])
         seq, rgb_dir = os.path.split(img_dir)
         assert rgb_dir == 'rgb'
         json_fname = '.'.join([img_fname.split('.')[0], 'json'])
-        os.makedirs(os.path.join(root_path, seq), exist_ok=True)
-        with open(os.path.join(root_path, seq, json_fname), 'w') as f:
+        os.makedirs(os.path.join(self._out_path, 'evaluation', seq), exist_ok=True)
+        with open(os.path.join(self._out_path, 'evaluation', seq, json_fname), 'w') as f:
             json.dump(metrics, f)
 
     def _init_scheduler(self):
@@ -648,9 +654,9 @@ class PoseOptimizer():
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
             if self._numerical_grad:
-                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'experiments/rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
             else:
-                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'experiments/rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
             if print_iterates:
                 print(
                     j,
@@ -688,12 +694,14 @@ class PoseOptimizer():
             axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
             if self._num_xdims == 2:
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
-            fig.savefig(fname)
+            full_fpath = os.path.join(self._out_path, fname)
+            os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
+            fig.savefig(full_fpath)
 
         if enable_plotting:
             for sample_idx in range(self._orig_batch_size):
                 for run_idx, run_name in enumerate(self._optim_runs.keys()):
-                    fname = 'experiments/00_func_sample{:02d}_run{:02d}_{:s}.png'.format(sample_idx, run_idx, run_name)
+                    fname = 'optimplots/sample{:02d}_optim_run_{:s}.png'.format(sample_idx, run_name)
                     plot(sample_idx*self._num_optim_runs + run_idx, fname)
 
     def evaluate(
@@ -762,11 +770,11 @@ class PoseOptimizer():
 
             if calc_grad:
                 if self._numerical_grad:
-                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'experiments/rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, 1e-2, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 else:
-                    err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'experiments/rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
-                err_est = self.eval_func(x, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'experiments/rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                err_est = self.eval_func(x, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 err_est = err_est.squeeze(1)
             print(
                 j,
@@ -833,9 +841,9 @@ class PoseOptimizer():
                 plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
-        fig.savefig('experiments/00_func.png')
-        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-train100.png')
-        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-109.png')
-        # fig.savefig('experiments/00_func-default_and_90deg-nomax50-112.png')
+        fig.savefig(os.path.join(self._out_path, '00_func.png'))
+        # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-train100.png'))
+        # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-109.png'))
+        # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-112.png'))
 
         assert False

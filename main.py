@@ -175,6 +175,7 @@ class Main():
                 assert self._configs.data.query_rendering_method == 'neural'
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
                 pose_pipeline = FullPosePipeline(
+                    self._configs,
                     self._model,
                     self._neural_rendering_wrapper,
                     self._loss_handler,
