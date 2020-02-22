@@ -527,6 +527,7 @@ class PoseOptimizer():
     def _init_cos_transition_scheduler(
         self,
         optimizer,
+        zero_before = None,
         x_min = 0,
         # x_max = 30,
         x_max = 50,
@@ -540,6 +541,8 @@ class PoseOptimizer():
             """
             Cosine annealing.
             """
+            if zero_before is not None and x < zero_before:
+                return 0.0
             x = max(x, x_min)
             x = min(x, x_max)
             x = float(x)
@@ -653,8 +656,34 @@ class PoseOptimizer():
             # betas = (0.5, 0.9),
             # betas = (0.5, 0.99),
         )
-        self._w_scheduler = self._init_cos_transition_scheduler(self._w_optimizer)
-        self._t_scheduler = self._init_cos_transition_scheduler(self._t_optimizer)
+        if self._num_txdims > 0:
+            w_start_iter = 50
+            w_finetune_iter = 100
+            # w_start_iter = 35
+            # w_finetune_iter = 75
+        else:
+            w_start_iter = 0
+            w_finetune_iter = 50
+        self._w_scheduler = self._init_cos_transition_scheduler(
+            self._w_optimizer,
+            zero_before = w_start_iter,
+            x_min = w_start_iter,
+            x_max = w_finetune_iter,
+            # y_min = 1e-1,
+            y_min = 1e-2,
+            y_max = 1.0,
+        )
+        self._t_scheduler = self._init_cos_transition_scheduler(
+            self._t_optimizer,
+            zero_before = None,
+            x_min = 0,
+            # x_max = 30,
+            x_max = 50,
+            # y_min = 1e-1,
+            y_min = 4e-2,
+            # y_min = 1e-2,
+            y_max = 1.0,
+        )
         # self._w_scheduler = self._init_constant_scheduler(self._w_optimizer)
         # self._t_scheduler = self._init_constant_scheduler(self._t_optimizer)
 
