@@ -2,12 +2,12 @@ default_schemeset_opts:
   test:
     loading:
       nbr_batches: 3
-      batch_size: 1
+      # batch_size: 1
       # batch_size: 2
       # batch_size: 3
       # batch_size: 6
       # batch_size: 7
-      # batch_size: 10
+      batch_size: 10
       # batch_size: 32
       shuffle: fixed
       # shuffle: true
