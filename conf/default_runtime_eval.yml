@@ -6,8 +6,12 @@ default_schemeset_opts:
       # batch_size: 2
       # batch_size: 3
       # batch_size: 6
+      # batch_size: 7
+      # batch_size: 10
       # batch_size: 32
-      shuffle: false
+      shuffle: fixed
+      # shuffle: true
+      # shuffle: false
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
       enabled: false
