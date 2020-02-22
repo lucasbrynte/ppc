@@ -356,27 +356,25 @@ class PoseOptimizer():
         agg_loss = torch.sum(err_est)
         return err_est, grad((agg_loss,), (x,))[0]
 
-    def eval_func_and_calc_numerical_grad(self, x, step_sizes, fname_dict={}):
+    def eval_func_and_calc_numerical_grad(self, x1, y1, step_sizes, x_indices=None):
         """
         Eval function and calculate numerical gradients
         """
-        nbr_params = x.shape[1]
-
-        x1 = x
-        y1 = self.eval_func(x1, R_refpt=self._R_refpt, fname_dict=fname_dict).squeeze(1)
+        nbr_params = x1.shape[1]
+        if x_indices is None:
+            x_indices = list(range(nbr_params))
         assert y1.shape == (self._batch_size,)
-        grad = torch.empty_like(x)
+        grad = torch.zeros_like(x1)
         assert grad.shape == (self._batch_size, nbr_params)
-        for x_idx in range(nbr_params):
-            x2 = x.clone()
+        for x_idx in x_indices:
+            x2 = x1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             x2[:,x_idx] += forward_diff*step_sizes[x_idx]
-            y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname_dict=fname_dict).squeeze(1)
+            y2 = self.eval_func(x2, R_refpt=self._R_refpt, fname_dict={}).squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_sizes[x_idx])
         grad = grad.detach()
-        err_est = y1
-        return err_est, grad
+        return grad
 
     def calc_add_metric(self, pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt):
         # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
@@ -698,11 +696,16 @@ class PoseOptimizer():
             x = torch.cat((wx, tx), dim=1)
 
             if self._numerical_grad:
-                err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, step_sizes, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                err_est = self.eval_func(x, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {}).squeeze(1)
+                if j >= w_start_iter:
+                    curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=None)
+                else:
+                    # Compute numerical differences w.r.t. tx only. w.r.t. wx will not be used anyway.
+                    curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=list(range(self._num_wxdims, self._num_xdims)))
                 curr_grad[curr_grad > 300.] = 300.
                 curr_grad[curr_grad < -300.] = -300.
             else:
-                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else None)
+                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
                 print(
                     j,
@@ -825,6 +828,12 @@ class PoseOptimizer():
 
             if calc_grad:
                 if self._numerical_grad:
+                    err_est = self.eval_func(x, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) }).squeeze(1)
+                    if j >= w_start_iter:
+                        curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=None)
+                    else:
+                        # Compute numerical differences w.r.t. tx only. w.r.t. wx will not be used anyway.
+                        curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=list(range(self._num_wxdims, self._num_xdims)))
                     err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, step_sizes, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 else:
                     err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
