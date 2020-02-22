@@ -311,13 +311,17 @@ class Main():
                     store_eval = True,
                 )
                 # pose_optimizer.evaluate(
-                #     num_wxdims = 0,
+                #     num_wxdims = 1,
+                #     # num_txdims = 2,
+                #     # N_each = [2, 10],
                 #     # num_txdims = 2,
                 #     # N_each = [20, 20],
-                #     num_txdims = 1,
-                #     N_each = [20],
-                #     calc_grad=False,
+                #     num_txdims = 0,
+                #     N_each = [100],
+                #     # calc_grad=False,
+                #     calc_grad=True,
                 # )
+                # assert False
 
     def _run_epoch(
             self,

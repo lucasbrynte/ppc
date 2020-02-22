@@ -293,6 +293,7 @@ class PoseOptimizer():
         # t_basis *= 100. # x (dm) -> t (mm)
 
         # xy
+        # t_basis[:,:2,:] *= 300. # x (dm) -> t (mm)
         t_basis[:,:2,:] *= 100. # x (dm) -> t (mm)
         # z
         t_basis[:,2,:] *= 1000. # x (m) -> t (mm)
@@ -748,6 +749,7 @@ class PoseOptimizer():
             axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
             if self._num_xdims == 2:
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
+                # axes_array[1,1].plot(np.diff(all_x[sample_idx,:,:].detach().cpu().numpy(), axis=0))
             full_fpath = os.path.join(self._out_path, fname)
             os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
             fig.savefig(full_fpath)

@@ -157,6 +157,8 @@ model:
     head_layers:
       - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
       - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+      # - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
+      # - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
       - {dropout_factor: null, bias: true, relu_flag: false}
       # - {dropout_factor: null, bias: false, relu_flag: false}
 # model:
