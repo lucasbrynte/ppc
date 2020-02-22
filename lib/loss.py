@@ -78,7 +78,7 @@ class LossHandler:
         if selected_targets is None:
             selected_targets = self._configs.targets.keys()
         target_features = {}
-        for target_name in sorted(selected_targets):
+        for target_name in selected_targets:
             target_features[target_name] = getattr(targets, target_name).to(get_device())
         return target_features
 
