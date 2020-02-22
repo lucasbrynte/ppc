@@ -170,6 +170,10 @@ class DummyDataset(Dataset):
         self._sequence_frames_filtered = []
         self._sequence_lengths = []
         for ref_scheme_idx in range(len(self._ref_sampling_schemes)):
+            if self._ref_sampling_schemes[ref_scheme_idx].ref_source != 'real':
+                self._sequence_frames_filtered.append(None)
+                self._sequence_lengths.append(None)
+                continue
             seq = self._get_seq(ref_scheme_idx)
             all_gts = self._read_yaml(os.path.join(self._configs.data.path, seq, 'gt.yml'))
             self._sequence_frames_filtered.append([ frame_idx for frame_idx in all_gts if check_obj_in_frame(all_gts[frame_idx]) ])
