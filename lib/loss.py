@@ -340,7 +340,7 @@ class LossHandler:
             if signal_name_filter is not None and signal_name != signal_name_filter:
                 continue
             for task_name, samples_list in signal_dict[signal_name].items():
-                numpy_signals[signal_name][task_name] = torch.tensor(samples_list).numpy()
+                numpy_signals[signal_name][task_name] = torch.stack(samples_list, dim=0).numpy()
         return numpy_signals
 
     def get_perbatch_signals_numpy(self, signal_name_filter=None):
