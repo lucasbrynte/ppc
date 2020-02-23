@@ -7,11 +7,13 @@ training:
   backup_epochs: false
   clamp_predictions: false
 targets:
+  # avg_reproj_err:                  {n_out: 1,   activation: null,      min: 0.0, max: null, unit: px}
   avg_reproj_err:                  {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
 
-  # pixel_offset:                    {n_out: 2,   activation: null,      min: null, max: null, unit: px}
+  pixel_offset:                    {n_out: 2,   activation: null,      min: null, max: null, unit: px}
   rel_depth_error:                 {n_out: 1,   activation: null,      min: null, max: null, unit: log_factor}
-  norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
+  norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: null, unit: px}
+  # norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
   # delta_angle_inplane_signed:      {n_out: 1,   activation: null,      min: null, max: null, unit: angle}
   # delta_angle_inplane_unsigned:    {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
   # delta_angle_paxis:               {n_out: 1,   activation: null,      min: 0.0, max: 3.1416, unit: angle}
@@ -49,25 +51,37 @@ tasks:
     # #   # - {method: relative, min_denominator: 0.05}
     #   # - {method: relative, min_denominator: 0.01}
 
-  # rel_depth_error:
-  #   target: rel_depth_error
-  #   loss_func: L1
-  #   loss_weight: 1.0
-  #   clamp_before_loss: false
-  #   prior_loss: null
-  #   loss_decay: null
-  # norm_pixel_offset:
-  #   target: norm_pixel_offset
-  #   loss_func: L1
-  #   loss_weight: 1.e-2
-  #   clamp_before_loss: false
-  #   prior_loss: null
-  #   loss_decay: null
-  #   # loss_decay:
-  #   #   # - {method: relative, min_denominator: 0.5}
-  #   #   - {method: relative, min_denominator: 0.1}
-  #   #   # - {method: relative, min_denominator: 0.05}
-  #   #   # - {method: relative, min_denominator: 0.01}
+  rel_depth_error:
+    target: rel_depth_error
+    loss_func: L1
+    loss_weight: 1.0
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay: null
+  norm_pixel_offset:
+    target: norm_pixel_offset
+    loss_func: L1
+    loss_weight: 1.e-2
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay: null
+    # loss_decay:
+    #   # - {method: relative, min_denominator: 0.5}
+    #   - {method: relative, min_denominator: 0.1}
+    #   # - {method: relative, min_denominator: 0.05}
+    #   # - {method: relative, min_denominator: 0.01}
+  pixel_offset:
+    target: pixel_offset
+    loss_func: L1
+    loss_weight: 1.e-2
+    clamp_before_loss: false
+    prior_loss: null
+    loss_decay: null
+    # loss_decay:
+    #   # - {method: relative, min_denominator: 0.5}
+    #   - {method: relative, min_denominator: 0.1}
+    #   # - {method: relative, min_denominator: 0.05}
+    #   # - {method: relative, min_denominator: 0.01}
   # delta_angle_total:
   #   target: delta_angle_total
   #   loss_func: L1
@@ -155,15 +169,39 @@ model:
     E2_pretrained: true
     E2_include_highlevel: false
     head_layer_specs:
-      dflt:
-        tasks: null
+      avg_reproj_err:
+        tasks: [avg_reproj_err]
         layers:
           - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
           - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-          # - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
-          # - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
           - {dropout_factor: null, bias: true, relu_flag: false}
-          # - {dropout_factor: null, bias: false, relu_flag: false}
+      pixel_offset:
+        tasks: [pixel_offset]
+        layers:
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {dropout_factor: null, bias: true, relu_flag: false}
+      norm_pixel_offset:
+        tasks: [norm_pixel_offset]
+        layers:
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {dropout_factor: null, bias: true, relu_flag: false}
+      rel_depth_error:
+        tasks: [rel_depth_error]
+        layers:
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+          - {dropout_factor: null, bias: true, relu_flag: false}
+      # dflt:
+      #   tasks: null
+      #   layers:
+      #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+      #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+      #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
+      #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
+      #     - {dropout_factor: null, bias: true, relu_flag: false}
+      #     # - {dropout_factor: null, bias: false, relu_flag: false}
 # model:
 #   architecture: custom_siamese
 #   custom_siamese_opts:

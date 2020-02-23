@@ -224,7 +224,7 @@ class LossHandler:
 
         assert False
 
-    def calc_loss_decay(self, target_features, pertarget_target_features):
+    def calc_loss_decay(self, target_features, pertarget_target_features, tasks_punished=None):
         task_loss_decays = {}
         loss_notapplied = {}
         for task_name in self._configs.tasks.keys():
@@ -235,6 +235,11 @@ class LossHandler:
             # Assume loss applied for every sample until proven wrong:
             batch_size = target_features[task_name].shape[0]
             loss_notapplied_mask = torch.zeros((batch_size,), dtype=torch.bool)
+
+            if tasks_punished is not None:
+                for sample_idx in range(batch_size):
+                    if tasks_punished[sample_idx] is not None and task_name not in tasks_punished[sample_idx]:
+                        loss_notapplied_mask[sample_idx] = 1
 
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:

@@ -48,6 +48,8 @@ SampleMetaData = namedtuple('SampleMetaData', [
     'ref_img_path',
     'ambient_weight',
     'obj_id',
+    # 'scheme_name',
+    'tasks_punished',
 ])
 
 def get_metadata(configs):
@@ -1183,6 +1185,8 @@ class DummyDataset(Dataset):
             ref_img_path = ref_img_path,
             ambient_weight = float(query_shading_params['ambient_weight']),
             obj_id = self._obj_id,
+            # scheme_name = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].scheme_name,
+            tasks_punished = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].tasks_punished,
         )
 
         return Sample(targets, maps, extra_input, meta_data)

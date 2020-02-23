@@ -372,7 +372,7 @@ class Main():
                 pred_features = self._loss_handler.clamp_features(pred_features, before_loss=True)
 
             # Calculate loss
-            task_loss_decays, loss_notapplied = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features)
+            task_loss_decays, loss_notapplied = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features, tasks_punished=batch.meta_data.tasks_punished)
             if mode in (TRAIN, VAL):
                 task_losses = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decays)
                 loss = sum(task_losses.values())
