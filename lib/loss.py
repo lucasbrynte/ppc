@@ -181,8 +181,8 @@ class LossHandler:
             if discard_signal is None:
                 feat_avg_signal_vals[task_name] = torch.mean(signals[task_name])
             else:
-                assert discard_signal[task_name].squeeze(1).shape == signals[task_name].shape
-                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name][~discard_signal[task_name].squeeze(1)])
+                assert discard_signal[task_name].shape == signals[task_name].shape
+                feat_avg_signal_vals[task_name] = torch.mean(signals[task_name][~discard_signal[task_name]])
         return feat_avg_signal_vals
 
     def calc_batch_signal_std(self, signals, discard_signal=None):
@@ -226,7 +226,8 @@ class LossHandler:
             loss_decay = 1.0
 
             # Assume loss applied for every sample until proven wrong:
-            loss_notapplied_mask = torch.zeros_like(target_features[task_name], dtype=torch.bool)
+            batch_size = target_features[task_name].shape[0]
+            loss_notapplied_mask = torch.zeros((batch_size,), dtype=torch.bool)
 
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:
