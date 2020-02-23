@@ -1,3 +1,4 @@
+from attrdict import AttrDict
 import numpy as np
 import torch
 from torch import nn
@@ -58,13 +59,13 @@ class Resnet18Wrapper(nn.Module):
         return x
 
 class Head(nn.Module):
-    def __init__(self, configs, feature_map_dims, head_layers):
+    def __init__(self, configs, feature_map_dims, head_layer_specs):
         super().__init__()
         self._configs = configs
         self.feature_map_dims = feature_map_dims
         units = []
         in_features = np.prod(self.feature_map_dims)
-        for i, layer_spec in enumerate(head_layers):
+        for i, layer_spec in enumerate(head_layer_specs):
             out_features = layer_spec.n_out
             dropout_factor = layer_spec.dropout_factor
             relu_flag = layer_spec.relu_flag
@@ -90,7 +91,7 @@ class Model(nn.Module):
     def __init__(self, configs):
         super().__init__()
         self._configs = configs
-        self.verify_head_layer_specs(self._configs['model']['resnet18_opts']['head_layers']) # Access by key important - needs to be mutable
+        self.verify_head_layer_specs(self._configs['model']['resnet18_opts']['head_layer_specs']) # Access by key important - needs to be mutable
 
         # Embedding modules as referred to in DPOD paper:
         self.E11 = Resnet18Wrapper(
@@ -118,7 +119,8 @@ class Model(nn.Module):
         )
 
         resnet_output_dims = self._check_resnet_output_dims()
-        self.head = Head(self._configs, resnet_output_dims, self._configs.model.resnet18_opts.head_layers)
+
+        self.heads = nn.ModuleDict({ head_name: Head(self._configs, resnet_output_dims, list(map(AttrDict, head_spec['layers']))) for head_name, head_spec in self._configs.model.resnet18_opts.head_layer_specs.items() })
 
     def freeze_resnet(self):
         for param in list(self.E12.parameters()) + list(self.E2.parameters()):
@@ -148,13 +150,16 @@ class Model(nn.Module):
         assert nbr_params == total_nbr_params
         return param_groups
 
-    def verify_head_layer_specs(self, head_specs):
-        n_out = sum([self._configs.targets[task_spec['target']]['n_out'] for task_spec in self._configs.tasks.values()])
-        if 'n_out' in head_specs[-1]:
-            assert head_specs[-1]['n_out'] == n_out
-        else:
-            head_specs[-1]['n_out'] = n_out
-        assert head_specs[-1]['relu_flag'] == False
+    def verify_head_layer_specs(self, all_head_specs):
+        for head_name, head_spec in all_head_specs.items():
+            if head_spec['tasks'] is None:
+                head_spec['tasks'] = sorted(self._configs.tasks.keys())
+            n_out = sum([self._configs.targets[self._configs.tasks[task_name]['target']]['n_out'] for task_name in head_spec['tasks']])
+            if 'n_out' in head_spec['layers'][-1]:
+                assert head_spec['layers'][-1]['n_out'] == n_out
+            else:
+                head_spec['layers'][-1]['n_out'] = n_out
+            assert head_spec['layers'][-1]['relu_flag'] == False
 
     def forward(self, x):
         maps, extra_input = x
@@ -162,5 +167,6 @@ class Model(nn.Module):
         s2 = maps.query_img
         x = self.E11(s1) - self.E12(s2)
         x = self.E2(x)
-        x = self.head(x)
+        x = { head_name: self.heads[head_name](x) for head_name in self.heads }
+        # x = self.head(x)
         return x

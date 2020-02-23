@@ -64,13 +64,20 @@ class LossHandler:
 
     def get_pred_features(self, nn_out):
         # Batch size determined and preserved to be used in other methods. May vary when switching between TRAIN / VAL
-        self._batch_size = nn_out.shape[0]
+        self._batch_size = next(iter(nn_out.values())).shape[0]
+
+        handled_tasks = []
 
         pred_features = {}
-        offset = 0
-        for task_name in sorted(self._configs.tasks.keys()):
-            pred_features[task_name] = nn_out[:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
-            offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']
+        for head_name, features in nn_out.items():
+            offset = 0
+            for task_name in self._configs.model.resnet18_opts.head_layer_specs[head_name]['tasks']:
+                handled_tasks.append(task_name)
+                pred_features[task_name] = nn_out[head_name][:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
+                offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']
+
+        assert len(handled_tasks) == len(set(handled_tasks))
+        assert set(handled_tasks) == set(self._configs.tasks.keys())
 
         return pred_features
 
