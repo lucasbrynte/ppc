@@ -60,7 +60,7 @@ class Main():
         self._model = self._checkpoint_handler.init(self._init_model())
         if self._configs.train_or_eval == 'train':
             self._optimizer = self._setup_optimizer()
-            self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='max')
+            self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='min', factor=0.3)
         self._visualizer = Visualizer(configs)
 
         if self._configs.data.query_rendering_method == 'neural':
