@@ -112,7 +112,7 @@ class Main():
             assert len(val_scores) > 0
             val_score = sum(val_scores.values()) / len(val_scores)
 
-            self._lr_scheduler.step(val_score)
+            self._lr_scheduler.step(val_score, epoch=None) # Make sure that the val_score argument is not confused for the epoch.
             # self._checkpoint_handler.save(self._model, epoch, train_score)
             self._checkpoint_handler.save(self._model, epoch, val_score)
 
