@@ -818,7 +818,7 @@ class PoseOptimizer():
         # all_x = torch.linspace(-x_delta, x_delta, steps=N, dtype=self._dtype, device=self._device, requires_grad=True)[None,:,None].repeat(self._batch_size, 1, 1)
         # # self._xgrid = torch.meshgrid(*(self._num_xdims*[all_x]))
 
-        step_sizes = np.array((self._num_xdims,))
+        step_sizes = np.empty((self._num_xdims,))
         step_sizes[:self._num_wxdims] = 1e-2
         step_sizes[-self._num_txdims:] = 3e-3
 
@@ -831,12 +831,7 @@ class PoseOptimizer():
             if calc_grad:
                 if self._numerical_grad:
                     err_est = self.eval_func(x, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) }).squeeze(1)
-                    if j >= w_start_iter:
-                        curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=None)
-                    else:
-                        # Compute numerical differences w.r.t. tx only. w.r.t. wx will not be used anyway.
-                        curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=list(range(self._num_wxdims, self._num_xdims)))
-                    err_est, curr_grad = self.eval_func_and_calc_numerical_grad(x, step_sizes, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=None)
                 else:
                     err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
