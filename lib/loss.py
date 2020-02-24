@@ -318,7 +318,9 @@ class LossHandler:
     def filter_tensor_signal(self, signal_vals, loss_notapplied):
         signal_vals_filtered = {}
         for task_name in signal_vals.keys():
-            signal_vals_filtered[task_name] = [sample_val for sample_val, discard_val in zip(signal_vals[task_name], loss_notapplied[task_name]) if not torch.any(discard_val)]
+            list_of_vals = [sample_val for sample_val, discard_val in zip(signal_vals[task_name], loss_notapplied[task_name]) if not torch.any(discard_val)]
+            if len(list_of_vals) > 0:
+                signal_vals_filtered[task_name] = list_of_vals
         return signal_vals_filtered
 
     def filter_persample_signals(self, signal_names):
