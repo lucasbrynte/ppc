@@ -302,27 +302,27 @@ class PoseOptimizer():
 
         return t_basis_origin, t_basis
 
-    def _x2t(self, x, oblique_z_axis=True):
+    def _x2t(self, tx, oblique_z_axis=True):
         # t = self._t_gt
 
         # t = self._t_basis_origin
         # if self._num_txdims > 0:
-        #     t = t + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+        #     t = t + torch.bmm(self._t_basis[:,:,:self._num_txdims], tx[:,:,None])
 
         t_origin = self._t_basis_origin
 
         # if self._num_txdims == 2:
-        #     t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:1], x[:,-self._num_txdims:-1,None])
+        #     t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:1], tx[:,:-1,None])
         if self._num_txdims == 3 and oblique_z_axis:
             # t_delta_xy is a 2D translation from t_origin, with preserved depth.
             # Assuming first two t base vectors to be in this plane, e.g. x-axis & y-axis.
-            t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:2], x[:,-self._num_txdims:-1,None])
+            t_delta_xy = t_origin + torch.bmm(self._t_basis[:,:,:2], tx[:,:-1,None])
 
             # Viewing ray of t_delta_xy. Unit length in depth direction.
             viewing_ray = t_delta_xy / t_delta_xy[:,[-1],:]
 
             # 3rd base vector is unused. Instead - interpret 3rd x coordinate as desired depth.
-            desired_depth_diff_to_t_origin = x[:,[-1],None]
+            desired_depth_diff_to_t_origin = tx[:,[-1],None]
             desired_depth_diff_to_t_origin *= self._t_basis[:,2,2][:,None,None] # Apply scaling: (m) -> (mm)
 
             # Realize the desired depth by translation along viewing ray, thus preserving projection of object center.
@@ -331,51 +331,73 @@ class PoseOptimizer():
             t_delta_z = viewing_ray * ((t_origin_depth+desired_depth_diff_to_t_origin) - current_depth)
             t = t_delta_xy + t_delta_z
         elif self._num_txdims > 0:
-            t = t_origin + torch.bmm(self._t_basis[:,:,:self._num_txdims], x[:,-self._num_txdims:,None])
+            t = t_origin + torch.bmm(self._t_basis[:,:,:self._num_txdims], tx[:,:,None])
         else:
             assert self._num_txdims == 0
             t = t_origin
         return t
 
-    def _x2w(self, x):
+    def _x2w(self, wx):
         w = self._w_basis_origin.clone()
         if self._num_wxdims > 0:
-            w = w + torch.bmm(self._w_basis[:,:,:self._num_wxdims], x[:,:self._num_wxdims,None]).squeeze(2)
+            w = w + torch.bmm(self._w_basis[:,:,:self._num_wxdims], wx[:,:,None]).squeeze(2)
         return w
 
-    def eval_func(self, x, R_refpt=None, fname_dict={}):
-        t = self._x2t(x)
-        w = self._x2w(x)
+    def eval_func(self, wx, tx, R_refpt=None, fname_dict={}):
+        t = self._x2t(tx)
+        w = self._x2w(wx)
         pred_features = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
         return pred_features
 
-    def eval_func_and_calc_analytical_grad(self, x, fname_dict={}):
+    def eval_func_and_calc_analytical_grad(self, wx, tx, fname_dict={}):
         """
         Eval function and calculate analytical gradients
         """
-        pred_features = self.eval_func(x, R_refpt=self._R_refpt, fname_dict=fname_dict)
+        pred_features = self.eval_func(wx, tx, R_refpt=self._R_refpt, fname_dict=fname_dict)
         err_est = pred_features['avg_reproj_err']
         pixel_offset_est = pred_features['pixel_offset']
         rel_depth_est = pred_features['rel_depth_error']
         # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
         agg_loss = torch.sum(err_est)
-        return err_est, grad((agg_loss,), (x,))[0]
+        wx_grad, tx_grad = grad((agg_loss,), (x,))
+        return err_est, wx_grad, tx_grad
 
-    def eval_func_and_calc_numerical_grad(self, x1, y1, step_size, x_indices=None):
+    def eval_func_and_calc_numerical_wx_grad(self, wx1, tx, y1, step_size, x_indices=None):
         """
         Eval function and calculate numerical gradients
         """
-        nbr_params = x1.shape[1]
+        nbr_params = wx1.shape[1]
         if x_indices is None:
             x_indices = list(range(nbr_params))
         assert y1.shape == (self._batch_size,)
-        grad = torch.zeros_like(x1)
+        grad = torch.zeros_like(wx1)
         assert grad.shape == (self._batch_size, nbr_params)
         for x_idx in x_indices:
-            x2 = x1.clone()
+            wx2 = wx1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
-            x2[:,x_idx] += forward_diff*step_size
-            pred_features = self.eval_func(x2, R_refpt=self._R_refpt, fname_dict={})
+            wx2[:,x_idx] += forward_diff*step_size
+            pred_features = self.eval_func(wx2, tx, R_refpt=self._R_refpt, fname_dict={})
+            y2 = pred_features['avg_reproj_err'].squeeze(1)
+            assert y2.shape == (self._batch_size,)
+            grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
+        grad = grad.detach()
+        return grad
+
+    def eval_func_and_calc_numerical_tx_grad(self, wx, tx1, y1, step_size, x_indices=None):
+        """
+        Eval function and calculate numerical gradients
+        """
+        nbr_params = tx1.shape[1]
+        if x_indices is None:
+            x_indices = list(range(nbr_params))
+        assert y1.shape == (self._batch_size,)
+        grad = torch.zeros_like(tx1)
+        assert grad.shape == (self._batch_size, nbr_params)
+        for x_idx in x_indices:
+            tx2 = tx1.clone()
+            forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
+            tx2[:,x_idx] += forward_diff*step_size
+            pred_features = self.eval_func(wx, tx2, R_refpt=self._R_refpt, fname_dict={})
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
@@ -429,17 +451,17 @@ class PoseOptimizer():
             cm_err.detach().cpu().numpy(),
         ], axis=2)
 
-    def eval_pose_single_object(self, obj_id, x_est, err_est, R_gt, t_gt):
+    def eval_pose_single_object(self, obj_id, wx_est, tx_est, err_est, R_gt, t_gt):
         R_gt = R_gt[:,None,:,:]
         t_gt = t_gt[:,None,:,:]
 
-        N = x_est.shape[1]
+        N = err_est.shape[1]
         t_est = torch.stack(
-            [ self._x2t(x_est[:,j,:]) for j in range(N) ],
+            [ self._x2t(tx_est[:,j,:]) for j in range(N) ],
             dim=1,
         )
         R_est = torch.stack(
-            [ w_to_R(self._x2w(x_est[:,j,:])) for j in range(N) ],
+            [ w_to_R(self._x2w(wx_est[:,j,:])) for j in range(N) ],
             dim=1,
         )
         if self._R_refpt is not None:
@@ -494,11 +516,11 @@ class PoseOptimizer():
         ) ]
         return metrics
 
-    def eval_pose(self, all_x, all_err_est):
+    def eval_pose(self, all_wx, all_tx, all_err_est):
         # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
         assert len(set(self._pipeline._obj_id_list)) == 1
         obj_id = self._pipeline._obj_id_list[0]
-        all_metrics = self.eval_pose_single_object(obj_id, all_x, all_err_est, self._R_gt, self._t_gt)
+        all_metrics = self.eval_pose_single_object(obj_id, all_wx, all_tx, all_err_est, self._R_gt, self._t_gt)
         return all_metrics
 
     def store_eval(self, metrics):
@@ -678,28 +700,25 @@ class PoseOptimizer():
         step_size_tx = 3e-3
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
-        all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_wx_grads = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
+        all_tx_grads = torch.empty((self._batch_size, N, self._num_txdims), dtype=self._dtype, device=self._device)
         all_exp_avgs = torch.zeros((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_exp_avg_sqs = torch.zeros((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
-        all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_wx = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
+        all_tx = torch.empty((self._batch_size, N, self._num_txdims), dtype=self._dtype, device=self._device)
         for j in range(N):
-            x = torch.cat((wx, tx), dim=1)
-
             if self._numerical_grad:
-                pred_features = self.eval_func(x, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+                pred_features = self.eval_func(wx, tx, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
                 pixel_offset_est = pred_features['pixel_offset']
                 rel_depth_est = pred_features['rel_depth_error']
-                curr_grad = torch.zeros_like(x).detach()
                 if j >= w_start_iter:
-                    curr_wx_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_size_wx, x_indices=list(range(self._num_wxdims)))
-                    curr_grad += curr_wx_grad
-                curr_tx_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_size_tx, x_indices=list(range(self._num_wxdims, self._num_xdims)))
-                curr_grad += curr_tx_grad
-                # curr_grad[curr_grad > 300.] = 300.
-                # curr_grad[curr_grad < -300.] = -300.
+                    curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, err_est, step_size_wx)
+                else:
+                    curr_wx_grad = torch.zeros_like(wx)
+                curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, err_est, step_size_wx)
             else:
-                err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+                err_est, curr_wx_grad, curr_tx_grad = self.eval_func_and_calc_analytical_grad(wx, tx, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
                 print(
                     j,
@@ -708,13 +727,15 @@ class PoseOptimizer():
                     err_est.detach().cpu().numpy(),
                     pixel_offset_est.detach().cpu().numpy(),
                     rel_depth_est.detach().cpu().numpy(),
-                    x.detach().cpu().numpy(),
-                    curr_grad.detach().cpu().numpy(),
+                    wx.detach().cpu().numpy(),
+                    tx.detach().cpu().numpy(),
+                    curr_wx_grad.detach().cpu().numpy(),
+                    curr_tx_grad.detach().cpu().numpy(),
                 )
             if self._num_wxdims > 0:
-                wx.grad = curr_grad[:,:self._num_wxdims]
+                wx.grad = curr_wx_grad[:,:self._num_wxdims]
             if self._num_txdims > 0:
-                tx.grad = curr_grad[:,-self._num_txdims:]
+                tx.grad = curr_tx_grad[:,-self._num_txdims:]
 
             if j > 0:
                 exp_avg_wx = self._w_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._w_optimizer.state[wx] else torch.zeros_like(wx)
@@ -725,9 +746,11 @@ class PoseOptimizer():
                 exp_avg_sq = torch.cat((exp_avg_sq_wx, exp_avg_tx), dim=1)
 
             # Store iterations
-            all_x[:,j,:] = x.detach().clone()
+            all_wx[:,j,:] = wx.detach().clone()
+            all_tx[:,j,:] = tx.detach().clone()
             # x_grad = torch.cat((wx.grad, tx.grad), dim=1)
-            all_grads[:,j,:] = curr_grad.detach().clone()
+            all_wx_grads[:,j,:] = curr_wx_grad.detach().clone()
+            all_tx_grads[:,j,:] = curr_tx_grad.detach().clone()
             if j > 0:
                 all_exp_avgs[:,j,:] = exp_avg.detach().clone()
                 all_exp_avg_sqs[:,j,:] = exp_avg_sq.detach().clone()
@@ -741,7 +764,7 @@ class PoseOptimizer():
             all_err_est[:,j] = err_est.detach()
 
         if store_eval:
-            all_metrics = self.eval_pose(all_x, all_err_est)
+            all_metrics = self.eval_pose(all_wx, all_tx, all_err_est)
             for metrics in all_metrics:
                 # print(json.dumps(metrics, indent=4))
                 self.store_eval(metrics)
@@ -753,7 +776,8 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
             axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
+            axes_array[0,2].plot(all_wx_grads[sample_idx,:,:].detach().cpu().numpy())
+            # axes_array[0,2].plot(all_tx_grads[sample_idx,:,:].detach().cpu().numpy())
             axes_array[1,2].plot(all_exp_avgs[sample_idx,:,:].abs().detach().cpu().numpy())
             axes_array[1,2].plot(all_exp_avg_sqs[sample_idx,:,:].abs().detach().cpu().numpy())
             if self._num_xdims == 2:
@@ -764,6 +788,7 @@ class PoseOptimizer():
             fig.savefig(full_fpath)
 
         if enable_plotting:
+            all_x = torch.cat([all_wx, all_tx], dim=2)
             for sample_idx in range(self._orig_batch_size):
                 for run_idx, run_name in enumerate(self._optim_runs.keys()):
                     fname = 'optimplots/sample{:02d}_optim_run_{:s}.png'.format(sample_idx, run_name)
@@ -836,23 +861,25 @@ class PoseOptimizer():
         all_pixel_offset_y_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         all_rel_depth_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         if calc_grad:
-            all_grads = torch.empty([self._batch_size, self._num_xdims]+N_each, dtype=self._dtype, device=self._device)
+            all_wx_grads = torch.empty([self._batch_size, self._num_wxdims]+N_each, dtype=self._dtype, device=self._device)
+            all_tx_grads = torch.empty([self._batch_size, self._num_txdims]+N_each, dtype=self._dtype, device=self._device)
         for j in range(N):
             x = vec(all_x, N_each)[:,:,j] # shape: (sample_idx, x_idx)
+            wx = x[:,:self._num_wxdims]
+            tx = x[:,-self._num_txdims:]
 
             if calc_grad:
                 if self._numerical_grad:
-                    pred_features = self.eval_func(x, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    pred_features = self.eval_func(wx, tx, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                     err_est = pred_features['avg_reproj_err'].squeeze(1)
                     pixel_offset_est = pred_features['pixel_offset']
                     rel_depth_est = pred_features['rel_depth_error']
-                    curr_wx_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_size_wx, x_indices=list(range(self._num_wxdims)))
-                    curr_tx_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_size_tx, x_indices=list(range(self._num_wxdims, self._num_xdims)))
-                    curr_grad = curr_wx_grad + curr_tx_grad
+                    curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, err_est, step_size_wx, x_indices=list(range(self._num_wxdims)))
+                    curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, err_est, step_size_tx, x_indices=list(range(self._num_wxdims, self._num_xdims)))
                 else:
-                    err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    err_est, curr_wx_grad, curr_tx_grad = self.eval_func_and_calc_analytical_grad(wx, tx, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
-                pred_features = self.eval_func(x, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                pred_features = self.eval_func(wx, tx, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
                 pixel_offset_est = pred_features['pixel_offset']
                 rel_depth_est = pred_features['rel_depth_error']
@@ -861,17 +888,17 @@ class PoseOptimizer():
                 err_est.detach().cpu().numpy(),
                 pixel_offset_est.detach().cpu().numpy(),
                 rel_depth_est.detach().cpu().numpy(),
-                x.detach().cpu().numpy(),
-                # self._x2t(x).detach().cpu().numpy(),
-                curr_grad.detach().cpu().numpy() if calc_grad else None,
+                wx.detach().cpu().numpy(),
+                tx.detach().cpu().numpy(),
+                curr_wx_grad.detach().cpu().numpy() if calc_grad else None,
+                curr_tx_grad.detach().cpu().numpy() if calc_grad else None,
             )
-            if calc_grad:
-                x.grad = curr_grad
 
             # Store iterations
             # vec(all_x, N_each)[:,:,j] = x.detach().clone()
             if calc_grad:
-                vec(all_grads, N_each)[:,:,j] = x.grad.clone()
+                vec(all_wx_grads, N_each)[:,:,j] = curr_wx_grad
+                vec(all_tx_grads, N_each)[:,:,j] = curr_tx_grad
 
             # Store iterations
             vec(all_err_est, N_each)[:,j] = err_est.detach()
@@ -928,7 +955,8 @@ class PoseOptimizer():
             axes_array[0,4].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
             axes_array[0,4].set_title('all_pixel_offset_y_est')
             if calc_grad:
-                axes_array[0,-1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_grads[sample_idx,:,:].detach().cpu().numpy().T)
+                axes_array[0,-1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+                # axes_array[0,-1].plot(all_x[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
         elif self._num_xdims == 2:
             nrows = 2
             ncols = 1
@@ -947,8 +975,10 @@ class PoseOptimizer():
             plot_surf(axes_array, 0, 4, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_y_est')
             plot_heatmap(axes_array, 1, 4, all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy())
             if calc_grad:
-                plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
-                plot_heatmap(axes_array, 1, 1, all_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                plot_heatmap(axes_array, 1, 1, all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_surf(axes_array, 0, 1, all_x[sample_idx,:,:,:].detach().cpu().numpy(), all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_heatmap(axes_array, 1, 1, all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
         fig.savefig(os.path.join(self._out_path, '00_func.png'))
         # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-train100.png'))
