@@ -728,8 +728,10 @@ class PoseOptimizer():
                     x.detach().cpu().numpy(),
                     curr_grad.detach().cpu().numpy(),
                 )
-            wx.grad = curr_grad[:,:self._num_wxdims]
-            tx.grad = curr_grad[:,-self._num_txdims:]
+            if self._num_wxdims > 0:
+                wx.grad = curr_grad[:,:self._num_wxdims]
+            if self._num_txdims > 0:
+                tx.grad = curr_grad[:,-self._num_txdims:]
 
             if j > 0:
                 exp_avg_wx = self._w_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._w_optimizer.state[wx] else torch.zeros_like(wx)
