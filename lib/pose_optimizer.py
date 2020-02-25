@@ -638,8 +638,9 @@ class PoseOptimizer():
                 wx,
             ],
             # lr = 1e-1,
+            # lr = 7e-2, # better than 3e-2 for max50..?
             # lr = 5e-2,
-            lr = 3e-2,
+            lr = 3e-2, # best for nomax50..?
             # lr = 1e-2,
             # betas = (0.95, 0.99),
             betas = (0.8, 0.9),
