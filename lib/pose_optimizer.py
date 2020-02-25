@@ -826,7 +826,6 @@ class PoseOptimizer():
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
         self._num_xdims = self._num_wxdims + self._num_txdims
-        x = torch.zeros((self._batch_size, self._num_xdims), dtype=self._dtype, device=self._device)
 
         assert len(N_each) == self._num_xdims
         N = np.prod(N_each)
