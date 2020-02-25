@@ -827,13 +827,13 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
             axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,2].plot(all_wx_grads[sample_idx,:,:].detach().cpu().numpy())
-            # axes_array[0,2].plot(all_tx_grads[sample_idx,:,:].detach().cpu().numpy())
+            # axes_array[0,2].plot(all_wx_grads[sample_idx,:,:].detach().cpu().numpy())
+            # # axes_array[0,2].plot(all_tx_grads[sample_idx,:,:].detach().cpu().numpy())
             axes_array[1,2].plot(all_exp_avgs[sample_idx,:,:].abs().detach().cpu().numpy())
             axes_array[1,2].plot(all_exp_avg_sqs[sample_idx,:,:].abs().detach().cpu().numpy())
-            if self._num_wxdims+self._num_txdims == 2:
-                axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
-                # axes_array[1,1].plot(np.diff(all_x[sample_idx,:,:].detach().cpu().numpy(), axis=0))
+            # if self._num_wxdims+self._num_txdims == 2:
+            #     axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
+            #     # axes_array[1,1].plot(np.diff(all_x[sample_idx,:,:].detach().cpu().numpy(), axis=0))
             full_fpath = os.path.join(self._out_path, fname)
             os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
             fig.savefig(full_fpath)
@@ -1010,9 +1010,9 @@ class PoseOptimizer():
             axes_array[0,3].set_title('all_pixel_offset_x_est')
             axes_array[0,4].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
             axes_array[0,4].set_title('all_pixel_offset_y_est')
-            if calc_grad:
-                axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
-                # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            # if calc_grad:
+            #     axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
         elif self._num_params == 2:
             nrows = 2
             ncols = 1
