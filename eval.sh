@@ -1,8 +1,11 @@
 # exit when any command fails
 set -e
 
-OLD_EXPERIMENT_PREFIX=$1
-NEW_EXPERIMENT_PREFIX=$2
+# # EVALMODE=eval
+# EVALMODE=eval_poseopt
+EVALMODE=$1
+OLD_EXPERIMENT_PREFIX=$2
+NEW_EXPERIMENT_PREFIX=$3
 
 REPOPATH=/home/lucas/research/ppc
 CONTAINER=ppc
@@ -10,8 +13,6 @@ CONFIGNAME=dummy
 # CHECKPOINT_FNAME=best_model.pth.tar
 # CHECKPOINT_FNAME=epoch010.pth.tar
 CHECKPOINT_FNAME=latest_model.pth.tar
-# EVALMODE=eval
-EVALMODE=eval_poseopt
 
 
 TMP_SUFFIX=$(openssl rand -hex 4)
