@@ -501,24 +501,6 @@ class PoseOptimizer():
         all_metrics = self.eval_pose_single_object(obj_id, all_x, all_err_est, self._R_gt, self._t_gt)
         return all_metrics
 
-        # best_iter = torch.argmin(all_err_est, dim=1)
-        # best_err_est = torch.min(all_err_est, dim=1)[0]
-        # first_err_est = all_err_est[:,0]
-        # last_err_est = all_err_est[:,-1]
-        # best_x = torch.stack([ all_x[:,:,x_idx][list(range(self._batch_size)),best_iter] for x_idx in range(self._num_xdims) ], dim=1)
-        # first_x = all_x[:,0,:]
-        # last_x = all_x[:,-1,:]
-        # assert best_iter.shape == (self._batch_size,)
-        # assert best_x.shape == (self._batch_size, self._num_xdims)
-        # assert first_x.shape == (self._batch_size, self._num_xdims)
-        # assert last_x.shape == (self._batch_size, self._num_xdims)
-        # best_metrics = self.eval_pose(best_x, best_err_est)
-        # first_metrics = self.eval_pose(first_x, first_err_est)
-        # last_metrics = self.eval_pose(last_x, last_err_est)
-        # print(json.dumps(best_metrics, indent=4))
-        # print(json.dumps(first_metrics, indent=4))
-        # print(json.dumps(last_metrics, indent=4))
-
     def store_eval(self, metrics):
         img_dir, img_fname = os.path.split(metrics['ref_img_path'])
         seq, rgb_dir = os.path.split(img_dir)
