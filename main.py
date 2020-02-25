@@ -60,7 +60,8 @@ class Main():
         self._model = self._checkpoint_handler.init(self._init_model())
         if self._configs.train_or_eval == 'train':
             self._optimizer = self._setup_optimizer()
-            self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='min', factor=0.3)
+            # self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, mode='min', factor=0.3)
+            self._lr_scheduler = torch.optim.lr_scheduler.StepLR(self._optimizer, 10, gamma=0.3) # Multiply by 0.3 every 10 epochs.
         self._visualizer = Visualizer(configs)
 
         if self._configs.data.query_rendering_method == 'neural':
@@ -112,7 +113,8 @@ class Main():
             assert len(val_scores) > 0
             val_score = sum(val_scores.values()) / len(val_scores)
 
-            self._lr_scheduler.step(val_score, epoch=None) # Make sure that the val_score argument is not confused for the epoch.
+            # self._lr_scheduler.step(val_score, epoch=None) # Make sure that the val_score argument is not confused for the epoch.
+            self._lr_scheduler.step(epoch=None)
             # self._checkpoint_handler.save(self._model, epoch, train_score)
             self._checkpoint_handler.save(self._model, epoch, val_score)
 
