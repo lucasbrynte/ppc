@@ -747,6 +747,7 @@ class DummyDataset(Dataset):
 
             no_dtype_enforced = np.array(depth_map11)
             print(no_dtype_enforced.shape)
+            print(no_dtype_enforced.dtype)
             print(no_dtype_enforced)
 
             asarray = np.asarray(depth_map11)
@@ -756,7 +757,11 @@ class DummyDataset(Dataset):
             tmp1 = no_dtype_enforced.astype(np.uint16)
             tmp2 = asarray.astype(np.uint16)
 
-            print(depth_map22)
+            try:
+                print(depth_map22)
+            except:
+                depth_map22 = depth_map11b.astype(np.uint16)
+                print(depth_map22)
             print(depth_map)
             print(type(depth_map11))
             print(type(depth_map22))
