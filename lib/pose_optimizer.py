@@ -887,7 +887,7 @@ class PoseOptimizer():
                 x.grad = curr_grad
 
             # Store iterations
-            vec(all_x, N_each)[:,:,j] = x.detach().clone()
+            # vec(all_x, N_each)[:,:,j] = x.detach().clone()
             if calc_grad:
                 vec(all_grads, N_each)[:,:,j] = x.grad.clone()
 
