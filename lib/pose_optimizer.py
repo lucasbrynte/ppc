@@ -199,6 +199,7 @@ class PoseOptimizer():
         self._pipeline = pipeline
         self._orig_K = K
         self._orig_HK = HK
+        self._orig_HK_inv = torch.inverse(self._orig_HK)
         self._ref_img_path = ref_img_path
         self._numerical_grad = numerical_grad
 
@@ -243,6 +244,10 @@ class PoseOptimizer():
         return self._repeat_onedim(self._orig_HK, self._num_optim_runs, dim=0, interleave=True)
 
     @property
+    def _HK_inv(self):
+        return self._repeat_onedim(self._orig_HK_inv, self._num_optim_runs, dim=0, interleave=True)
+
+    @property
     def _R_gt(self):
         return self._repeat_onedim(self._orig_R_gt, self._num_optim_runs, dim=0, interleave=True)
 
@@ -278,22 +283,31 @@ class PoseOptimizer():
         w_basis = w_basis.detach()
         return w_basis
 
-    def _get_t_basis(self):
-        # First two columns of eye matrix.
-        t_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:2].repeat(self._batch_size, 1, 1)
-        # t_basis *= 10. # x (cm) -> t (mm)
-        t_basis *= 100. # x (dm) -> t (mm)
-        # t_basis *= 300. # x (dm) -> t (mm)
-        return t_basis
+    def _get_u_basis(self):
+        u_basis = torch.eye(2, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
+        u_basis *= 100.
+        return u_basis
+
+    def _backproject_pixels(self, u):
+        assert u.shape == (self._batch_size, 2, 1)
+        ux = u[:,[0],:]
+        uy = u[:,[1],:]
+        uz = torch.ones_like(ux)
+        u = torch.cat((ux, uy, uz), dim=1)
+        u_normalized = torch.bmm(self._HK_inv, u)
+        t_normalized_depth = u_normalized / u_normalized[:,[2],:]
+        t = t_normalized_depth * self._ref_depth[:,None,None]
+        return t
 
     def _x2t_inplane(self, tx):
         # t_inplane is a 2D translation from t_origin, with preserved depth.
         # Assuming t base vectors to be in this plane, e.g. x-axis & y-axis.
         if self._num_txdims > 0:
-            t = self._t_basis_origin + torch.bmm(self._t_basis[:,:,:self._num_txdims], tx[:,:,None])
+            u = self._u_basis_origin + torch.bmm(self._u_basis[:,:,:self._num_txdims], tx[:,:,None])
         else:
             assert self._num_txdims == 0
-            t = self._t_basis_origin
+            u = self._u_basis_origin
+        t = self._backproject_pixels(u)
         return t
 
     def _x2t_vr(self, t_inplane, desired_depth):
@@ -604,7 +618,7 @@ class PoseOptimizer():
         t_perturb = self._repeat_onedim(t_perturb, self._orig_batch_size, dim=0, interleave=False)
 
         R0 = torch.matmul(R_perturb, R0_before_perturb)
-        t0 = t0_before_perturb + t_perturb
+        t0 = (t0_before_perturb + t_perturb).detach()
 
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
         self._w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
@@ -613,9 +627,11 @@ class PoseOptimizer():
             self._w_basis = self._get_w_basis(primary_w_dir = w_gt-self._w_basis_origin)
         else:
             self._w_basis = self._get_w_basis(primary_w_dir = None)
-        self._t_basis_origin = t0.detach()
-        self._t_basis = self._get_t_basis()
-        self._d_origin = self._t_basis_origin.squeeze(2)[:,[2]] if self._num_ddims > 0 else self._t_basis_origin.squeeze(2)[:,[]]
+        self._ref_depth = t0[:,2,:].squeeze(1)
+        self._u_basis_origin = torch.bmm(self._HK, t0)
+        self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
+        self._u_basis = self._get_u_basis()
+        self._d_origin = t0.squeeze(2)[:,[2]] if self._num_ddims > 0 else t0.squeeze(2)[:,[]]
         wx = torch.zeros((self._batch_size, self._num_wxdims), dtype=self._dtype, device=self._device)
         tx = torch.zeros((self._batch_size, self._num_txdims), dtype=self._dtype, device=self._device)
         d = torch.zeros((self._batch_size, self._num_ddims), dtype=self._dtype, device=self._device)
@@ -846,11 +862,15 @@ class PoseOptimizer():
         self._num_params = self._num_wxdims + self._num_txdims + self._num_ddims
 
         self._optim_runs = { 'dflt_run': None } # Dummy placeholder. len() == 1 -> proper behavior of various methods
+
         self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
         self._w_basis = self._get_w_basis(primary_w_dir = None)
-        self._t_basis_origin = self._t_gt.detach()
-        self._t_basis = self._get_t_basis()
-        self._d_origin = self._t_basis_origin.squeeze(2)[:,[2]] if self._num_ddims > 0 else self._t_basis_origin.squeeze(2)[:,[]]
+        self._ref_depth = self._t_gt[:,2,:].squeeze(1)
+        t0 = self._t_gt.detach()
+        self._u_basis_origin = torch.bmm(self._HK, t0)
+        self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
+        self._u_basis = self._get_u_basis()
+        self._d_origin = t0.squeeze(2)[:,[2]] if self._num_ddims > 0 else t0.squeeze(2)[:,[]]
 
         def vec(T, N_each):
             N = np.prod(N_each)
