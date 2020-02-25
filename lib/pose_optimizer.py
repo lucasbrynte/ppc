@@ -713,8 +713,8 @@ class PoseOptimizer():
                 else:
                     # Compute numerical differences w.r.t. tx only. w.r.t. wx will not be used anyway.
                     curr_grad = self.eval_func_and_calc_numerical_grad(x, err_est, step_sizes, x_indices=list(range(self._num_wxdims, self._num_xdims)))
-                curr_grad[curr_grad > 300.] = 300.
-                curr_grad[curr_grad < -300.] = -300.
+                # curr_grad[curr_grad > 300.] = 300.
+                # curr_grad[curr_grad < -300.] = -300.
             else:
                 err_est, curr_grad = self.eval_func_and_calc_analytical_grad(x, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
