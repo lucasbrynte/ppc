@@ -697,6 +697,8 @@ class PoseOptimizer():
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_grads = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_exp_avgs = torch.zeros((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
+        all_exp_avg_sqs = torch.zeros((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         all_x = torch.empty((self._batch_size, N, self._num_xdims), dtype=self._dtype, device=self._device)
         for j in range(N):
             x = torch.cat((wx, tx), dim=1)
@@ -729,10 +731,21 @@ class PoseOptimizer():
             wx.grad = curr_grad[:,:self._num_wxdims]
             tx.grad = curr_grad[:,-self._num_txdims:]
 
+            if j > 0:
+                exp_avg_wx = self._w_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._w_optimizer.state[wx] else torch.zeros_like(wx)
+                exp_avg_sq_wx = self._w_optimizer.state[wx]['exp_avg_sq'] if 'exp_avg_sq' in self._w_optimizer.state[wx] else torch.zeros_like(wx)
+                exp_avg_tx = self._t_optimizer.state[tx]['exp_avg'] if 'exp_avg' in self._t_optimizer.state[tx] else torch.zeros_like(tx)
+                exp_avg_sq_tx = self._t_optimizer.state[tx]['exp_avg_sq'] if 'exp_avg_sq' in self._t_optimizer.state[tx] else torch.zeros_like(tx)
+                exp_avg = torch.cat((exp_avg_wx, exp_avg_tx), dim=1)
+                exp_avg_sq = torch.cat((exp_avg_sq_wx, exp_avg_tx), dim=1)
+
             # Store iterations
             all_x[:,j,:] = x.detach().clone()
             # x_grad = torch.cat((wx.grad, tx.grad), dim=1)
             all_grads[:,j,:] = curr_grad.detach().clone()
+            if j > 0:
+                all_exp_avgs[:,j,:] = exp_avg.detach().clone()
+                all_exp_avg_sqs[:,j,:] = exp_avg_sq.detach().clone()
 
             self._w_optimizer.step()
             self._t_optimizer.step()
@@ -751,12 +764,13 @@ class PoseOptimizer():
         def plot(sample_idx, fname):
             # Scalar parameter x.
             nrows = 1
-            if self._num_xdims == 2:
-                nrows += 1
+            nrows += 1
             fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
             axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
             axes_array[0,2].plot(all_grads[sample_idx,:,:].detach().cpu().numpy())
+            axes_array[1,2].plot(all_exp_avgs[sample_idx,:,:].abs().detach().cpu().numpy())
+            axes_array[1,2].plot(all_exp_avg_sqs[sample_idx,:,:].abs().detach().cpu().numpy())
             if self._num_xdims == 2:
                 axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
                 # axes_array[1,1].plot(np.diff(all_x[sample_idx,:,:].detach().cpu().numpy(), axis=0))
