@@ -314,7 +314,7 @@ class PoseOptimizer():
         assert self._num_ddims in (0, 1)
         if self._num_ddims == 1:
             assert len(d.shape) == 2 and d.shape[1] == 1
-            d = self._d_origin + d
+            d = self._d_origin * torch.exp(d)
             t_vr = self._x2t_vr(t_inplane, d[:,:,None])
             return t_inplane + t_vr
         return t_inplane
