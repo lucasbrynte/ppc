@@ -658,65 +658,56 @@ class PoseOptimizer():
             [
                 tx,
             ],
-            lr = 1e0,
+            lr = 1.0,
             momentum = 0.7,
         )
         self._d_optimizer = torch.optim.SGD(
             [
                 d,
             ],
-            # lr = 1e-1,
-            # lr = 5e-2,
-            # lr = 3e-2,
-            # lr = 1e-2,
-            # lr = 1e-3,
-            # lr = 1e-4,
-            # lr = 1e-5,
-            lr = 5e-6,
-            momentum = 0.3,
+            lr = 1.0,
+            momentum = 0.1,
         )
-        if self._num_txdims > 0 or self._num_ddims > 0:
-            w_start_iter = 50
-            w_finetune_iter = 100
-            # w_start_iter = 35
-            # w_finetune_iter = 75
+        if self._num_txdims > 0:
+            nbr_iter_tx_leap = 2
         else:
-            w_start_iter = 0
-            w_finetune_iter = 50
+            nbr_iter_tx_leap = 0
+        nbr_iter_tx_leap = nbr_iter_tx_leap
+        final_finetune_iter = nbr_iter_tx_leap + 50
         self._wx_scheduler = self._init_cos_transition_scheduler(
             self._wx_optimizer,
-            zero_before = w_start_iter,
-            x_min = w_start_iter,
-            x_max = w_finetune_iter,
+            zero_before = nbr_iter_tx_leap,
+            x_min = nbr_iter_tx_leap,
+            x_max = final_finetune_iter,
             # y_min = 1e-1,
             y_min = 1e-2,
             y_max = 1.0,
         )
         self._tx_scheduler = self._init_cos_transition_scheduler(
             self._tx_optimizer,
-            zero_before = None,
-            x_min = 0,
-            # x_max = 30,
-            x_max = 50,
-            # y_min = 1e-1,
-            y_min = 4e-2,
+            zero_before = nbr_iter_tx_leap,
+            x_min = nbr_iter_tx_leap,
+            x_max = final_finetune_iter,
+            y_min = 1e-1,
+            # y_min = 4e-2,
             # y_min = 1e-2,
             y_max = 1.0,
         )
         self._d_scheduler = self._init_cos_transition_scheduler(
             self._d_optimizer,
-            zero_before = None,
-            x_min = 0,
-            # x_max = 30,
-            x_max = 50,
-            # y_min = 1e-1,
-            y_min = 4e-2,
+            zero_before = nbr_iter_tx_leap,
+            x_min = final_finetune_iter,
+            x_max = final_finetune_iter+10,
+            # y_min = 1.0,
+            y_min = 1e-1,
+            # y_min = 4e-2,
             # y_min = 1e-2,
             y_max = 1.0,
         )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
         # self._tx_scheduler = self._init_constant_scheduler(self._tx_optimizer)
         # self._d_scheduler = self._init_constant_scheduler(self._d_optimizer)
+        # self._d_scheduler = torch.optim.lr_scheduler.LambdaLR(self._d_optimizer, lambda k: 1.0 if k < nbr_iter_tx_leap else 0.0)
 
         step_size_wx = 1e-2
         step_size_tx = 1.0 # 1 px
@@ -736,7 +727,7 @@ class PoseOptimizer():
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
                 pixel_offset_est = pred_features['pixel_offset']
                 rel_depth_est = pred_features['rel_depth_error']
-                if j >= w_start_iter:
+                if j >= nbr_iter_tx_leap:
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
                 else:
                     curr_wx_grad = torch.zeros_like(wx)
@@ -761,7 +752,13 @@ class PoseOptimizer():
             if self._num_wxdims > 0:
                 wx.grad = curr_wx_grad[:,:self._num_wxdims]
             if self._num_txdims > 0:
-                tx.grad = curr_tx_grad[:,-self._num_txdims:]
+                if self._num_txdims == 2 and j < nbr_iter_tx_leap:
+                    # Take a leap
+                    tx -= pixel_offset_est[:,:]
+                elif j >= nbr_iter_tx_leap:
+                    tx.grad = curr_tx_grad[:,-self._num_txdims:]
+            if self._num_ddims == 1:
+                d.grad = torch.log(rel_depth_est[:,:])
 
             if j > 0:
                 exp_avg_wx = self._wx_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._wx_optimizer.state[wx] else torch.zeros_like(wx)
