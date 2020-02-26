@@ -659,14 +659,6 @@ class PoseOptimizer():
                 tx,
             ],
             lr = 1e0,
-            # lr = 1e-1,
-            # lr = 5e-2,
-            # lr = 3e-2,
-            # lr = 1e-2,
-            # lr = 1e-3,
-            # lr = 1e-4,
-            # lr = 1e-5,
-            # lr = 5e-6,
             momentum = 0.7,
         )
         self._d_optimizer = torch.optim.SGD(
