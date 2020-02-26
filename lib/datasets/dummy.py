@@ -382,6 +382,25 @@ class DummyDataset(Dataset):
         truncated_bbox = (x1, y1, x2, y2)
         return truncated_bbox
 
+    def _sample_bbox_shift(self, bbox, max_rel_shift_factor=0.3):
+        (x1, y1, x2, y2) = bbox
+        width = x2 - x1
+        height = y2 - y1
+        assert width <= self._configs.data.img_dims[1]
+        assert height <= self._configs.data.img_dims[0]
+        rel_xshift = np.random.uniform(-max_rel_shift_factor, max_rel_shift_factor)
+        rel_yshift = np.random.uniform(-max_rel_shift_factor, max_rel_shift_factor)
+        return rel_xshift*width, rel_yshift*height
+
+    def _shift_bbox(self, bbox, xshift, yshift):
+        (x1, y1, x2, y2) = bbox
+        assert x2 - x1 <= self._configs.data.img_dims[1]
+        assert y2 - y1 <= self._configs.data.img_dims[0]
+        x1, x2 = x1+xshift, x2+xshift
+        y1, y2 = y1+yshift, y2+yshift
+        shifted_bbox = (x1, y1, x2, y2)
+        return shifted_bbox
+
     def _shift_bbox_into_img(self, bbox):
         (x1, y1, x2, y2) = bbox
         assert x2 - x1 <= self._configs.data.img_dims[1]
@@ -401,17 +420,17 @@ class DummyDataset(Dataset):
         else:
             yshift = 0
 
-        x1, x2 = x1+xshift, x2+xshift
-        y1, y2 = y1+yshift, y2+yshift
+        shifted_bbox = self._shift_bbox(bbox, xshift, yshift)
 
-        shifted_bbox = (x1, y1, x2, y2)
+        (x1, y1, x2, y2) = shifted_bbox
         assert x1 >= 0 and x1 <= self._configs.data.img_dims[1]
         assert x2 >= 0 and x2 <= self._configs.data.img_dims[1]
         assert x1 >= 0 and y1 <= self._configs.data.img_dims[0]
         assert x2 >= 0 and y2 <= self._configs.data.img_dims[0]
+
         return shifted_bbox
 
-    def _expand_bbox(self, bbox, resize_factor):
+    def _resize_bbox(self, bbox, resize_factor):
         x1, y1, x2, y2 = bbox
         center_x = 0.5*(x1+x2)
         center_y = 0.5*(y1+y2)
@@ -831,7 +850,7 @@ class DummyDataset(Dataset):
             crop_box = np.array(gt['obj_bb'])
             crop_box[2:] += crop_box[:2]  # x,y,w,h, -> x1,y1,x2,y2
 
-            # crop_box = self._expand_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
+            # crop_box = self._resize_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
             # crop_box = self._truncate_bbox(crop_box)
 
             width = crop_box[2] - crop_box[0]
@@ -866,7 +885,7 @@ class DummyDataset(Dataset):
 
             crop_box = self._bbox_from_projected_keypoints(R1, t1)
 
-            crop_box = self._expand_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
+            crop_box = self._resize_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
             crop_box = self._truncate_bbox(crop_box)
 
             width = crop_box[2] - crop_box[0]
@@ -1096,6 +1115,14 @@ class DummyDataset(Dataset):
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             T1_model2world, T1_occluders, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
 
+        if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['enable']:
+            resize_factor = np.exp(np.random.uniform(
+                low = -np.log(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_resize_factor']),
+                high = np.log(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_resize_factor']),
+            ))
+            crop_box = self._resize_bbox(crop_box, resize_factor)
+            xshift, yshift = self._sample_bbox_shift(crop_box, max_rel_shift_factor=self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_rel_shift_factor'])
+            crop_box = self._shift_bbox(crop_box, xshift, yshift)
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
         # print("sq", crop_box)
