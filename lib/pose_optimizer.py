@@ -669,23 +669,6 @@ class PoseOptimizer():
             # lr = 5e-6,
             momentum = 0.7,
         )
-        # self._tx_optimizer = torch.optim.Adam(
-        #     [
-        #         tx,
-        #     ],
-        #     lr = 1e-1,
-        #     # lr = 5e-2,
-        #     # lr = 3e-2,
-        #     # lr = 1e-2,
-        #     # lr = 1e-3,
-        #     # lr = 1e-4,
-        #     # betas = (0.8, 0.9),
-        #     # betas = (0.65, 0.9),
-        #     # betas = (0.0, 0.0),
-        #     betas = (0.2, 0.5),
-        #     # betas = (0.5, 0.9),
-        #     # betas = (0.5, 0.99),
-        # )
         self._d_optimizer = torch.optim.SGD(
             [
                 d,
