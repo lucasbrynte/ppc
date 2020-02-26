@@ -575,7 +575,7 @@ class PoseOptimizer():
             num_ddims = 1,
             N = 100,
             optim_runs = {
-                'default': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., 0., 0.]},
+                'default': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.]},
             },
             enable_plotting = False,
             print_iterates = False,
@@ -590,6 +590,8 @@ class PoseOptimizer():
         deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
         axis_perturb = np.array([ run_spec['axis_perturb'] for run_spec in self._optim_runs.values() ])
         t_perturb_spec = np.array([ run_spec['t_perturb'] for run_spec in self._optim_runs.values() ])
+        u_perturb_spec = np.array([ run_spec['u_perturb'] for run_spec in self._optim_runs.values() ])
+        d_perturb_spec = np.array([ run_spec['d_perturb'] for run_spec in self._optim_runs.values() ])
         assert deg_perturb.shape == (self._num_optim_runs,)
         assert axis_perturb.shape == (self._num_optim_runs, 3)
         assert t_perturb_spec.shape == (self._num_optim_runs, 3)
@@ -599,15 +601,21 @@ class PoseOptimizer():
         R_perturb = torch.stack([ get_R_perturb(curr_deg, curr_axis) for curr_deg, curr_axis in zip(deg_perturb, axis_perturb) ], dim=0)
         get_t_perturb = lambda t_perturb: torch.tensor(t_perturb, dtype=self._dtype, device=self._device).reshape((3,1))
         t_perturb = torch.stack([ get_t_perturb(curr_t) for curr_t in t_perturb_spec ], dim=0)
+        get_u_perturb = lambda u_perturb: torch.tensor(u_perturb, dtype=self._dtype, device=self._device).reshape((2,1))
+        u_perturb = torch.stack([ get_u_perturb(curr_u) for curr_u in u_perturb_spec ], dim=0)
+        get_d_perturb = lambda d_perturb: torch.tensor(d_perturb, dtype=self._dtype, device=self._device).reshape((1,))
+        d_perturb = torch.stack([ get_d_perturb(curr_d) for curr_d in d_perturb_spec ], dim=0)
 
         # NOTE: interleave=True along optim runs, and False along batch, since this allows for reshaping to (batch_size, num_optim_runs, ..., ...) in the end
         R0_before_perturb = self._repeat_onedim(R0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
         t0_before_perturb = self._repeat_onedim(t0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
         R_perturb = self._repeat_onedim(R_perturb, self._orig_batch_size, dim=0, interleave=False)
         t_perturb = self._repeat_onedim(t_perturb, self._orig_batch_size, dim=0, interleave=False)
+        u_perturb = self._repeat_onedim(u_perturb, self._orig_batch_size, dim=0, interleave=False)
+        d_perturb = self._repeat_onedim(d_perturb, self._orig_batch_size, dim=0, interleave=False)
 
         R0 = torch.matmul(R_perturb, R0_before_perturb)
-        t0 = (t0_before_perturb + t_perturb).detach()
+        t0_before_u_perturb = (t0_before_perturb + t_perturb).detach()
         self._R_refpt = R0.clone()
 
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
@@ -617,11 +625,16 @@ class PoseOptimizer():
             self._w_basis = self._get_w_basis(primary_w_dir = w_gt-self._w_basis_origin)
         else:
             self._w_basis = self._get_w_basis(primary_w_dir = None)
-        self._ref_depth = t0[:,2,:].squeeze(1)
-        self._u_basis_origin = torch.bmm(self._HK, t0)
+        self._ref_depth = t0_before_u_perturb[:,2,:].squeeze(1)
+        self._u_basis_origin = torch.bmm(self._HK, t0_before_u_perturb)
         self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
         self._u_basis = self._get_u_basis()
-        self._d_origin = t0.squeeze(2)[:,[2]]
+        self._d_origin = t0_before_u_perturb.squeeze(2)[:,[2]]
+
+        # Apply u & d perturbs
+        self._u_basis_origin += u_perturb
+        self._d_origin *= d_perturb
+
         wx = torch.zeros((self._batch_size, self._num_wxdims), dtype=self._dtype, device=self._device)
         tx = torch.zeros((self._batch_size, self._num_txdims), dtype=self._dtype, device=self._device)
         d = torch.zeros((self._batch_size, self._num_ddims), dtype=self._dtype, device=self._device)

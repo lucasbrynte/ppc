@@ -204,56 +204,56 @@ class Main():
                     # N = 4,
                     # N = 10,
                     # N = 40,
-                    # N = 100,
-                    N = 150,
+                    N = 100,
+                    # N = 150,
                     # N = 300,
                 
                     # optim_runs = {
-                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # },
                     # 
                     # optim_runs = {
-                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., 0.]},
+                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # },
                 
                     optim_runs = {
-                        'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                        'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [0., 0., 0.]},
-                        'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 0., 0.]},
-                        'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 0.]},
-                        'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., 0.]},
+                        'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                        'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                        'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                        'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                        'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     },
-                
+                    
                     num_wxdims = 3,
                     num_txdims = 0,
                     num_ddims = 0,
                 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # optim_runs = {
-                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [30., 0., 60.]},
-                    #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 30., -60.]},
-                    #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -30., 60.]},
-                    #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 60.]},
-                    #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-30., 0., -60.]},
-                    #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., -60.]},
+                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [30., 0., 60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 30., -60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -30., 60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [0., 0., 60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-30., 0., -60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0., 0., -60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # },
                     # 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    # #     'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [30., 0., 60.]},
-                    # #     'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 30., -60.]},
-                    # #     'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 60.]},
-                    # #     'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., -60.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'tetra_perturb1': {'deg_perturb': 20., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [30., 0., 60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'tetra_perturb2': {'deg_perturb': 20., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., 30., -60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'tetra_perturb3': {'deg_perturb': 20., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 0., 60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'tetra_perturb4': {'deg_perturb': 20., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [0., 0., -60.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # num_wxdims = 3,
@@ -261,25 +261,25 @@ class Main():
                     # num_ddims = 1,
                 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    # #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [20., 0., 0.]},
-                    # #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 20., 0.]},
-                    # #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -20., 0.]},
-                    # #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [20., 0., 0.]},
-                    # #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-20., 0., 0.]},
-                    # #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0.,-20., 0.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_x': {'deg_perturb': 20., 'axis_perturb': [1., 0., 0.], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_x': {'deg_perturb': 20., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_y': {'deg_perturb': 20., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_y': {'deg_perturb': 20., 'axis_perturb': [0., -1., 0.], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., 1.], 't_perturb': [-20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_z': {'deg_perturb': 20., 'axis_perturb': [0., 0., -1.], 't_perturb': [0.,-20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # optim_runs = {
-                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'tetra_perturb1': {'deg_perturb': 0., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [20., 0., 0.]},
-                    #     'tetra_perturb2': {'deg_perturb': 0., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., -20., 0.]},
-                    #     'tetra_perturb3': {'deg_perturb': 0., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 20., 0.]},
-                    #     'tetra_perturb4': {'deg_perturb': 0., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [-20., 0., 0.]},
+                    #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'tetra_perturb1': {'deg_perturb': 0., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'tetra_perturb2': {'deg_perturb': 0., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., -20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'tetra_perturb3': {'deg_perturb': 0., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'tetra_perturb4': {'deg_perturb': 0., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [-20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # },
                     # 
                     # num_wxdims = 0,
@@ -288,25 +288,25 @@ class Main():
                 
                 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # # optim_runs = {
-                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    # #     'init_gt_plus_x': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [20., 0., 0.]},
-                    # #     'init_gt_minus_x': {'deg_perturb': 0., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 20., 0.]},
-                    # #     'init_gt_plus_y': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -20., 0.]},
-                    # #     'init_gt_minus_y': {'deg_perturb': 0., 'axis_perturb': [0., -1., 0.], 't_perturb': [20., 0., 0.]},
-                    # #     'init_gt_plus_z': {'deg_perturb': 0., 'axis_perturb': [0., 0., 1.], 't_perturb': [-20., 0., 0.]},
-                    # #     'init_gt_minus_z': {'deg_perturb': 0., 'axis_perturb': [0., 0., -1.], 't_perturb': [0.,-20., 0.]},
+                    # #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_x': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_x': {'deg_perturb': 0., 'axis_perturb': [-1., 0., 0.], 't_perturb': [0., 20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_y': {'deg_perturb': 0., 'axis_perturb': [0., 1., 0.], 't_perturb': [0., -20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_y': {'deg_perturb': 0., 'axis_perturb': [0., -1., 0.], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_plus_z': {'deg_perturb': 0., 'axis_perturb': [0., 0., 1.], 't_perturb': [-20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    # #     'init_gt_minus_z': {'deg_perturb': 0., 'axis_perturb': [0., 0., -1.], 't_perturb': [0.,-20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # # },
                     # 
                     # optim_runs = {
-                    #     # 'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.]},
-                    #     'tetra_perturb1': {'deg_perturb': 0., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [20., 0., 0.]},
-                    #     # 'tetra_perturb2': {'deg_perturb': 0., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., -20., 0.]},
-                    #     # 'tetra_perturb3': {'deg_perturb': 0., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 20., 0.]},
-                    #     # 'tetra_perturb4': {'deg_perturb': 0., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [-20., 0., 0.]},
+                    #     # 'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     'tetra_perturb1': {'deg_perturb': 0., 'axis_perturb': [1., 0., -1./np.sqrt(2)], 't_perturb': [20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     # 'tetra_perturb2': {'deg_perturb': 0., 'axis_perturb': [-1., 0., -1./np.sqrt(2)], 't_perturb': [0., -20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     # 'tetra_perturb3': {'deg_perturb': 0., 'axis_perturb': [0., 1., 1./np.sqrt(2)], 't_perturb': [0., 20., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
+                    #     # 'tetra_perturb4': {'deg_perturb': 0., 'axis_perturb': [0., -1., 1./np.sqrt(2)], 't_perturb': [-20., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
                     # },
                     # 
                     # num_wxdims = 0,
