@@ -740,7 +740,7 @@ class PoseOptimizer():
         # self._d_scheduler = self._init_constant_scheduler(self._d_optimizer)
 
         step_size_wx = 1e-2
-        step_size_tx = 3e-3
+        step_size_tx = 1e-2
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_wx_grads = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
@@ -761,7 +761,7 @@ class PoseOptimizer():
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
                 else:
                     curr_wx_grad = torch.zeros_like(wx)
-                curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_wx)
+                curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
             else:
                 err_est, curr_wx_grad, curr_tx_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
