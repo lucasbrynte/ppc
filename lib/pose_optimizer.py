@@ -643,9 +643,9 @@ class PoseOptimizer():
                 wx,
             ],
             # lr = 1e-1,
-            # lr = 7e-2, # better than 3e-2 for max50..?
+            lr = 7e-2, # better than 3e-2 for max50..?
             # lr = 5e-2,
-            lr = 3e-2, # best for nomax50..?
+            # lr = 3e-2, # best for nomax50..?
             # lr = 1e-2,
             # betas = (0.95, 0.99),
             betas = (0.8, 0.9),
@@ -663,7 +663,7 @@ class PoseOptimizer():
             # lr = 1e-4,
             # lr = 1e-5,
             # lr = 5e-6,
-            momentum = 0.3,
+            momentum = 0.7,
         )
         # self._tx_optimizer = torch.optim.Adam(
         #     [
