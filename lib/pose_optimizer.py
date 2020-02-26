@@ -285,7 +285,6 @@ class PoseOptimizer():
 
     def _get_u_basis(self):
         u_basis = torch.eye(2, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        u_basis *= 100.
         return u_basis
 
     def _backproject_pixels(self, u):
@@ -655,6 +654,7 @@ class PoseOptimizer():
             [
                 tx,
             ],
+            lr = 1e0,
             # lr = 1e-1,
             # lr = 5e-2,
             # lr = 3e-2,
@@ -662,7 +662,7 @@ class PoseOptimizer():
             # lr = 1e-3,
             # lr = 1e-4,
             # lr = 1e-5,
-            lr = 5e-6,
+            # lr = 5e-6,
             momentum = 0.3,
         )
         # self._tx_optimizer = torch.optim.Adam(
@@ -740,7 +740,7 @@ class PoseOptimizer():
         # self._d_scheduler = self._init_constant_scheduler(self._d_optimizer)
 
         step_size_wx = 1e-2
-        step_size_tx = 1e-2
+        step_size_tx = 1.0 # 1 px
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_wx_grads = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
