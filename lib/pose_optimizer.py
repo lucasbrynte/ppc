@@ -312,12 +312,12 @@ class PoseOptimizer():
     def _x2t(self, tx, d):
         t_inplane = self._x2t_inplane(tx)
         assert self._num_ddims in (0, 1)
+        assert len(d.shape) == 2 and d.shape[1] == self._num_ddims
+        d0 = self._d_origin.clone()
         if self._num_ddims == 1:
-            assert len(d.shape) == 2 and d.shape[1] == 1
-            d = self._d_origin * torch.exp(d)
-            t_vr = self._x2t_vr(t_inplane, d[:,:,None])
-            return t_inplane + t_vr
-        return t_inplane
+            d0 *= torch.exp(d)
+        t_vr = self._x2t_vr(t_inplane, d0[:,:,None])
+        return t_inplane + t_vr
 
     def _x2w(self, wx):
         w = self._w_basis_origin.clone()
@@ -621,7 +621,7 @@ class PoseOptimizer():
         self._u_basis_origin = torch.bmm(self._HK, t0)
         self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
         self._u_basis = self._get_u_basis()
-        self._d_origin = t0.squeeze(2)[:,[2]] if self._num_ddims > 0 else t0.squeeze(2)[:,[]]
+        self._d_origin = t0.squeeze(2)[:,[2]]
         wx = torch.zeros((self._batch_size, self._num_wxdims), dtype=self._dtype, device=self._device)
         tx = torch.zeros((self._batch_size, self._num_txdims), dtype=self._dtype, device=self._device)
         d = torch.zeros((self._batch_size, self._num_ddims), dtype=self._dtype, device=self._device)
@@ -863,7 +863,7 @@ class PoseOptimizer():
         self._u_basis_origin = torch.bmm(self._HK, t0)
         self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
         self._u_basis = self._get_u_basis()
-        self._d_origin = t0.squeeze(2)[:,[2]] if self._num_ddims > 0 else t0.squeeze(2)[:,[]]
+        self._d_origin = t0.squeeze(2)[:,[2]]
 
         def vec(T, N_each):
             N = np.prod(N_each)
