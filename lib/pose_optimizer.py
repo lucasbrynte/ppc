@@ -210,12 +210,6 @@ class PoseOptimizer():
         self._orig_R_gt = R_gt
         self._orig_t_gt = t_gt
 
-        self._orig_R_refpt = R_refpt
-        # # self._orig_R_refpt = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
-        # self._orig_R_refpt = R0.detach()
-        # # self._orig_R_refpt = R0_before_perturb.detach()
-        # # self._orig_R_refpt = R_gt.detach()
-
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
     def _repeat_onedim(self, T, nbr_reps, dim=0, interleave=False):
@@ -254,10 +248,6 @@ class PoseOptimizer():
     @property
     def _t_gt(self):
         return self._repeat_onedim(self._orig_t_gt, self._num_optim_runs, dim=0, interleave=True)
-
-    @property
-    def _R_refpt(self):
-        return self._repeat_onedim(self._orig_R_refpt, self._num_optim_runs, dim=0, interleave=True)
 
     def _get_canonical_w_basis(self):
         w_basis = torch.eye(3, dtype=self._dtype, device=self._device)[None,:,:].repeat(self._batch_size, 1, 1)
@@ -618,6 +608,7 @@ class PoseOptimizer():
 
         R0 = torch.matmul(R_perturb, R0_before_perturb)
         t0 = (t0_before_perturb + t_perturb).detach()
+        self._R_refpt = R0.clone()
 
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
         self._w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
@@ -862,6 +853,8 @@ class PoseOptimizer():
         self._num_params = self._num_wxdims + self._num_txdims + self._num_ddims
 
         self._optim_runs = { 'dflt_run': None } # Dummy placeholder. len() == 1 -> proper behavior of various methods
+
+        self._R_refpt = self._R_gt.clone()
 
         self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
         self._w_basis = self._get_w_basis(primary_w_dir = None)
