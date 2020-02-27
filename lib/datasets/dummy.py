@@ -1027,7 +1027,7 @@ class DummyDataset(Dataset):
             R_occluders_list1.append(T[:3,:3])
             t_occluders_list1.append(T[:3,[3]])
             obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)
+        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=self._configs.data.synth_ref_min_nbr_unoccluded_pixels)
         if img1 is None:
             return None
 
