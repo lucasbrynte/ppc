@@ -863,16 +863,18 @@ class DummyDataset(Dataset):
                 # print("Rejected T1, due to small depth", T1)
                 continue
 
+            # Verify object center projected within image.
+            assert t1.shape == (3,1)
+            assert self._K.shape == (3,3)
+            obj_cc_proj = pflat(self._K @ t1)[:2,:]
+            if not np.all((obj_cc_proj >= 0) & (obj_cc_proj <= np.array(self._configs.data.img_dims)[[1,0],None])): # Flip indices for img_dims to be in xy rather than yx order.
+                # print("Rejected T1, due to object center projected outside image", obj_cc_proj)
+                continue
+
             crop_box = self._bbox_from_projected_keypoints(R1, t1)
 
             crop_box = self._resize_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
             crop_box = self._truncate_bbox(crop_box)
-
-            width = crop_box[2] - crop_box[0]
-            height = crop_box[3] - crop_box[1]
-            if width < 50 or height < 50:
-                # print("Rejected T1, due to crop_box", crop_box)
-                continue
 
             obj_labels_possible_occluders = [model_spec['readable_label'] for obj_id, model_spec in self._models_info.items() if obj_id != self._obj_id]
             T_occluders = {}
