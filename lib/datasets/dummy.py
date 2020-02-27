@@ -156,7 +156,7 @@ class DummyDataset(Dataset):
             print('Reusing renderer')
             return global_renderer
         renderer = Renderer(
-            self._configs.data.crop_dims,
+            self._configs.data.img_dims,
         )
         for obj_id, model in self._models.items():
             renderer._preprocess_object_model(obj_id, model)
@@ -237,7 +237,7 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        HK, crop_box, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
@@ -250,8 +250,8 @@ class DummyDataset(Dataset):
             assert self._configs.data.query_rendering_method == 'neural'
             assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
             assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
-            img2 = np.zeros_like(img1)
-            instance_seg2 = np.zeros_like(instance_seg1)
+            img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
+            instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
 
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
@@ -262,6 +262,7 @@ class DummyDataset(Dataset):
             query_scheme_idx,
             sample_index_in_epoch,
             HK,
+            crop_box,
             R1,
             t1,
             ref_img_path,
@@ -283,6 +284,7 @@ class DummyDataset(Dataset):
                 query_scheme_idx,
                 sample_index_in_epoch,
                 HK,
+                crop_box,
                 R1,
                 t1,
                 ref_img_path,
@@ -699,21 +701,19 @@ class DummyDataset(Dataset):
                 assert len(img.shape) == 3
                 return self._resize_uint(img, dims, interpolation=interpolation)
 
-    def _read_img(self, seq, crop_box, frame_idx):
+    def _read_img(self, seq, frame_idx):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
         img = np.array(Image.open(rgb_path))
         assert tuple(img.shape[:2]) == self._configs.data.img_dims
-        img = self._crop(img, crop_box)
 
         return img, rel_rgb_path
 
-    def _read_instance_seg(self, seq, crop_box, frame_idx, instance_idx):
+    def _read_instance_seg(self, seq, frame_idx, instance_idx):
         # Load instance segmentation
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
         instance_seg_raw = np.array(Image.open(instance_seg_path))
         assert tuple(instance_seg_raw.shape[:2]) == self._configs.data.img_dims
-        instance_seg_raw = self._crop(instance_seg_raw, crop_box)
 
         # Map indices to 0 / 1 / 2
         instance_seg = np.empty_like(instance_seg_raw)
@@ -723,7 +723,7 @@ class DummyDataset(Dataset):
 
         return instance_seg
 
-    def _get_depth_map(self, seq, crop_box, frame_idx, depth_scale=1e-3, rendered=False):
+    def _get_depth_map(self, seq, frame_idx, depth_scale=1e-3, rendered=False):
         """
         Reads observed / rendered depth map stored as a 16-bit image, and converts to an float32 array in meters.
         depth_scale: multiply the depth map with this factor to get depth in m
@@ -737,7 +737,7 @@ class DummyDataset(Dataset):
             # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000487.png'
             # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000872.png'
             depth_map11 = Image.open(depth_path)
-            # depth_map22 = np.array(depth_map11, dtype=np.uint16)
+            # depth_map = np.array(depth_map11, dtype=np.uint16)
             # NOTE: weirdly, calling np.array() with the dtype=np.uint16 argument may seemingly randomly generate errors with PngImageFile -> int conversion, but the same thing does not happen with initial np.array() call followed by .astype(np.uint16).
             depth_map11b = np.array(depth_map11)
             depth_map = depth_map11b.astype(np.uint16)
@@ -764,7 +764,6 @@ class DummyDataset(Dataset):
                 print(depth_map)
             assert False
         assert tuple(depth_map.shape[:2]) == self._configs.data.img_dims
-        depth_map = self._crop(depth_map, crop_box)
 
         depth_map = depth_map.astype(np.float32) * float(depth_scale)
         return depth_map
@@ -1000,36 +999,36 @@ class DummyDataset(Dataset):
         return (y2-y1, x2-x1)
 
     def _get_ref_img_real(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
-        ref_bg = self._get_ref_bg(ref_scheme_idx, self._dims_from_bbox(crop_box), black_already=False)
+        ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.img_dims, black_already=False)
         seq = self._get_seq(ref_scheme_idx)
-        img1, ref_img_path = self._read_img(seq, crop_box, frame_idx)
-        instance_seg1 = self._read_instance_seg(seq, crop_box, frame_idx, instance_idx)
+        img1, ref_img_path = self._read_img(seq, frame_idx)
+        instance_seg1 = self._read_instance_seg(seq, frame_idx, instance_idx)
 
         # Determine depth scale and read depth maps
         all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
         depth_scale = 1e-3 * all_infos[frame_idx]['depth_scale'] # Multiply with 1e-3 to convert to meters instead of mm.
-        depth_map = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=False)
-        depth_map_rendered = self._get_depth_map(seq, crop_box, frame_idx, depth_scale=depth_scale, rendered=True)
+        depth_map = self._get_depth_map(seq, frame_idx, depth_scale=depth_scale, rendered=False)
+        depth_map_rendered = self._get_depth_map(seq, frame_idx, depth_scale=depth_scale, rendered=True)
 
         # Determine at what pixels the annotated segmentation can be relied upon
         safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
 
         return img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path
 
-    def _get_ref_img_synthetic(self, ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam):
-        ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.crop_dims, black_already=True)
+    def _get_ref_img_synthetic(self, ref_scheme_idx, crop_box, R1, t1, T1_occluders, T_world2cam):
+        ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.img_dims, black_already=True)
         ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
         R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
         for obj_label, T in T1_occluders.items():
             R_occluders_list1.append(T[:3,:3])
             t_occluders_list1.append(T[:3,[3]])
             obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, trunc_dims=self._configs.data.crop_dims, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=self._configs.data.synth_ref_min_nbr_unoccluded_pixels)
+        img1, instance_seg1 = self._render(self._K, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, trunc_dims=self._configs.data.img_dims, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=200)#self._configs.data.synth_ref_min_nbr_unoccluded_pixels)
         if img1 is None:
             return None
 
         # Determine at what pixels the annotated segmentation can be relied upon
-        safe_anno_mask = np.ones(self._configs.data.crop_dims, dtype=np.bool)
+        safe_anno_mask = np.ones(self._configs.data.img_dims, dtype=np.bool)
 
         return img1, instance_seg1, ref_bg, safe_anno_mask
 
@@ -1103,7 +1102,7 @@ class DummyDataset(Dataset):
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, crop_box, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            ret = self._get_ref_img_synthetic(ref_scheme_idx, HK, R1, t1, T1_occluders, T_world2cam)
+            ret = self._get_ref_img_synthetic(ref_scheme_idx, crop_box, R1, t1, T1_occluders, T_world2cam)
             if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
@@ -1127,13 +1126,15 @@ class DummyDataset(Dataset):
                 self._ref_sampling_schemes[ref_scheme_idx].blur_opts,
             )
 
-        # If real image - resize the cropped bounding box to the desired resolution
-        if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1 = self._resize_img(img1, self._configs.data.crop_dims)
-            instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
-            safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
+        img1 = self._crop(img1, crop_box)
+        instance_seg1 = self._crop(instance_seg1, crop_box)
+        safe_anno_mask = self._crop(safe_anno_mask, crop_box)
+        # Resize the cropped bounding box to the desired resolution
+        img1 = self._resize_img(img1, self._configs.data.crop_dims)
+        instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
+        safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
-        return HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
+        return HK, crop_box, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
 
     def _generate_sample(
             self,
@@ -1141,6 +1142,7 @@ class DummyDataset(Dataset):
             query_scheme_idx,
             sample_index_in_epoch,
             HK,
+            crop_box,
             R1,
             t1,
             ref_img_path,
