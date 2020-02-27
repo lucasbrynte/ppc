@@ -118,7 +118,9 @@ data_sampling_scheme_defs:
         - scheme_name: default
           sampling_prob: 0.2
         - scheme_name: noperturb
-          sampling_prob: 0.2
+          # sampling_prob: 0.2
+          # sampling_prob: 0.15
+          sampling_prob: 0.1
           tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
           # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset, rel_depth_error] # Exclude fine_rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
           # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset] # Exclude rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
@@ -132,7 +134,9 @@ data_sampling_scheme_defs:
         # - scheme_name: depth_1_05
         #   tasks_punished: [fine_rel_depth_error]
         - scheme_name: depth_1_3
-          sampling_prob: 0.2
+          # sampling_prob: 0.2
+          # sampling_prob: 0.25
+          sampling_prob: 0.3
           tasks_punished: [rel_depth_error]
 
         # - scheme_name: default
