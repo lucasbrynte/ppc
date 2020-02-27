@@ -241,7 +241,7 @@ class DummyDataset(Dataset):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
-            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params)
+            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params, trunc_dims=self._configs.data.crop_dims)
             query_bg = self._get_query_bg(query_scheme_idx, img1)
 
             # Query BG & silhouette post-processing
@@ -343,7 +343,7 @@ class DummyDataset(Dataset):
         rgb[instance_seg == 1] = 255
         return rgb
 
-    def _render(self, K, R, t, obj_id, R_occluders_list, t_occluders_list, obj_id_occluders, shading_params, T_world2cam=None, min_nbr_unoccluded_pixels=0):
+    def _render(self, K, R, t, obj_id, R_occluders_list, t_occluders_list, obj_id_occluders, shading_params, trunc_dims=None, T_world2cam=None, min_nbr_unoccluded_pixels=0):
         if 'light_pos_worldframe' in shading_params:
             assert T_world2cam is not None
             light_pos_camframe = pflat(T_world2cam @ pextend(shading_params['light_pos_worldframe'].reshape((3,1)))).squeeze()[:3]
@@ -365,6 +365,15 @@ class DummyDataset(Dataset):
             clip_near = 100, # mm
             clip_far = 10000, # mm
         )
+
+        if trunc_dims is not None:
+            height, width = trunc_dims
+            rgb = rgb[:height, :width, :]
+            depth = depth[:height, :width]
+            seg = seg[:height, :width]
+            instance_seg = instance_seg[:height, :width]
+            normal_map = normal_map[:height, :width, :]
+            corr_map = corr_map[:height, :width, :]
 
         # instance_seg is 0 on BG, 1 on object of interest, and 2 on occluders
 
@@ -1025,7 +1034,7 @@ class DummyDataset(Dataset):
             R_occluders_list1.append(T[:3,:3])
             t_occluders_list1.append(T[:3,[3]])
             obj_id_occluders_list1.append(self._determine_obj_id(obj_label))
-        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=self._configs.data.synth_ref_min_nbr_unoccluded_pixels)
+        img1, instance_seg1 = self._render(HK, R1, t1, self._obj_id, R_occluders_list1, t_occluders_list1, obj_id_occluders_list1, ref_shading_params, trunc_dims=self._configs.data.crop_dims, T_world2cam=T_world2cam, min_nbr_unoccluded_pixels=self._configs.data.synth_ref_min_nbr_unoccluded_pixels)
         if img1 is None:
             return None
 
