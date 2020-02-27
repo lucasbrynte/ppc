@@ -984,7 +984,7 @@ class DummyDataset(Dataset):
                 del bg_img_paths[path_idx]
                 continue
         else:
-            assert False, 'No proper NYU-D background image found'
+            assert False, 'No proper background image found'
 
     def _blur_synth_obj(self, img, instance_seg, blur_opts, inplace=False):
         if not inplace:
