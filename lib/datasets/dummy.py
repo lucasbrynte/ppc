@@ -602,7 +602,6 @@ class DummyDataset(Dataset):
             assert obj_label is not None
         elif obj_label is None:
             obj_label = self._obj_label
-        obj_label = self._obj_label
         up_dir = self._metadata['objects'][obj_label]['up_dir']
         zmin = self._metadata['objects'][obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
