@@ -67,6 +67,7 @@ def get_metadata(configs):
     return {
         'objects': {obj_anno['readable_label']: {
             'bbox3d': get_bbox3d(rows2array(obj_anno, 'min'), rows2array(obj_anno, 'size')),
+            'diameter': obj_anno['diameter'],
             'up_dir': np.array([0., 0., 1.]),
             'keypoints': rows2array(obj_anno, 'kp'),
             'kp_normals': rows2array(obj_anno, 'kp_normals'),
@@ -511,13 +512,8 @@ class DummyDataset(Dataset):
         assert obj_dimensions.shape == (3,)
         return obj_dimensions
 
-    def _get_max_extent(self):
-        """
-        Returns maximum distance between 3D bbox corners, i.e. "diameter" of the box.
-        """
-        obj_dimensions = self._get_object_dimensions()
-        max_extent = np.linalg.norm(0.5*obj_dimensions)
-        return max_extent
+    def _get_obj_diameter(self):
+        return self._metadata['objects'][self._obj_label]['diameter']
 
     def _set_depth_by_translation_along_viewing_ray(self, T, new_depth):
         T = T.copy()
@@ -863,7 +859,7 @@ class DummyDataset(Dataset):
             R1 = T1[:3,:3]; t1 = T1[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
-            if T1[2,3] < self._get_max_extent() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
+            if T1[2,3] < 0.5*self._get_obj_diameter() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
                 # print("Rejected T1, due to small depth", T1)
                 continue
 
@@ -910,7 +906,7 @@ class DummyDataset(Dataset):
             R2 = T2[:3,:3]; t2 = T2[:3,[3]]
 
             # Minimum allowed distance between object and camera centers
-            if T2[2,3] < self._get_max_extent() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
+            if T2[2,3] < 0.5*self._get_obj_diameter() + self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['min_dist_obj_and_camera']:
                 # print("Rejected T2, due to small depth", T2)
                 continue
 
