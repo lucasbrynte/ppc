@@ -242,11 +242,8 @@ class DummyDataset(Dataset):
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
             img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params, trunc_dims=self._configs.data.crop_dims)
-            query_bg = self._get_query_bg(query_scheme_idx, img1)
 
-            # Query BG & silhouette post-processing
-            if query_bg is not None:
-                img2 = self._apply_bg(img2, instance_seg2, query_bg)
+            # Query silhouette post-processing
             if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
                 img2 = self._set_white_silhouette(img2, instance_seg2)
         else:
@@ -318,14 +315,6 @@ class DummyDataset(Dataset):
             return np.zeros(list(bg_dims)+[3], dtype=np.uint8) if not black_already else None
         assert self._ref_sampling_schemes[ref_scheme_idx].background is None
         return None
-
-    def _get_query_bg(self, query_scheme_idx, img1):
-        if self._query_sampling_schemes[query_scheme_idx].background == 'from_ref':
-            query_bg = img1
-        else:
-            assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
-            query_bg = None
-        return query_bg
 
     def _apply_bg(self, rgb, instance_seg, bg, inplace=False):
         if not inplace:

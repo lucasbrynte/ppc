@@ -80,30 +80,20 @@ data_sampling_scheme_defs:
 
       query_schemeset:
         # - scheme_name: default
-        #   # override: {background: from_ref}
         # - scheme_name: 90deg_std_mild_transl_depth
-        #   # override: {background: from_ref}
         # - scheme_name: 90deg_std_mild_transl
-        #   # override: {background: from_ref}
         # - scheme_name: 90deg_std_mild_depth
-        #   # override: {background: from_ref}
 
         # - scheme_name: 20deg_std
-        #   # override: {background: from_ref}
 
         # - scheme_name: rot_only_5deg_std
-        #   # override: {background: from_ref}
 
         # - scheme_name: rot_only_20deg_std
         #   # override: {blur_opts: {apply_blur: false}}
-        #   # override: {background: from_ref}
 
         # # - scheme_name: rot_only_90deg_std
-        # #   # override: {background: from_ref}
         # # - scheme_name: transl_10perc
-        # #   # override: {background: from_ref}
         # - scheme_name: depth_1_1
-        #   # override: {background: from_ref}
 
         - scheme_name: default
           sampling_prob: 0.2
@@ -191,21 +181,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: rot_only_5deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     # real_occl_val_rot_only_5deg_std:
     #   ref_schemeset:
     #     - scheme_name: real_occl_val_keepbg
     #   query_schemeset:
     #     - scheme_name: rot_only_5deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: true
     # synth_voc_rot_only_5deg_std:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: rot_only_5deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: true
 
     # real_unoccl_train_rot_only_20deg_std:
@@ -213,21 +200,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: rot_only_20deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     # real_occl_val_rot_only_20deg_std:
     #   ref_schemeset:
     #     - scheme_name: real_occl_val_keepbg
     #   query_schemeset:
     #     - scheme_name: rot_only_20deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: true
     # synth_voc_rot_only_20deg_std:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: rot_only_20deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_rot_only_90deg_std:
@@ -235,21 +219,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: rot_only_90deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     real_occl_val_rot_only_90deg_std:
       ref_schemeset:
         - scheme_name: real_occl_val_keepbg
       query_schemeset:
         - scheme_name: rot_only_90deg_std
-          # override: {background: from_ref}
       use_for_val_score: true
     # synth_voc_rot_only_90deg_std:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: rot_only_90deg_std
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_transl_10perc:
@@ -257,21 +238,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: transl_10perc
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     # real_occl_val_transl_10perc:
     #   ref_schemeset:
     #     - scheme_name: real_occl_val_keepbg
     #   query_schemeset:
     #     - scheme_name: transl_10perc
-    #       # override: {background: from_ref}
     #   use_for_val_score: true
     # synth_voc_transl_10perc:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: transl_10perc
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_transl_30perc:
@@ -279,21 +257,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: transl_30perc
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     real_occl_val_transl_30perc:
       ref_schemeset:
         - scheme_name: real_occl_val_keepbg
       query_schemeset:
         - scheme_name: transl_30perc
-          # override: {background: from_ref}
       use_for_val_score: true
     # synth_voc_transl_30perc:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: transl_30perc
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_depth_1_1:
@@ -301,21 +276,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: depth_1_1
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     # real_occl_val_depth_1_1:
     #   ref_schemeset:
     #     - scheme_name: real_occl_val_keepbg
     #   query_schemeset:
     #     - scheme_name: depth_1_1
-    #       # override: {background: from_ref}
     #   use_for_val_score: true
     # synth_voc_depth_1_1:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: depth_1_1
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_depth_1_3:
@@ -323,21 +295,18 @@ data_sampling_scheme_defs:
     #     - scheme_name: real_unoccl_train_keepbg
     #   query_schemeset:
     #     - scheme_name: depth_1_3
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
     real_occl_val_depth_1_3:
       ref_schemeset:
         - scheme_name: real_occl_val_keepbg
       query_schemeset:
         - scheme_name: depth_1_3
-          # override: {background: from_ref}
       use_for_val_score: true
     # synth_voc_depth_1_3:
     #   ref_schemeset:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: depth_1_3
-    #       # override: {background: from_ref}
     #   use_for_val_score: false
 
     # real_unoccl_train_blackbg_rot_only_20deg_std:
