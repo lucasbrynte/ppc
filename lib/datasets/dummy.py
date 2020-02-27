@@ -1096,14 +1096,6 @@ class DummyDataset(Dataset):
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             T1_model2world, T1_occluders, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
 
-        if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['enable']:
-            resize_factor = np.exp(np.random.uniform(
-                low = -np.log(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_resize_factor']),
-                high = np.log(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_resize_factor']),
-            ))
-            crop_box = self._resize_bbox(crop_box, resize_factor)
-            xshift, yshift = self._sample_bbox_shift(crop_box, max_rel_shift_factor=self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['crop_perturb']['max_rel_shift_factor'])
-            crop_box = self._shift_bbox(crop_box, xshift, yshift)
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
         crop_box = self._shift_bbox_into_img(crop_box)

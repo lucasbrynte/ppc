@@ -26,11 +26,6 @@ default_schemeset_opts:
       max_nbr_resamplings: 100
       nbr_occluders: 4 # Occluders for synthetic ref images
       # nbr_occluders: 0 # Occluders for synthetic ref images
-      crop_perturb:
-        enable: false
-        # enable: true
-        # max_resize_factor: 1.3
-        # max_rel_shift_factor: 0.3
 data_sampling_scheme_defs:
   test:
 
