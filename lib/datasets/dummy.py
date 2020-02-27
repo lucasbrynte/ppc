@@ -452,9 +452,6 @@ class DummyDataset(Dataset):
         return bbox
 
     def _wrap_bbox_in_squarebox(self, bbox):
-        # Only square dimensions supported as of now (one way to ensure that every bbox may be wrapped in a square):
-        assert self._configs.data.img_dims[0] == self._configs.data.img_dims[1]
-
         (x1_old, y1_old, x2_old, y2_old) = bbox
         old_width = x2_old - x1_old
         old_height = y2_old - y1_old
