@@ -325,6 +325,7 @@ class DummyDataset(Dataset):
         else:
             assert self._query_sampling_schemes[query_scheme_idx].background in (None, 'black')
             query_bg = None
+        return query_bg
 
     def _apply_bg(self, rgb, instance_seg, bg, inplace=False):
         if not inplace:
