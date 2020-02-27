@@ -34,7 +34,6 @@ Maps = namedtuple('Maps', [
 ])
 
 ExtraInput = namedtuple('ExtraInput', [
-    'crop_box_normalized',
     'real_ref',
     'K',
     'HK',
@@ -237,7 +236,7 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
@@ -271,7 +270,6 @@ class DummyDataset(Dataset):
             img1,
             instance_seg1,
             safe_anno_mask,
-            crop_box_normalized,
             img2,
             instance_seg2,
             R2,
@@ -293,7 +291,6 @@ class DummyDataset(Dataset):
                 img1,
                 instance_seg1,
                 safe_anno_mask,
-                crop_box_normalized,
                 img2,
                 instance_seg2,
                 R1, # Ref pose sent in as query pose!
@@ -474,15 +471,6 @@ class DummyDataset(Dataset):
         square_bbox = (x1_new, y1_new, x2_new, y2_new)
         square_bbox = self._shift_bbox_into_img(square_bbox)
         return square_bbox
-
-    def _normalize_bbox(self, bbox, fx, fy, px, py):
-        (x1, y1, x2, y2) = bbox
-        x1 = (x1 - px) / fx
-        y1 = (y1 - py) / fy
-        x2 = (x2 - px) / fx
-        y2 = (y2 - py) / fy
-        bbox = (x1, y1, x2, y2)
-        return bbox
 
     def _get_transl_projectivity(self, delta_x, delta_y):
         T = np.eye(3)
@@ -1120,7 +1108,6 @@ class DummyDataset(Dataset):
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
         # print("sq", crop_box)
-        crop_box_normalized = self._normalize_bbox(crop_box, self._K[0,0], self._K[1,1], self._K[0,2], self._K[1,2])
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         HK = H @ self._K
 
@@ -1157,7 +1144,7 @@ class DummyDataset(Dataset):
             instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
             safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
-        return HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask, crop_box_normalized
+        return HK, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
 
     def _generate_sample(
             self,
@@ -1171,7 +1158,6 @@ class DummyDataset(Dataset):
             img1,
             instance_seg1,
             safe_anno_mask,
-            crop_box_normalized,
             img2,
             instance_seg2,
             R2,
@@ -1197,7 +1183,6 @@ class DummyDataset(Dataset):
         targets = self._calc_targets(HK, R1, t1, R2, t2)
 
         extra_input = ExtraInput(
-            crop_box_normalized = torch.tensor(crop_box_normalized).float(),
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
             K = torch.tensor(self._K, dtype=torch.float32),
             HK = torch.tensor(HK, dtype=torch.float32),

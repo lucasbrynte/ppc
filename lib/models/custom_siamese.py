@@ -76,8 +76,6 @@ class MergeUnit(nn.Module):
         self._configs = configs
         self.has_prev_merged = in_channels[-1] is not None
         total_in_channels = sum(in_channels) if self.has_prev_merged else sum(in_channels[:-1])
-        if self._configs.model.custom_siamese_opts.coord_maps.enabled:
-            total_in_channels += 2
         self.conv = ConvBatchReLU(total_in_channels, out_channels, kernel_size, stride=stride, padding=padding, dilation=dilation)
 
     def forward(self, x):
@@ -85,34 +83,6 @@ class MergeUnit(nn.Module):
         x = x[1:]
         x = [fmap for fmap in x if fmap is not None]
         batch_size, _, ds_height, ds_width = x[0].shape
-        if self._configs.model.custom_siamese_opts.coord_maps.enabled:
-            coord_maps = torch.empty((batch_size, 2, ds_height, ds_width), device=get_device())
-            for sample_idx in range(batch_size):
-                (x1, y1, x2, y2) = extra_input.crop_box_normalized[sample_idx]
-                if self._configs.model.custom_siamese_opts.coord_maps.viewing_ray_dependent_coordinates:
-                    # Bounding box center in normalized coordinates
-                    xc = 0.5 * (x1 + x2)
-                    yc = 0.5 * (y1 + y2)
-                else:
-                    xc = 0.
-                    yc = 0.
-                if self._configs.model.custom_siamese_opts.coord_maps.preserve_scale:
-                    # "Preserving the scale" effectively preserves some information which is dependent on absolute depth
-                    # Bounding box width & height are in normalized coordinates.
-                    cc_width  = x2 - x1
-                    cc_height = y2 - y1
-                else:
-                    cc_width = 2.
-                    cc_height = 2.
-
-                # Map width & height from edge-to-edge into distance between centers of edge pixels:
-                cc_width  *= (ds_width - 1) / ds_width
-                cc_height *= (ds_height - 1) / ds_height
-
-                x_coord_vals = torch.linspace(xc-0.5*cc_width, xc+0.5*cc_width, steps=ds_width, device=get_device())
-                y_coord_vals = torch.linspace(yc-0.5*cc_height, yc+0.5*cc_height, steps=ds_height, device=get_device())
-                coord_maps[sample_idx, :, :, :] = torch.stack(torch.meshgrid(y_coord_vals, x_coord_vals))
-            x.append(coord_maps)
         x = torch.cat(x, dim=1)
         x = self.conv(x)
         return x

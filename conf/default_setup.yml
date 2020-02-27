@@ -221,11 +221,6 @@ model:
 #   custom_siamese_opts:
 #     # weight_decay: null
 #     weight_decay: {cnn: 0, head: 1.e-4}
-#     coord_maps:
-#       enabled: True
-#       viewing_ray_dependent_coordinates: True
-#       preserve_scale: False
-#       # NOTE: Different tasks might desire different format on coord maps. Maybe supply coord maps in multiple formats?
 #     # siamese_net: true
 #     siamese_net: false
 #     cnn_layers:
