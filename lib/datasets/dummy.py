@@ -469,7 +469,6 @@ class DummyDataset(Dataset):
         y2_new = int(yc + 0.5*new_height)
         y1_new = int(y2_new - new_height)
         square_bbox = (x1_new, y1_new, x2_new, y2_new)
-        square_bbox = self._shift_bbox_into_img(square_bbox)
         return square_bbox
 
     def _get_transl_projectivity(self, delta_x, delta_y):
@@ -1107,6 +1106,7 @@ class DummyDataset(Dataset):
             crop_box = self._shift_bbox(crop_box, xshift, yshift)
         # print("raw", crop_box)
         crop_box = self._wrap_bbox_in_squarebox(crop_box)
+        crop_box = self._shift_bbox_into_img(crop_box)
         # print("sq", crop_box)
         H = self._get_projectivity_for_crop_and_rescale(crop_box)
         HK = H @ self._K
