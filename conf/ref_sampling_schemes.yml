@@ -323,6 +323,32 @@ real_occl_test_blackbg:
     static_frame_idx: null
 
 # ==============================================================================
+# real_occl_test FRAME 30
+# ==============================================================================
+real_occl_test_keepbg_frame30:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_occl/benchviseblue
+    static_frame_idx: 30
+real_occl_test_blackbg_frame30:
+  ref_source: real
+  background: black
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_occl/benchviseblue
+    static_frame_idx: 30
+
+# ==============================================================================
 # real_occl_test FRAME 109
 # ==============================================================================
 real_occl_test_keepbg_frame109:
