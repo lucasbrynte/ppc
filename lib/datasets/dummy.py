@@ -640,21 +640,21 @@ class DummyDataset(Dataset):
             img = img[y1:y2, x1:x2, :]
         return img
 
-    def _resize_uint(self, img, dims, interpolation=cv.INTER_CUBIC):
+    def _resize_uint(self, img, dims):
+        """
+        OpenCV had some issues with resizing when dtype is unsigned int... Casting to float and back overcomes the issue.
+        """
         dtype = img.dtype
+        assert len(img.shape) == 3 and img.shape[2] == 3
         assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
-        if interpolation == cv.INTER_LINEAR:
-            img = img.astype(np.float64)
-        resized = cv.resize(img, dims, interpolation=interpolation)
-        if interpolation == cv.INTER_LINEAR:
-            resized = (resized + 0.5).astype(dtype)
-        if len(img.shape) == 3 and img.shape[2] == 1:
-            resized = resized[:,:,None]
+        img = img.astype(np.float64)
+        resized = cv.resize(img, dims, interpolation=cv.INTER_LINEAR)
+        resized = (resized + 0.5).astype(dtype)
         return resized
 
     def _resize_img(self, img, dims):
-        assert len(img.shape) == 3
-        return self._resize_uint(img, dims, interpolation=cv.INTER_LINEAR)
+        assert len(img.shape) == 3 and img.shape[2] == 3
+        return self._resize_uint(img, dims)
 
     def _read_img(self, seq, frame_idx):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
