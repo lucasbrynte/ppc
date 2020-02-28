@@ -149,6 +149,61 @@ def get_translation(translation_vec):
     T[0:3, 3] = translation_vec
     return T
 
+def get_2d_transl_projectivity(delta_x, delta_y):
+    T = np.eye(3)
+    T[0,2] = delta_x
+    T[1,2] = delta_y
+    return T
+
+def get_2d_scale_projectivity(scale_x, scale_y):
+    T = np.diag([scale_x, scale_y, 1.0])
+    return T
+
+def get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width):
+    """
+    When cropping and rescaling the image, the calibration matrix will also
+    be affected, mapping K -> T*K, where T is the projectivity, determined
+    and returned by this method.
+    """
+    (x1, y1, x2, y2) = crop_box
+
+    # Pixel width & height of region of interest
+    old_width = x2 - x1
+    old_height = y2 - y1
+
+    # Translate to map origin
+    delta_x = -x1
+    delta_y = -y1
+
+    # Rescale (during which origin is fixed)
+    scale_x = desired_width / old_width
+    scale_y = desired_height / old_height
+
+    T_transl = get_2d_transl_projectivity(delta_x, delta_y)
+    T_scale = get_2d_scale_projectivity(scale_x, scale_y)
+    return T_scale @ T_transl
+
+def gen_bbox(xc, yc, width, height):
+    x2 = int(xc + 0.5*width)
+    x1 = int(x2 - width)
+    y2 = int(yc + 0.5*height)
+    y1 = int(y2 - height)
+    bbox = (x1, y1, x2, y2)
+    return bbox
+
+def square_bbox_around_projected_object_center(t, K, obj_diameter, crop_box_resize_factor = 1.0):
+    assert K.shape == (3, 3)
+    assert t.shape == (3, 1)
+    crop_dims = np.ones((2,))
+    crop_dims /= t[2,0]
+    crop_dims *= obj_diameter
+    crop_dims *= np.diag(K)[:2] / K[2,2] # Extract focal lengths fx & fy
+    crop_dims *= crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
+    xc, yc = pflat(K @ t)[:2,:].squeeze(1)
+    height, width = crop_dims
+    bbox = gen_bbox(xc, yc, width, height)
+    return bbox
+
 # def get_eucl(R, t):
 #     t = np.array(t).squeeze()
 #     T = np.eye(4)

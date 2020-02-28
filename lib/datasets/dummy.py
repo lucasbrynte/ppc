@@ -17,8 +17,9 @@ from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
-# from lib.utils import get_eucl
+# from lib.utils import get_eucl, gen_bbox
 from lib.utils import project_pts, uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
+from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -241,8 +242,9 @@ class DummyDataset(Dataset):
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         # Define crop box in order to center object in query image
-        crop_box = self._square_bbox_around_projected_object_center(t2)
-        H = self._get_projectivity_for_crop_and_rescale(crop_box)
+        crop_box = square_bbox_around_projected_object_center(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+        desired_height, desired_width = self._configs.data.crop_dims
+        H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
         HK = H @ self._K
 
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
@@ -456,26 +458,6 @@ class DummyDataset(Dataset):
     #         min(-0.5 + self._configs.data.img_dims[0], center_y + resize_factor*(y2 - center_y)),
     #     )
 
-    def _square_bbox_around_projected_object_center(self, t):
-        assert t.shape == (3, 1)
-        crop_dims = np.ones((2,))
-        crop_dims /= t[2,0]
-        crop_dims *= self._metadata['objects'][self._obj_label]['diameter']
-        crop_dims *= np.diag(self._K)[:2] / self._K[2,2]
-        crop_dims *= self._configs.data.crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
-        xc, yc = pflat(self._K @ t)[:2,:].squeeze(1)
-        height, width = crop_dims
-        bbox = self._gen_bbox(xc, yc, width, height)
-        return bbox
-
-    def _gen_bbox(self, xc, yc, width, height):
-        x2 = int(xc + 0.5*width)
-        x1 = int(x2 - width)
-        y2 = int(yc + 0.5*height)
-        y1 = int(y2 - height)
-        bbox = (x1, y1, x2, y2)
-        return bbox
-
     # def _wrap_bbox_in_squarebox(self, bbox):
     #     (x1_old, y1_old, x2_old, y2_old) = bbox
     #     old_width = x2_old - x1_old
@@ -492,43 +474,8 @@ class DummyDataset(Dataset):
     #     assert delta_width >= 0
     #     xc = (x1_old + x2_old) * 0.5
     #     yc = (y1_old + y2_old) * 0.5
-    #     square_bbox = self._gen_bbox(xc, yc, new_width, new_height)
+    #     square_bbox = gen_bbox(xc, yc, new_width, new_height)
     #     return square_bbox
-
-    def _get_transl_projectivity(self, delta_x, delta_y):
-        T = np.eye(3)
-        T[0,2] = delta_x
-        T[1,2] = delta_y
-        return T
-
-    def _get_scale_projectivity(self, scale_x, scale_y):
-        T = np.diag([scale_x, scale_y, 1.0])
-        return T
-
-    def _get_projectivity_for_crop_and_rescale(self, crop_box):
-        """
-        When cropping and rescaling the image, the calibration matrix will also
-        be affected, mapping K -> T*K, where T is the projectivity, determined
-        and returned by this method.
-        """
-        (x1, y1, x2, y2) = crop_box
-
-        # Pixel width & height of region of interest
-        old_width = x2 - x1
-        old_height = y2 - y1
-        new_height, new_width = self._configs.data.crop_dims
-
-        # Translate to map origin
-        delta_x = -x1
-        delta_y = -y1
-
-        # Rescale (during which origin is fixed)
-        scale_x = new_width / old_width
-        scale_y = new_height / old_height
-
-        T_transl = self._get_transl_projectivity(delta_x, delta_y)
-        T_scale = self._get_scale_projectivity(scale_x, scale_y)
-        return T_scale @ T_transl
 
     def _get_object_dimensions(self):
         obj_dimensions = np.diff(self._metadata['objects'][self._obj_label]['bbox3d'], axis=1).squeeze()
