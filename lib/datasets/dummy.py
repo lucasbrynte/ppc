@@ -462,7 +462,7 @@ class DummyDataset(Dataset):
         crop_dims /= t[2,0]
         crop_dims *= self._metadata['objects'][self._obj_label]['diameter']
         crop_dims *= np.diag(self._K)[:2] / self._K[2,2]
-        # crop_dims *= 1.0 # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
+        crop_dims *= self._configs.data.crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
         xc, yc = pflat(self._K @ t)[:2,:].squeeze(1)
         height, width = crop_dims
         bbox = self._gen_bbox(xc, yc, width, height)

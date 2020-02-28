@@ -261,5 +261,6 @@ data:
   crop_dims: [128, 128]
   # query_rendering_method: glumpy
   query_rendering_method: neural
+  crop_box_resize_factor: 1.2
   synth_ref_min_nbr_unoccluded_pixels: 200
   ref_colorjitter_during_train: true
