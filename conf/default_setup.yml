@@ -262,7 +262,7 @@ data:
   path: /datasets/occluded-linemod-augmented
   nyud_path: /datasets/nyud
   voc_path: /datasets/voc
-  img_dims: [480, 480]
+  img_dims: [480, 640]
   crop_dims: [128, 128]
   # query_rendering_method: glumpy
   query_rendering_method: neural

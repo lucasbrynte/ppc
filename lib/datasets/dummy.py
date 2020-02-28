@@ -720,14 +720,18 @@ class DummyDataset(Dataset):
     def _read_img(self, seq, crop_box, frame_idx):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
-        img = self._crop(np.array(Image.open(rgb_path)), crop_box)
+        img = np.array(Image.open(rgb_path))
+        assert tuple(img.shape[:2]) == self._configs.data.img_dims
+        img = self._crop(img, crop_box)
 
         return img, rel_rgb_path
 
     def _read_instance_seg(self, seq, crop_box, frame_idx, instance_idx):
         # Load instance segmentation
         instance_seg_path = os.path.join(self._configs.data.path, seq, 'instance_seg', str(frame_idx).zfill(6) + '.png')
-        instance_seg_raw = self._crop(np.array(Image.open(instance_seg_path)), crop_box)
+        instance_seg_raw = np.array(Image.open(instance_seg_path))
+        assert tuple(instance_seg_raw.shape[:2]) == self._configs.data.img_dims
+        instance_seg_raw = self._crop(instance_seg_raw, crop_box)
 
         # Map indices to 0 / 1 / 2
         instance_seg = np.empty_like(instance_seg_raw)
@@ -746,7 +750,7 @@ class DummyDataset(Dataset):
         depth_path = os.path.join(self._configs.data.path, seq, subdir, str(frame_idx).zfill(6) + '.png')
 
         # NOTE! simplify this back again, once the root of the PNG issue is found...
-        # depth_map = self._crop(np.array(Image.open(depth_path), dtype=np.uint16), crop_box)
+        # depth_map = np.array(Image.open(depth_path), dtype=np.uint16)
         try:
             # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000487.png'
             # depth_path = '/datasets/occluded-linemod-augmented/all_unoccl/duck/depth_rendered/000872.png'
@@ -754,8 +758,7 @@ class DummyDataset(Dataset):
             # depth_map22 = np.array(depth_map11, dtype=np.uint16)
             # NOTE: weirdly, calling np.array() with the dtype=np.uint16 argument may seemingly randomly generate errors with PngImageFile -> int conversion, but the same thing does not happen with initial np.array() call followed by .astype(np.uint16).
             depth_map11b = np.array(depth_map11)
-            depth_map22 = depth_map11b.astype(np.uint16)
-            depth_map = self._crop(depth_map22, crop_box)
+            depth_map = depth_map11b.astype(np.uint16)
         except:
             print(depth_path)
             print(depth_map11)
@@ -773,15 +776,13 @@ class DummyDataset(Dataset):
             tmp2 = asarray.astype(np.uint16)
 
             try:
-                print(depth_map22)
+                print(depth_map)
             except:
-                depth_map22 = depth_map11b.astype(np.uint16)
-                print(depth_map22)
-            print(depth_map)
-            print(type(depth_map11))
-            print(type(depth_map22))
-            print(type(depth_map))
+                depth_map = depth_map11b.astype(np.uint16)
+                print(depth_map)
             assert False
+        assert tuple(depth_map.shape[:2]) == self._configs.data.img_dims
+        depth_map = self._crop(depth_map, crop_box)
 
         depth_map = depth_map.astype(np.float32) * float(depth_scale)
         return depth_map
