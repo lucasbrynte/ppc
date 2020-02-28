@@ -237,8 +237,14 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        HK, crop_box, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
+
+        # Define crop box in order to center object in query image
+        crop_box = self._square_bbox_around_projected_object_center(t2)
+        H = self._get_projectivity_for_crop_and_rescale(crop_box)
+        HK = H @ self._K
+
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
             img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params, trunc_dims=self._configs.data.crop_dims)
@@ -256,6 +262,16 @@ class DummyDataset(Dataset):
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
+
+        # Crop ref images
+        img1 = self._crop(img1, crop_box, pad_if_outside=True)
+        instance_seg1 = self._crop(instance_seg1, crop_box, pad_if_outside=True)
+        safe_anno_mask = self._crop(safe_anno_mask, crop_box, pad_if_outside=True)
+
+        # Resize the cropped bounding box to the desired resolution
+        img1 = self._resize_img(img1, self._configs.data.crop_dims)
+        instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
+        safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
         sample = self._generate_sample(
             ref_scheme_idx,
@@ -374,12 +390,12 @@ class DummyDataset(Dataset):
 
         return rgb, instance_seg
 
-    def _truncate_bbox(self, bbox):
-        (x1, y1, x2, y2) = bbox
-        x1, x2 = np.clip((x1, x2), 0, self._configs.data.img_dims[1])
-        y1, y2 = np.clip((y1, y2), 0, self._configs.data.img_dims[0])
-        truncated_bbox = (x1, y1, x2, y2)
-        return truncated_bbox
+    # def _truncate_bbox(self, bbox):
+    #     (x1, y1, x2, y2) = bbox
+    #     x1, x2 = np.clip((x1, x2), 0, self._configs.data.img_dims[1])
+    #     y1, y2 = np.clip((y1, y2), 0, self._configs.data.img_dims[0])
+    #     truncated_bbox = (x1, y1, x2, y2)
+    #     return truncated_bbox
 
     def _sample_bbox_shift(self, bbox, max_rel_shift_factor=0.3):
         (x1, y1, x2, y2) = bbox
@@ -400,54 +416,56 @@ class DummyDataset(Dataset):
         shifted_bbox = (x1, y1, x2, y2)
         return shifted_bbox
 
-    def _shift_bbox_into_img(self, bbox):
-        (x1, y1, x2, y2) = bbox
-        assert x2 - x1 <= self._configs.data.img_dims[1]
-        assert y2 - y1 <= self._configs.data.img_dims[0]
+    # def _shift_bbox_into_img(self, bbox):
+    #     (x1, y1, x2, y2) = bbox
+    #     assert x2 - x1 <= self._configs.data.img_dims[1]
+    #     assert y2 - y1 <= self._configs.data.img_dims[0]
+    # 
+    #     if x1 < 0:
+    #         xshift = 0 - x1
+    #     elif x2 > self._configs.data.img_dims[1]:
+    #         xshift = - (x2 - self._configs.data.img_dims[1])
+    #     else:
+    #         xshift = 0
+    # 
+    #     if y1 < 0:
+    #         yshift = 0 - y1
+    #     elif y2 > self._configs.data.img_dims[0]:
+    #         yshift = - (y2 - self._configs.data.img_dims[0])
+    #     else:
+    #         yshift = 0
+    # 
+    #     shifted_bbox = self._shift_bbox(bbox, xshift, yshift)
+    # 
+    #     (x1, y1, x2, y2) = shifted_bbox
+    #     assert x1 >= 0 and x1 <= self._configs.data.img_dims[1]
+    #     assert x2 >= 0 and x2 <= self._configs.data.img_dims[1]
+    #     assert x1 >= 0 and y1 <= self._configs.data.img_dims[0]
+    #     assert x2 >= 0 and y2 <= self._configs.data.img_dims[0]
+    # 
+    #     return shifted_bbox
 
-        if x1 < 0:
-            xshift = 0 - x1
-        elif x2 > self._configs.data.img_dims[1]:
-            xshift = - (x2 - self._configs.data.img_dims[1])
-        else:
-            xshift = 0
+    # def _resize_bbox(self, bbox, resize_factor):
+    #     x1, y1, x2, y2 = bbox
+    #     center_x = 0.5*(x1+x2)
+    #     center_y = 0.5*(y1+y2)
+    #     return (
+    #         max(-0.5,                                  center_x + resize_factor*(x1 - center_x)),
+    #         max(-0.5,                                  center_y + resize_factor*(y1 - center_y)),
+    #         min(-0.5 + self._configs.data.img_dims[1], center_x + resize_factor*(x2 - center_x)),
+    #         min(-0.5 + self._configs.data.img_dims[0], center_y + resize_factor*(y2 - center_y)),
+    #     )
 
-        if y1 < 0:
-            yshift = 0 - y1
-        elif y2 > self._configs.data.img_dims[0]:
-            yshift = - (y2 - self._configs.data.img_dims[0])
-        else:
-            yshift = 0
-
-        shifted_bbox = self._shift_bbox(bbox, xshift, yshift)
-
-        (x1, y1, x2, y2) = shifted_bbox
-        assert x1 >= 0 and x1 <= self._configs.data.img_dims[1]
-        assert x2 >= 0 and x2 <= self._configs.data.img_dims[1]
-        assert x1 >= 0 and y1 <= self._configs.data.img_dims[0]
-        assert x2 >= 0 and y2 <= self._configs.data.img_dims[0]
-
-        return shifted_bbox
-
-    def _resize_bbox(self, bbox, resize_factor):
-        x1, y1, x2, y2 = bbox
-        center_x = 0.5*(x1+x2)
-        center_y = 0.5*(y1+y2)
-        return (
-            max(-0.5,                                  center_x + resize_factor*(x1 - center_x)),
-            max(-0.5,                                  center_y + resize_factor*(y1 - center_y)),
-            min(-0.5 + self._configs.data.img_dims[1], center_x + resize_factor*(x2 - center_x)),
-            min(-0.5 + self._configs.data.img_dims[0], center_y + resize_factor*(y2 - center_y)),
-        )
-
-    def _bbox_from_projected_keypoints(self, R, t):
-        assert R.shape == (3, 3)
+    def _square_bbox_around_projected_object_center(self, t):
         assert t.shape == (3, 1)
-        keypoints_3d = self._metadata['objects'][self._obj_label]['keypoints']
-        keypoints_2d = pflat(self._K @ (R @ keypoints_3d + t))[:2,:]
-        x1, y1 = np.min(keypoints_2d, axis=1)
-        x2, y2 = np.max(keypoints_2d, axis=1)
-        bbox = (x1, y1, x2, y2)
+        crop_dims = np.ones((2,))
+        crop_dims /= t[2,0]
+        crop_dims *= self._metadata['objects'][self._obj_label]['diameter']
+        crop_dims *= np.diag(self._K)[:2] / self._K[2,2]
+        # crop_dims *= 1.0 # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
+        xc, yc = pflat(self._K @ t)[:2,:].squeeze(1)
+        height, width = crop_dims
+        bbox = self._gen_bbox(xc, yc, width, height)
         return bbox
 
     def _gen_bbox(self, xc, yc, width, height):
@@ -458,24 +476,24 @@ class DummyDataset(Dataset):
         bbox = (x1, y1, x2, y2)
         return bbox
 
-    def _wrap_bbox_in_squarebox(self, bbox):
-        (x1_old, y1_old, x2_old, y2_old) = bbox
-        old_width = x2_old - x1_old
-        old_height = y2_old - y1_old
-        if old_width < old_height:
-            new_height = old_height
-            new_width  = old_height
-        else:
-            new_width  = old_width
-            new_height = old_width
-        delta_height = new_height - old_height
-        delta_width = new_width - old_width
-        assert delta_height >= 0
-        assert delta_width >= 0
-        xc = (x1_old + x2_old) * 0.5
-        yc = (y1_old + y2_old) * 0.5
-        square_bbox = self._gen_bbox(xc, yc, new_width, new_height)
-        return square_bbox
+    # def _wrap_bbox_in_squarebox(self, bbox):
+    #     (x1_old, y1_old, x2_old, y2_old) = bbox
+    #     old_width = x2_old - x1_old
+    #     old_height = y2_old - y1_old
+    #     if old_width < old_height:
+    #         new_height = old_height
+    #         new_width  = old_height
+    #     else:
+    #         new_width  = old_width
+    #         new_height = old_width
+    #     delta_height = new_height - old_height
+    #     delta_width = new_width - old_width
+    #     assert delta_height >= 0
+    #     assert delta_width >= 0
+    #     xc = (x1_old + x2_old) * 0.5
+    #     yc = (y1_old + y2_old) * 0.5
+    #     square_bbox = self._gen_bbox(xc, yc, new_width, new_height)
+    #     return square_bbox
 
     def _get_transl_projectivity(self, delta_x, delta_y):
         T = np.eye(3)
@@ -849,26 +867,13 @@ class DummyDataset(Dataset):
             R1 = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
             t1 = np.array(gt['cam_t_m2c']).reshape((3,1))
 
-            crop_box = np.array(gt['obj_bb'])
-            crop_box[2:] += crop_box[:2]  # x,y,w,h, -> x1,y1,x2,y2
-
-            # crop_box = self._resize_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
-            # crop_box = self._truncate_bbox(crop_box)
-
-            width = crop_box[2] - crop_box[0]
-            height = crop_box[3] - crop_box[1]
-            # print(width, height)
-            if fixed_frame_idx is None and (width < 25 or height < 25):
-                # print("Rejected T1, due to crop_box", crop_box)
-                continue
-
             break
         else:
             # print(gts_in_frame)
             # print(seq, frame_idx)
             assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
 
-        return R1, t1, crop_box, frame_idx, instance_idx
+        return R1, t1, frame_idx, instance_idx
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
@@ -893,11 +898,6 @@ class DummyDataset(Dataset):
                 # print("Rejected T1, due to object center projected outside image", obj_cc_proj)
                 continue
 
-            crop_box = self._bbox_from_projected_keypoints(R1, t1)
-
-            crop_box = self._resize_bbox(crop_box, 1.5) # Expand crop_box slightly, in order to include all of object (not just the keypoints)
-            crop_box = self._truncate_bbox(crop_box)
-
             obj_labels_possible_occluders = [model_spec['readable_label'] for obj_id, model_spec in self._models_info.items() if obj_id != self._obj_id]
             T_occluders = {}
             nbr_occluders = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['nbr_occluders']
@@ -915,7 +915,7 @@ class DummyDataset(Dataset):
         assert np.all(np.isclose(T1[3,:], np.array([0., 0., 0., 1.])))
         assert T1[2,3] > 0, "Center of object pose 1 behind camera"
 
-        return T_model2world, T_occluders, T_world2cam, R1, t1, crop_box
+        return T_model2world, T_occluders, T_world2cam, R1, t1
 
     def _generate_perturbation(self, ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1):
         T1 = np.eye(4)
@@ -947,9 +947,9 @@ class DummyDataset(Dataset):
     def _sample_crop_box(self, full_img_dims, crop_dims):
         assert full_img_dims[0] >= crop_dims[0]
         assert full_img_dims[1] >= crop_dims[1]
-        x1 = np.random.randint(full_img_dims[1] - crop_dims[1])
+        x1 = 0 if full_img_dims[1] == crop_dims[1] else np.random.randint(full_img_dims[1] - crop_dims[1])
         x2 = x1 + crop_dims[1]
-        y1 = np.random.randint(full_img_dims[0] - crop_dims[0])
+        y1 = 0 if full_img_dims[0] == crop_dims[0] else np.random.randint(full_img_dims[0] - crop_dims[0])
         y2 = y1 + crop_dims[0]
         return (x1, y1, x2, y2)
 
@@ -986,7 +986,7 @@ class DummyDataset(Dataset):
             yreps = -( -self._configs.data.img_dims[0] // img.shape[0] ) # Ceiling integer division
             xreps = -( -self._configs.data.img_dims[1] // img.shape[1] ) # Ceiling integer division
             full_img = np.tile(img, (yreps, xreps, 1))
-            return self._crop(full_img, self._sample_crop_box(full_img.shape[:2], bg_crop_dims))
+            return self._crop(full_img, self._sample_crop_box(full_img.shape[:2], bg_crop_dims), pad_if_outside=False)
         else:
             assert False, 'No proper background image found'
 
@@ -1022,7 +1022,7 @@ class DummyDataset(Dataset):
         x1, y1, x2, y2 = bbox
         return (y2-y1, x2-x1)
 
-    def _get_ref_img_real(self, ref_scheme_idx, crop_box, frame_idx, instance_idx):
+    def _get_ref_img_real(self, ref_scheme_idx, frame_idx, instance_idx):
         ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.img_dims, black_already=False)
         seq = self._get_seq(ref_scheme_idx)
         img1, ref_img_path = self._read_img(seq, frame_idx)
@@ -1039,7 +1039,7 @@ class DummyDataset(Dataset):
 
         return img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path
 
-    def _get_ref_img_synthetic(self, ref_scheme_idx, crop_box, R1, t1, T1_occluders, T_world2cam):
+    def _get_ref_img_synthetic(self, ref_scheme_idx, R1, t1, T1_occluders, T_world2cam):
         ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.img_dims, black_already=True)
         ref_shading_params = self._sample_ref_shading_params(ref_scheme_idx)
         R_occluders_list1, t_occluders_list1, obj_id_occluders_list1 = [], [], []
@@ -1112,21 +1112,14 @@ class DummyDataset(Dataset):
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            R1, t1, crop_box, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, fixed_frame_idx=fixed_frame_idx)
+            R1, t1, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, fixed_frame_idx=fixed_frame_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            T1_model2world, T1_occluders, T_world2cam, R1, t1, crop_box = self._generate_synthetic_pose(ref_scheme_idx)
-
-        # print("raw", crop_box)
-        crop_box = self._wrap_bbox_in_squarebox(crop_box)
-        crop_box = self._shift_bbox_into_img(crop_box)
-        # print("sq", crop_box)
-        H = self._get_projectivity_for_crop_and_rescale(crop_box)
-        HK = H @ self._K
+            T1_model2world, T1_occluders, T_world2cam, R1, t1 = self._generate_synthetic_pose(ref_scheme_idx)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, crop_box, frame_idx, instance_idx)
+            img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
-            ret = self._get_ref_img_synthetic(ref_scheme_idx, crop_box, R1, t1, T1_occluders, T_world2cam)
+            ret = self._get_ref_img_synthetic(ref_scheme_idx, R1, t1, T1_occluders, T_world2cam)
             if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
@@ -1150,15 +1143,7 @@ class DummyDataset(Dataset):
                 self._ref_sampling_schemes[ref_scheme_idx].blur_opts,
             )
 
-        img1 = self._crop(img1, crop_box)
-        instance_seg1 = self._crop(instance_seg1, crop_box)
-        safe_anno_mask = self._crop(safe_anno_mask, crop_box)
-        # Resize the cropped bounding box to the desired resolution
-        img1 = self._resize_img(img1, self._configs.data.crop_dims)
-        instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
-        safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
-
-        return HK, crop_box, R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
+        return R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
 
     def _generate_sample(
             self,
