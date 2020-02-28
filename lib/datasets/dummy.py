@@ -450,6 +450,14 @@ class DummyDataset(Dataset):
         bbox = (x1, y1, x2, y2)
         return bbox
 
+    def _gen_bbox(self, xc, yc, width, height):
+        x2 = int(xc + 0.5*width)
+        x1 = int(x2 - width)
+        y2 = int(yc + 0.5*height)
+        y1 = int(y2 - height)
+        bbox = (x1, y1, x2, y2)
+        return bbox
+
     def _wrap_bbox_in_squarebox(self, bbox):
         (x1_old, y1_old, x2_old, y2_old) = bbox
         old_width = x2_old - x1_old
@@ -466,11 +474,7 @@ class DummyDataset(Dataset):
         assert delta_width >= 0
         xc = (x1_old + x2_old) * 0.5
         yc = (y1_old + y2_old) * 0.5
-        x2_new = int(xc + 0.5*new_width)
-        x1_new = int(x2_new - new_width)
-        y2_new = int(yc + 0.5*new_height)
-        y1_new = int(y2_new - new_height)
-        square_bbox = (x1_new, y1_new, x2_new, y2_new)
+        square_bbox = self._gen_bbox(xc, yc, new_width, new_height)
         return square_bbox
 
     def _get_transl_projectivity(self, delta_x, delta_y):
