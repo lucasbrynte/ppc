@@ -652,30 +652,9 @@ class DummyDataset(Dataset):
             resized = resized[:,:,None]
         return resized
 
-    def _resize_img(self, img, dims, interpolation=cv.INTER_LINEAR):
-        if interpolation == cv.INTER_NEAREST:
-            return self._resize_uint(img, dims, interpolation=interpolation)
-        else:
-            if len(img.shape) == 2:
-                dtype = img.dtype
-                assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
-                # Assign each unique value to a channel, and replace the 2D-array with 1-hot encodings across channels in 3D-array.
-                # Bilinear interpolation is performed in this domain - resulting in averaging the probability distributions.
-                # Finally, the argmax operator is applied on the averaged distributions, and the old values are inserted at the corresponding indices.
-                unique_vals = np.unique(img)
-                assert len(unique_vals.shape) == 1
-                img_onehot = np.tile(np.zeros_like(img)[:,:,None], (1,1,len(unique_vals)))
-                for ch_idx, val in enumerate(unique_vals):
-                    img_onehot[:,:,ch_idx][img == val] = 1
-                blended_distributions = self._resize_uint(img_onehot, dims, interpolation=interpolation)
-                dominant_channels_map = blended_distributions.argmax(axis=2).astype(dtype)
-                img = np.empty_like(dominant_channels_map)
-                for ch_idx, val in enumerate(unique_vals):
-                    img[dominant_channels_map == ch_idx] = val
-                return img
-            else:
-                assert len(img.shape) == 3
-                return self._resize_uint(img, dims, interpolation=interpolation)
+    def _resize_img(self, img, dims):
+        assert len(img.shape) == 3
+        return self._resize_uint(img, dims, interpolation=cv.INTER_LINEAR)
 
     def _read_img(self, seq, frame_idx):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
