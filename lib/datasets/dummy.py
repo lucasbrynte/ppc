@@ -659,8 +659,28 @@ class DummyDataset(Dataset):
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
         return seq
 
-    def _crop(self, img, crop_box):
+    def _crop(self, img, crop_box, pad_if_outside=False):
         (x1, y1, x2, y2) = crop_box
+        assert x2 > x1
+        assert y2 > y1
+        img_height, img_width = img.shape[0], img.shape[1]
+        if pad_if_outside:
+            xpad1 = -x1 if x1 < 0 else 0
+            xpad2 = x2-img_width if x2 > img_width else 0
+            ypad1 = -y1 if y1 < 0 else 0
+            ypad2 = y2-img_height if y2 > img_height else 0
+            # Pad image
+            if len(img.shape) == 2:
+                img = np.pad(img, ((ypad1, ypad2), (xpad1, xpad2)))
+            else:
+                assert len(img.shape) == 3
+                img = np.pad(img, ((ypad1, ypad2), (xpad1, xpad2), (0, 0)))
+            # If padding on negative side, compensate by shifting crop box
+            x1, x2 = x1+xpad1, x2+xpad1
+            y1, y2 = y1+ypad1, y2+ypad1
+        else:
+            assert y1 >= 0 and y2 <= img_height
+            assert x1 >= 0 and x2 <= img_width
         if len(img.shape) == 2:
             img = img[y1:y2, x1:x2]
         else:
