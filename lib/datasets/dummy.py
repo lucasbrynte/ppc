@@ -938,6 +938,8 @@ class DummyDataset(Dataset):
         return R2, t2
 
     def _sample_crop_box(self, full_img_dims, crop_dims):
+        assert full_img_dims[0] >= crop_dims[0]
+        assert full_img_dims[1] >= crop_dims[1]
         x1 = np.random.randint(full_img_dims[1] - crop_dims[1])
         x2 = x1 + crop_dims[1]
         y1 = np.random.randint(full_img_dims[0] - crop_dims[0])
@@ -972,9 +974,12 @@ class DummyDataset(Dataset):
             path_idx = np.random.randint(len(bg_img_paths))
             img_path = bg_img_paths[path_idx]
             # img_path = os.path.join(self._configs.data.nyud_path, 'data/library_0005/r-1300707945.014378-1644637693.ppm')
-            full_img = Image.open(img_path)
-            img_width, img_height = full_img.size
-            return self._crop(np.array(full_img), self._sample_crop_box((img_height, img_width), bg_crop_dims))
+            img = Image.open(img_path)
+            img = np.array(img)
+            yreps = -( -self._configs.data.img_dims[0] // img.shape[0] ) # Ceiling integer division
+            xreps = -( -self._configs.data.img_dims[1] // img.shape[1] ) # Ceiling integer division
+            full_img = np.tile(img, (yreps, xreps, 1))
+            return self._crop(full_img, self._sample_crop_box(full_img.shape[:2], bg_crop_dims))
         else:
             assert False, 'No proper background image found'
 
