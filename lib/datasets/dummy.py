@@ -972,17 +972,9 @@ class DummyDataset(Dataset):
             path_idx = np.random.randint(len(bg_img_paths))
             img_path = bg_img_paths[path_idx]
             # img_path = os.path.join(self._configs.data.nyud_path, 'data/library_0005/r-1300707945.014378-1644637693.ppm')
-            try:
-                # NOTE: Some NYUD images are truncated, and for some reason this seems to cause an issue at Pillow crop
-                # Unsure what will happen when cropping these iamges as numpy array, but try / catch kept as of now.
-                full_img = Image.open(img_path)
-                img_width, img_height = full_img.size
-                return self._crop(np.array(full_img), self._sample_crop_box((img_height, img_width), bg_crop_dims))
-            except:
-                # Not ideal to keep removing elements from long list...
-                # Set would be tempting, but not straightforward to sample from
-                del bg_img_paths[path_idx]
-                continue
+            full_img = Image.open(img_path)
+            img_width, img_height = full_img.size
+            return self._crop(np.array(full_img), self._sample_crop_box((img_height, img_width), bg_crop_dims))
         else:
             assert False, 'No proper background image found'
 
