@@ -236,6 +236,9 @@ class DummyDataset(Dataset):
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
         R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        # Augmentation + numpy -> pytorch conversion
+        if self._aug_transform is not None:
+            img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
         # Define crop box in order to center object in query image
@@ -258,10 +261,6 @@ class DummyDataset(Dataset):
             assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
             img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
             instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
-
-        # Augmentation + numpy -> pytorch conversion
-        if self._aug_transform is not None:
-            img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
 
         # Crop ref image
         img1 = crop_img(img1, crop_box, pad_if_outside=True)
