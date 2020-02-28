@@ -19,7 +19,7 @@ from torch.utils.data import Dataset
 from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
 # from lib.utils import get_eucl, gen_bbox
 from lib.utils import project_pts, uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
-from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center
+from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center, resize_img, crop_img
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -264,9 +264,9 @@ class DummyDataset(Dataset):
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
 
         # Crop ref image
-        img1 = self._crop(img1, crop_box, pad_if_outside=True)
+        img1 = crop_img(img1, crop_box, pad_if_outside=True)
         # Resize the cropped bounding box to the desired resolution
-        img1 = self._resize_img(img1, self._configs.data.crop_dims)
+        img1 = resize_img(img1, self._configs.data.crop_dims)
 
         sample = self._generate_sample(
             ref_scheme_idx,
@@ -611,51 +611,6 @@ class DummyDataset(Dataset):
         assert self._check_seq_has_annotations_of_interest(self._configs.data.path, seq), 'No annotations for sequence {}'.format(seq)
         return seq
 
-    def _crop(self, img, crop_box, pad_if_outside=False):
-        (x1, y1, x2, y2) = crop_box
-        assert x2 > x1
-        assert y2 > y1
-        img_height, img_width = img.shape[0], img.shape[1]
-        if pad_if_outside:
-            xpad1 = -x1 if x1 < 0 else 0
-            xpad2 = x2-img_width if x2 > img_width else 0
-            ypad1 = -y1 if y1 < 0 else 0
-            ypad2 = y2-img_height if y2 > img_height else 0
-            # Pad image
-            if len(img.shape) == 2:
-                img = np.pad(img, ((ypad1, ypad2), (xpad1, xpad2)))
-            else:
-                assert len(img.shape) == 3
-                img = np.pad(img, ((ypad1, ypad2), (xpad1, xpad2), (0, 0)))
-            # If padding on negative side, compensate by shifting crop box
-            x1, x2 = x1+xpad1, x2+xpad1
-            y1, y2 = y1+ypad1, y2+ypad1
-        else:
-            assert y1 >= 0 and y2 <= img_height
-            assert x1 >= 0 and x2 <= img_width
-        if len(img.shape) == 2:
-            img = img[y1:y2, x1:x2]
-        else:
-            assert len(img.shape) == 3
-            img = img[y1:y2, x1:x2, :]
-        return img
-
-    def _resize_uint(self, img, dims):
-        """
-        OpenCV had some issues with resizing when dtype is unsigned int... Casting to float and back overcomes the issue.
-        """
-        dtype = img.dtype
-        assert len(img.shape) == 3 and img.shape[2] == 3
-        assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
-        img = img.astype(np.float64)
-        resized = cv.resize(img, dims, interpolation=cv.INTER_LINEAR)
-        resized = (resized + 0.5).astype(dtype)
-        return resized
-
-    def _resize_img(self, img, dims):
-        assert len(img.shape) == 3 and img.shape[2] == 3
-        return self._resize_uint(img, dims)
-
     def _read_img(self, seq, frame_idx):
         rel_rgb_path = os.path.join(seq, 'rgb', str(frame_idx).zfill(6) + '.png')
         rgb_path = os.path.join(self._configs.data.path, rel_rgb_path)
@@ -899,7 +854,7 @@ class DummyDataset(Dataset):
             yreps = -( -self._configs.data.img_dims[0] // img.shape[0] ) # Ceiling integer division
             xreps = -( -self._configs.data.img_dims[1] // img.shape[1] ) # Ceiling integer division
             full_img = np.tile(img, (yreps, xreps, 1))
-            return self._crop(full_img, self._sample_crop_box(full_img.shape[:2], bg_crop_dims), pad_if_outside=False)
+            return crop_img(full_img, self._sample_crop_box(full_img.shape[:2], bg_crop_dims), pad_if_outside=False)
         else:
             assert False, 'No proper background image found'
 
