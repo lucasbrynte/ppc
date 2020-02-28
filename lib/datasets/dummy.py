@@ -241,11 +241,17 @@ class DummyDataset(Dataset):
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
+
         # Define crop box in order to center object in query image
         crop_box = square_bbox_around_projected_object_center(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
         desired_height, desired_width = self._configs.data.crop_dims
         H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
         HK = H @ self._K
+        # Crop ref image
+        img1 = crop_img(img1, crop_box, pad_if_outside=True)
+        # Resize the cropped bounding box to the desired resolution
+        img1 = resize_img(img1, self._configs.data.crop_dims)
+
 
         # Render query image
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
@@ -261,11 +267,6 @@ class DummyDataset(Dataset):
             assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
             img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
             instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
-
-        # Crop ref image
-        img1 = crop_img(img1, crop_box, pad_if_outside=True)
-        # Resize the cropped bounding box to the desired resolution
-        img1 = resize_img(img1, self._configs.data.crop_dims)
 
         sample = self._generate_sample(
             ref_scheme_idx,
