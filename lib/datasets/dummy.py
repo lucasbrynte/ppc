@@ -247,6 +247,7 @@ class DummyDataset(Dataset):
         H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
         HK = H @ self._K
 
+        # Render query image
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
         if self._configs.data.query_rendering_method == 'glumpy':
             img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params, trunc_dims=self._configs.data.crop_dims)
