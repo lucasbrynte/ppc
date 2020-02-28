@@ -29,9 +29,6 @@ from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_cam
 Maps = namedtuple('Maps', [
     'ref_img',
     'query_img',
-    # 'ref_silmask',
-    # 'query_silmask',
-    'safe_anno_mask',
 ])
 
 ExtraInput = namedtuple('ExtraInput', [
@@ -266,15 +263,10 @@ class DummyDataset(Dataset):
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
 
-        # Crop ref images
+        # Crop ref image
         img1 = self._crop(img1, crop_box, pad_if_outside=True)
-        instance_seg1 = self._crop(instance_seg1, crop_box, pad_if_outside=True)
-        safe_anno_mask = self._crop(safe_anno_mask, crop_box, pad_if_outside=True)
-
         # Resize the cropped bounding box to the desired resolution
         img1 = self._resize_img(img1, self._configs.data.crop_dims)
-        instance_seg1 = self._resize_img(instance_seg1, self._configs.data.crop_dims)
-        safe_anno_mask = self._resize_img(safe_anno_mask, self._configs.data.crop_dims)
 
         sample = self._generate_sample(
             ref_scheme_idx,
@@ -286,10 +278,7 @@ class DummyDataset(Dataset):
             t1,
             ref_img_path,
             img1,
-            instance_seg1,
-            safe_anno_mask,
             img2,
-            instance_seg2,
             R2,
             t2,
             query_shading_params,
@@ -308,10 +297,7 @@ class DummyDataset(Dataset):
                 t1,
                 ref_img_path,
                 img1,
-                instance_seg1,
-                safe_anno_mask,
                 img2,
-                instance_seg2,
                 R1, # Ref pose sent in as query pose!
                 t1, # Ref pose sent in as query pose!
                 query_shading_params,
@@ -1104,10 +1090,7 @@ class DummyDataset(Dataset):
             t1,
             ref_img_path,
             img1,
-            instance_seg1,
-            safe_anno_mask,
             img2,
-            instance_seg2,
             R2,
             t2,
             query_shading_params,
@@ -1123,9 +1106,6 @@ class DummyDataset(Dataset):
         maps = Maps(
             ref_img = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
             query_img = numpy_to_pt(img2.astype(np.float32), normalize_flag=True),
-            # ref_silmask = numpy_to_pt(instance_seg1 == 1, normalize_flag=False),
-            # query_silmask = numpy_to_pt(instance_seg2 == 1, normalize_flag=False),
-            safe_anno_mask = numpy_to_pt(safe_anno_mask, normalize_flag=False),
         )
 
         targets = self._calc_targets(HK, R1, t1, R2, t2)
