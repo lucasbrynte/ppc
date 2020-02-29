@@ -216,42 +216,6 @@ model:
       #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
       #     - {dropout_factor: null, bias: true, relu_flag: false}
       #     # - {dropout_factor: null, bias: false, relu_flag: false}
-# model:
-#   architecture: custom_siamese
-#   custom_siamese_opts:
-#     # weight_decay: null
-#     weight_decay: {cnn: 0, head: 1.e-4}
-#     # siamese_net: true
-#     siamese_net: false
-#     cnn_layers:
-#       - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: true}
-#       - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-#       - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-#       - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-#       - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: false, merge: false}
-#       - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: false, merge: true}
-#     # cnn_layers:
-#     #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 16, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: true}
-#     #   - {n_out: 32, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 64, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-#     #   - {n_out: 64, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 96, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-#     #   - {n_out: 96, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 128, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-#     #   - {n_out: 128, kernel_size: 3, stride: 1, dilation: 1, domain_specific_params: true, merge: false}
-#     #   - {n_out: 192, kernel_size: 3, stride: 2, dilation: 1, domain_specific_params: true, merge: true}
-#     head_layers:
-#       - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-#       - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-#       - {dropout_factor: null, bias: true, relu_flag: false}
-#       # - {dropout_factor: null, bias: false, relu_flag: false}
 data:
   dataformat: dummy
   path: /datasets/occluded-linemod-augmented
