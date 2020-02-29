@@ -182,15 +182,20 @@ class Main():
                     self._configs,
                     self._model,
                     self._neural_rendering_wrapper,
-                    self._loss_handler,
                     ref_img,
                     HK,
                     batch.meta_data.obj_id,
                     batch.meta_data.ambient_weight,
                 )
+                def nn_out2interp_pred_features(nn_out):
+                    pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+                    pred_features = self._loss_handler.apply_activation(pred_features_raw)
+                    interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
+                    return interp_pred_features
                 pose_optimizer = PoseOptimizer(
                     self._configs,
                     pose_pipeline,
+                    nn_out2interp_pred_features,
                     extra_input.K,
                     HK,
                     extra_input.R1, # R_gt

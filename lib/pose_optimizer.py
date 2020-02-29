@@ -93,7 +93,6 @@ class FullPosePipeline(nn.Module):
         configs,
         model,
         neural_rendering_wrapper,
-        loss_handler,
         ref_img,
         HK,
         obj_id_list,
@@ -103,7 +102,6 @@ class FullPosePipeline(nn.Module):
         self._configs = configs
         self._model = model
         self._neural_rendering_wrapper = neural_rendering_wrapper
-        self._loss_handler = loss_handler
         self._ref_img = ref_img
         self._HK = HK
         self._obj_id_list = obj_id_list
@@ -155,10 +153,7 @@ class FullPosePipeline(nn.Module):
 
         nn_out = self._model(ref_img, query_img)
 
-        pred_features_raw = self._loss_handler.get_pred_features(nn_out)
-        pred_features = self._loss_handler.apply_activation(pred_features_raw)
-        interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
-        return interp_pred_features
+        return nn_out
 
 def cross_normalized(v1,v2):
     assert v1.shape[1] == 3
@@ -183,6 +178,7 @@ class PoseOptimizer():
         self,
         configs,
         pipeline,
+        nn_out2interp_pred_features,
         K,
         HK,
         R_gt,
@@ -193,6 +189,7 @@ class PoseOptimizer():
     ):
         self._configs = configs
         self._pipeline = pipeline
+        self._nn_out2interp_pred_features = nn_out2interp_pred_features
         self._orig_K = K
         self._orig_HK = HK
         self._orig_HK_inv = torch.inverse(self._orig_HK)
@@ -324,8 +321,8 @@ class PoseOptimizer():
     def eval_func(self, wx, tx, d, R_refpt=None, fname_dict={}):
         t = self._x2t(tx, d)
         w = self._x2w(wx)
-        pred_features = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
-        return pred_features
+        nn_out = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
+        return self._nn_out2interp_pred_features(nn_out)
 
     def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):
         """
