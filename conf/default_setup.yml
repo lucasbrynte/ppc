@@ -227,6 +227,8 @@ data:
   # For convenience, glumpy is not yet supported. Multiple glumpy renderer instances seem to interfere, i.e. allowing for this would require a central renderer module, taking requests from either pipelin or dataset module.
   # query_rendering_method: glumpy
   query_rendering_method: neural
+  query_rendering_opts:
+    ambient_weight: 0.8
   crop_box_resize_factor: 1.2
   synth_ref_min_nbr_unoccluded_pixels: 200
   ref_colorjitter_during_train: true

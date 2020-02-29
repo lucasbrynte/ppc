@@ -152,7 +152,7 @@ class FullPosePipeline(nn.Module):
 
         nn_out = self._model(ref_img, query_img)
 
-        return nn_out
+        return ref_img, query_img, nn_out
 
 def cross_normalized(v1,v2):
     assert v1.shape[1] == 3
@@ -321,7 +321,7 @@ class PoseOptimizer():
         t = self._x2t(tx, d)
         w = self._x2w(wx)
         R = w_to_R(w)
-        nn_out = self._pipeline(R, t, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
+        ref_img, query_img, nn_out = self._pipeline(R, t, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
         return self._nn_out2interp_pred_features(nn_out)
 
     def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):

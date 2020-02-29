@@ -27,14 +27,12 @@ from lib.rendering.glumpy_renderer import Renderer
 from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_camera_pose
 
 Maps = namedtuple('Maps', [
-    'ref_img',
-    'query_img',
+    'ref_img_full',
 ])
 
 ExtraInput = namedtuple('ExtraInput', [
     'real_ref',
     'K',
-    'HK',
     'R1',
     't1',
     'R2',
@@ -43,8 +41,8 @@ ExtraInput = namedtuple('ExtraInput', [
 
 SampleMetaData = namedtuple('SampleMetaData', [
     'ref_img_path',
-    'ambient_weight',
     'obj_id',
+    'diameter',
     # 'scheme_name',
     'tasks_punished',
 ])
@@ -239,42 +237,28 @@ class DummyDataset(Dataset):
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
+
+
+        # TODO: When in eval_poseeopt mode, all of the following can be omitted / replaced by dummy operations - since they are done online anyway:
+        # - Generating perturbation.
+        # - Rendering query img. (Furthermore - during inference real data could possibly be assumed, in which case glumpy renderer may somehow be reserved for the online rendering. This is faster than neural renderer.)
+        # - Defining crop box & corresponding transformation H
+        # - Cropping & resizing ref image
+        # - Target calculation
+        # - 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
-
-        # Define crop box in order to center object in query image
-        crop_box = square_bbox_around_projected_object_center(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-        desired_height, desired_width = self._configs.data.crop_dims
-        H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
-        HK = H @ self._K
-        # Crop ref image
-        img1 = crop_img(img1, crop_box, pad_if_outside=True)
-        # Resize the cropped bounding box to the desired resolution
-        img1 = resize_img(img1, self._configs.data.crop_dims)
-
-
-        # Render query image
-        query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        assert self._configs.data.query_rendering_method == 'neural'
-        assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
-        assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
-        img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
-        instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
 
         sample = self._generate_sample(
             ref_scheme_idx,
             query_scheme_idx,
             sample_index_in_epoch,
-            HK,
-            crop_box,
             R1,
             t1,
             ref_img_path,
             img1,
-            img2,
             R2,
             t2,
-            query_shading_params,
         )
 
         if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt']:
@@ -284,16 +268,12 @@ class DummyDataset(Dataset):
                 ref_scheme_idx,
                 query_scheme_idx,
                 sample_index_in_epoch,
-                HK,
-                crop_box,
                 R1,
                 t1,
                 ref_img_path,
                 img1,
-                img2,
                 R1, # Ref pose sent in as query pose!
                 t1, # Ref pose sent in as query pose!
-                query_shading_params,
             )
             pushopt_prob = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt_prob']
             if pushopt_prob is None:
@@ -509,9 +489,6 @@ class DummyDataset(Dataset):
 
     def _sample_ref_shading_params(self, ref_scheme_idx):
         return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._ref_sampling_schemes[ref_scheme_idx].synth_opts.shading.items()}
-
-    def _sample_query_shading_params(self, query_scheme_idx):
-        return {param_name: sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_schemes[query_scheme_idx].shading.items()}
 
     def _apply_perturbation(self, T1, perturb_params):
         # Map bias / extent ratio to actual translation:
@@ -917,7 +894,13 @@ class DummyDataset(Dataset):
 
         return img1, instance_seg1, ref_bg, safe_anno_mask
 
-    def _calc_targets(self, HK, R1, t1, R2, t2):
+    def _calc_targets(self, R1, t1, R2, t2):
+        # Compute crop box and everything in order to determine HK, which depends on the query pose.
+        crop_box = square_bbox_around_projected_object_center(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+        desired_height, desired_width = self._configs.data.crop_dims
+        H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
+        HK = H @ self._K
+
         # How to rotate 2nd camera frame, to align it with 1st camera frame
         R21_cam = closest_rotmat(R1 @ R2.T)
 
@@ -1011,16 +994,12 @@ class DummyDataset(Dataset):
             ref_scheme_idx,
             query_scheme_idx,
             sample_index_in_epoch,
-            HK,
-            crop_box,
             R1,
             t1,
             ref_img_path,
             img1,
-            img2,
             R2,
             t2,
-            query_shading_params,
         ):
         # # Transformation from 1st camera frame to 2nd camera frame
         # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
@@ -1031,16 +1010,14 @@ class DummyDataset(Dataset):
 
         # Convert maps to pytorch tensors, and organize in attrdict
         maps = Maps(
-            ref_img = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
-            query_img = numpy_to_pt(img2.astype(np.float32), normalize_flag=True),
+            ref_img_full = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
         )
 
-        targets = self._calc_targets(HK, R1, t1, R2, t2)
+        targets = self._calc_targets(R1, t1, R2, t2)
 
         extra_input = ExtraInput(
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
             K = torch.tensor(self._K, dtype=torch.float32),
-            HK = torch.tensor(HK, dtype=torch.float32),
             R1 = torch.tensor(R1, dtype=torch.float32),
             t1 = torch.tensor(t1, dtype=torch.float32),
             R2 = torch.tensor(R2, dtype=torch.float32),
@@ -1049,8 +1026,8 @@ class DummyDataset(Dataset):
 
         meta_data = SampleMetaData(
             ref_img_path = ref_img_path,
-            ambient_weight = float(query_shading_params['ambient_weight']),
             obj_id = self._obj_id,
+            diameter = self._metadata['objects'][self._obj_label]['diameter'],
             # scheme_name = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].scheme_name,
             tasks_punished = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].tasks_punished,
         )
