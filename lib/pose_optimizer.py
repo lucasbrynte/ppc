@@ -109,7 +109,7 @@ class FullPosePipeline(nn.Module):
 
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
-    def forward(self, t, w, R_refpt=None, batch_interleaved_repeat_factor=1, fname_dict={}):
+    def forward(self, R, t, R_refpt=None, batch_interleaved_repeat_factor=1, fname_dict={}):
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -122,7 +122,6 @@ class FullPosePipeline(nn.Module):
         HK = self._HK.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
         obj_id_list = [ obj_id for obj_id in self._obj_id_list for _ in range(batch_interleaved_repeat_factor) ]
 
-        R = w_to_R(w)
         if R_refpt is not None:
             R = torch.bmm(R, R_refpt)
         query_img = self._neural_rendering_wrapper.render(
@@ -321,7 +320,8 @@ class PoseOptimizer():
     def eval_func(self, wx, tx, d, R_refpt=None, fname_dict={}):
         t = self._x2t(tx, d)
         w = self._x2w(wx)
-        nn_out = self._pipeline(t, w, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
+        R = w_to_R(w)
+        nn_out = self._pipeline(R, t, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
         return self._nn_out2interp_pred_features(nn_out)
 
     def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):
