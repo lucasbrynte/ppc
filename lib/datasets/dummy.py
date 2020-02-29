@@ -255,18 +255,11 @@ class DummyDataset(Dataset):
 
         # Render query image
         query_shading_params = self._sample_query_shading_params(query_scheme_idx)
-        if self._configs.data.query_rendering_method == 'glumpy':
-            img2, instance_seg2 = self._render(HK, R2, t2, self._obj_id, [], [], [], query_shading_params, trunc_dims=self._configs.data.crop_dims)
-
-            # Query silhouette post-processing
-            if self._query_sampling_schemes[query_scheme_idx].white_silhouette:
-                img2 = self._set_white_silhouette(img2, instance_seg2)
-        else:
-            assert self._configs.data.query_rendering_method == 'neural'
-            assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
-            assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
-            img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
-            instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
+        assert self._configs.data.query_rendering_method == 'neural'
+        assert 'light_pos_worldframe' not in query_shading_params # neural renderer does not accept positional light sources - light is always at infinity. Let both renderers resort to their default behavior.
+        assert self._query_sampling_schemes[query_scheme_idx].shading.ambient_weight.method == 'fixed'
+        img2 = np.zeros(list(self._configs.data.crop_dims)+[3], dtype=img1.dtype)
+        instance_seg2 = np.zeros(self._configs.data.crop_dims, dtype=instance_seg1.dtype)
 
         sample = self._generate_sample(
             ref_scheme_idx,
