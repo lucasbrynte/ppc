@@ -94,7 +94,7 @@ class FullPosePipeline(nn.Module):
         model,
         neural_rendering_wrapper,
         loss_handler,
-        maps,
+        ref_img,
         HK,
         obj_id_list,
         ambient_weight,
@@ -104,7 +104,7 @@ class FullPosePipeline(nn.Module):
         self._model = model
         self._neural_rendering_wrapper = neural_rendering_wrapper
         self._loss_handler = loss_handler
-        self._maps = maps
+        self._ref_img = ref_img
         self._HK = HK
         self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
@@ -135,7 +135,7 @@ class FullPosePipeline(nn.Module):
             self._ambient_weight,
         )
 
-        ref_img = self._maps.ref_img.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        ref_img = self._ref_img.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
 
         for sample_idx, fname in fname_dict.items():
             fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
@@ -153,11 +153,7 @@ class FullPosePipeline(nn.Module):
         # return torch.mean(punish_img**2)
         # # return torch.mean(punish_img**2, dim=(1,2,3))
 
-        maps = self._maps._asdict()
-        maps['ref_img'] = ref_img
-        maps['query_img'] = query_img
-        maps = self._maps.__class__(**maps)
-        nn_out = self._model((maps, None))
+        nn_out = self._model(ref_img, query_img)
 
         pred_features_raw = self._loss_handler.get_pred_features(nn_out)
         pred_features = self._loss_handler.apply_activation(pred_features_raw)

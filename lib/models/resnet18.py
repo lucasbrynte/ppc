@@ -161,11 +161,8 @@ class Model(nn.Module):
                 head_spec['layers'][-1]['n_out'] = n_out
             assert head_spec['layers'][-1]['relu_flag'] == False
 
-    def forward(self, x):
-        maps, extra_input = x
-        s1 = maps.ref_img
-        s2 = maps.query_img
-        x = self.E11(s1) - self.E12(s2)
+    def forward(self, ref_img, query_img):
+        x = self.E11(ref_img) - self.E12(query_img)
         x = self.E2(x)
         x = { head_name: self.heads[head_name](x) for head_name in self.heads }
         # x = self.head(x)

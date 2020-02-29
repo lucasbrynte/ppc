@@ -181,7 +181,7 @@ class Main():
                     self._model,
                     self._neural_rendering_wrapper,
                     self._loss_handler,
-                    maps,
+                    maps.ref_img,
                     batch.extra_input.HK.cuda(),
                     batch.meta_data.obj_id,
                     batch.meta_data.ambient_weight,
@@ -368,7 +368,7 @@ class Main():
                         batch.meta_data.ambient_weight,
                     )
             maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-            nn_out = self._model((maps, extra_input))
+            nn_out = self._model(maps.ref_img, maps.query_img)
 
             # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)
