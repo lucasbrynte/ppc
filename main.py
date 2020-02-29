@@ -174,7 +174,6 @@ class Main():
             nbr_batches = None
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches)):
                 print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
-                assert self._configs.data.query_rendering_method == 'neural'
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
                 pose_pipeline = FullPosePipeline(
                     self._configs,
@@ -182,24 +181,24 @@ class Main():
                     self._neural_rendering_wrapper,
                     self._loss_handler,
                     maps.ref_img,
-                    batch.extra_input.HK.cuda(),
+                    extra_input.HK,
                     batch.meta_data.obj_id,
                     batch.meta_data.ambient_weight,
                 )
                 pose_optimizer = PoseOptimizer(
                     self._configs,
                     pose_pipeline,
-                    batch.extra_input.K.cuda(),
-                    batch.extra_input.HK.cuda(),
-                    batch.extra_input.R1.cuda(), # R_gt
-                    batch.extra_input.t1.cuda(), # t_gt
-                    batch.extra_input.R1.cuda(), # R_refpt
+                    extra_input.K,
+                    extra_input.HK,
+                    extra_input.R1, # R_gt
+                    extra_input.t1, # t_gt
+                    extra_input.R1, # R_refpt
                     batch.meta_data.ref_img_path,
                     numerical_grad = numerical_grad,
                 )
                 pose_optimizer.optimize(
-                    batch.extra_input.R1.cuda(), # R0_before_perturb
-                    batch.extra_input.t1.cuda(), # t0_before_perturb
+                    extra_input.R1, # R0_before_perturb
+                    extra_input.t1, # t0_before_perturb
                     # N = 1,
                     # N = 4,
                     # N = 10,
@@ -357,17 +356,18 @@ class Main():
         # cnt = 0
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
+            maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
+
             if self._configs.data.query_rendering_method == 'neural':
                 # NOTE: Here is fine to not store gradients. Use other function entirely when evaluating w/ gradient search for optimal pose.
                 with torch.no_grad():
-                    batch.maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
-                        batch.extra_input.HK.cuda(),
-                        batch.extra_input.R2.cuda(),
-                        batch.extra_input.t2.cuda(),
+                    maps.query_img[:,:,:,:] = self._neural_rendering_wrapper.render(
+                        extra_input.HK,
+                        extra_input.R2,
+                        extra_input.t2,
                         batch.meta_data.obj_id,
                         batch.meta_data.ambient_weight,
                     )
-            maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
             nn_out = self._model(maps.ref_img, maps.query_img)
 
             # Raw predicted features (neural net output)
@@ -450,13 +450,13 @@ class Main():
                 if save_imgs_flag:
                     print('Saving images...')
                     for sample_idx in range(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size']):
-                        self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
+                        self._visualizer.save_images(maps.ref_img.cpu(), maps.query_img.cpu(), batch.meta_data.ref_img_path, pred_features, target_features, loss_notapplied, mode, schemeset, visual_cnt, sample=sample_idx)
                         visual_cnt += 1
 
         if save_imgs_flag:
             print('Saving images...')
             if mode in (TRAIN, VAL):
-                self._visualizer.save_images(batch, pred_features, target_features, loss_notapplied, mode, schemeset, epoch, sample=-1)
+                self._visualizer.save_images(maps.ref_img.cpu(), maps.query_img.cpu(), batch.meta_data.ref_img_path, pred_features, target_features, loss_notapplied, mode, schemeset, epoch, sample=-1)
 
         if plot_signals_flag:
             print('Plotting signals...')

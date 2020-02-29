@@ -187,12 +187,11 @@ class Visualizer:
             tmp = '(' + tmp + ')'
         return tmp + unit_suffix
 
-    def save_images(self, batch, pred_features, target_features, loss_notapplied, mode, schemeset, step_index, sample=-1):
-        img1_batch = batch.maps.ref_img
-        img2_batch = batch.maps.query_img
+    def save_images(self, img1_batch, img2_batch, ref_img_path_batch, pred_features, target_features, loss_notapplied, mode, schemeset, step_index, sample=-1):
         img_shape = img1_batch.shape[-2:]
         img1 = self._retrieve_input_img(img1_batch[sample])
         img2 = self._retrieve_input_img(img2_batch[sample])
+        ref_img_path = ref_img_path_batch[sample]
 
         fig, axes_array = plt.subplots(
             nrows=2,
@@ -205,8 +204,8 @@ class Visualizer:
             gridspec_kw={'height_ratios': [1, 2]},
         )
         ref_img_title = 'Ref. image'
-        if batch.meta_data.ref_img_path[sample] is not None:
-            ref_img_title += '\n' + batch.meta_data.ref_img_path[sample]
+        if ref_img_path is not None:
+            ref_img_title += '\n' + ref_img_path
         self._plot_img(axes_array[0,0], img1, ref_img_title)
         self._plot_img(axes_array[0,1], img2, 'Query image')
 
