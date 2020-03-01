@@ -9,6 +9,7 @@ from scipy.spatial.transform import Rotation
 from scipy.stats import uniform, norm
 import cv2 as cv
 import torch
+import torch.nn.functional as F
 from torchvision.transforms.functional import normalize
 
 from lib.constants import TV_MEAN, TV_STD
@@ -160,47 +161,34 @@ def get_2d_scale_projectivity(scale_x, scale_y):
     T = np.diag([scale_x, scale_y, 1.0])
     return T
 
-def get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width):
+def get_projectivity_for_crop_and_rescale(xc, yc, width, height, crop_dims):
     """
     When cropping and rescaling the image, the calibration matrix will also
-    be affected, mapping K -> T*K, where T is the projectivity, determined
+    be affected, mapping K -> H*K, where H is the projectivity, determined
     and returned by this method.
+    
+    (xc, yc) - Center of bounding box. Coordinates represent pixel centers.
+    (width, height) - Distance between where left-most/right-most and top-most/bottom-most pixels will be samples. Coordinates represent pixel centers.
+    crop_dims - (height, width) of the resulting bounding box, in the sense of number of pixels.
     """
-    (x1, y1, x2, y2) = crop_box
+    desired_height, desired_width = crop_dims
 
-    # Pixel width & height of region of interest
-    old_width = x2 - x1
-    old_height = y2 - y1
+    x1 = xc - 0.5*width
+    y1 = yc - 0.5*height
 
     # Translate to map origin
     delta_x = -x1
     delta_y = -y1
 
     # Rescale (during which origin is fixed). Subtracting 1 from the number of pixels, assuming that pixel coordinates represent pixel centers, and that edge pixels will remain pixels during resize.
-    scale_x = (desired_width - 1) / (old_width - 1)
-    scale_y = (desired_height - 1) / (old_height - 1)
+    scale_x = (desired_width - 1) / width
+    scale_y = (desired_height - 1) / height
 
     T_transl = get_2d_transl_projectivity(delta_x, delta_y)
     T_scale = get_2d_scale_projectivity(scale_x, scale_y)
     return T_scale @ T_transl
 
-def gen_bbox(xc, yc, width, height):
-    """
-    (xc, yc) - Pixel coordinates of the top-left pixel in the bottom-right quadrant of the bounding box.
-    (width, height) - Even number of pixels representing the bounding box extent.
-    """
-    assert xc % 1 == 0
-    assert yc % 1 == 0
-    assert width % 2 == 0
-    assert height % 2 == 0
-    x1 = xc - width//2
-    x2 = xc + width//2
-    y1 = yc - height//2
-    y2 = yc + height//2
-    bbox = (x1, y1, x2, y2)
-    return bbox
-
-def square_bbox_around_projected_object_center(t, K, obj_diameter, crop_box_resize_factor = 1.0):
+def square_bbox_around_projected_object_center_numpy(t, K, obj_diameter, crop_box_resize_factor = 1.0):
     assert K.shape == (3, 3)
     assert t.shape == (3, 1)
     crop_dims = np.ones((2,))
@@ -209,29 +197,58 @@ def square_bbox_around_projected_object_center(t, K, obj_diameter, crop_box_resi
     crop_dims *= np.diag(K)[:2] / K[2,2] # Extract focal lengths fx & fy
     crop_dims *= crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
     xc, yc = pflat(K @ t)[:2,:].squeeze(1)
-
-    # TODO! Instead of enforcing integer bounding boxes - combined crop / resize method should be improved upon.
-    # Interpolate pixels such that obj center really projects to center.
-    # A crude way would be to upsample to a very high resolution, doing the pixel-aligned cropping there - and then downsample to the desired image size.
-    xc = xc.astype(np.int64) # Round to closest integer, which actually represents rounding to the closest pixel corner (which will be center of crop box), and then selecting the pixel right-below this corner.
-    yc = yc.astype(np.int64) # Round to closest integer, which actually represents rounding to the closest pixel corner (which will be center of crop box), and then selecting the pixel right-below this corner.
-    crop_dims = 2*(0.5*(crop_dims) + 0.5).astype(np.int64) # Round to nearest even integer
-
     height, width = crop_dims
-    bbox = gen_bbox(xc, yc, width, height)
-    return bbox
+    return xc, yc, width, height
 
-def resize_img(img, dims):
-    """
-    OpenCV had some issues with resizing when dtype is unsigned int... Casting to float and back overcomes the issue.
-    """
-    assert len(img.shape) == 3 and img.shape[2] == 3
-    dtype = img.dtype
-    assert dtype == np.bool or np.issubdtype(dtype, np.unsignedinteger)
-    img = img.astype(np.float64)
-    resized = cv.resize(img, dims, interpolation=cv.INTER_LINEAR)
-    resized = (resized + 0.5).astype(dtype)
-    return resized
+def square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, crop_box_resize_factor = 1.0):
+    device = t.device
+    xc = []
+    yc = []
+    width = []
+    height = []
+    for sample_idx in range(t.shape[0]):
+        curr_xc, curr_yc, curr_width, curr_height = square_bbox_around_projected_object_center_numpy(t[sample_idx].cpu().numpy(), K[sample_idx].cpu().numpy(), obj_diameter[sample_idx].cpu().numpy(), crop_box_resize_factor = crop_box_resize_factor)
+        xc.append(torch.tensor(curr_xc))
+        yc.append(torch.tensor(curr_yc))
+        width.append(torch.tensor(curr_width))
+        height.append(torch.tensor(curr_height))
+    xc = torch.stack(xc, dim=0).to(device)
+    yc = torch.stack(yc, dim=0).to(device)
+    width = torch.stack(width, dim=0).to(device)
+    height = torch.stack(height, dim=0).to(device)
+    return xc, yc, width, height
+
+def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
+    assert len(full_img.shape) == 4
+    device = full_img.device
+    bs = full_img.shape[0]
+    assert xc.shape == (bs,)
+    assert yc.shape == (bs,)
+    assert width.shape == (bs,)
+    assert height.shape == (bs,)
+    full_img_height, full_img_width = full_img.shape[-2:]
+    H = torch.stack([ torch.tensor(get_projectivity_for_crop_and_rescale(
+        xc[j].cpu().numpy(), 
+        yc[j].cpu().numpy(), 
+        width[j].cpu().numpy(), 
+        height[j].cpu().numpy(),
+        crop_dims,
+    ), dtype=torch.float32) for j in range(bs) ], dim=0).to(device)
+
+    # Rescale H such that input & output coordinate systems are in the [-1, 1] ranges (with endpoints at centers of extreme pixels)
+    H_norm2full_img = torch.matmul(
+        torch.tensor(get_2d_scale_projectivity(0.5*full_img_width, 0.5*full_img_height), dtype=torch.float32), # 2nd: scale to align (2,2) (center of bottom-right corner) with correct pixel value
+        torch.tensor(get_2d_transl_projectivity(1.0, 1.0), dtype=torch.float32), # 1st: translate (-1,-1) (center of top-left corner) to origin
+    )[None,:,:].to(device).repeat(bs,1,1)
+    H_crop_img2norm = torch.matmul(
+        torch.tensor(get_2d_transl_projectivity(-1.0, -1.0), dtype=torch.float32), # 2nd: translate crop box center to origin
+        torch.tensor(get_2d_scale_projectivity(1.0/(0.5*crop_dims[1]), 1.0/(0.5*crop_dims[0])), dtype=torch.float32), # 1st: scale to move (center of) bottom-right corner of crop box towards (2,2)
+    )[None,:,:].to(device).repeat(bs,1,1)
+    H_normalized_coords = torch.inverse(torch.matmul(H_crop_img2norm, torch.matmul(H, H_norm2full_img)))
+
+    grid = F.affine_grid(H_normalized_coords[:,:2,:], (bs,3,crop_dims[0],crop_dims[1]), align_corners=True)
+    img = F.grid_sample(full_img, grid, mode='bilinear', padding_mode='zeros', align_corners=True)
+    return H, img
 
 def crop_img(img, crop_box, pad_if_outside=False):
     (x1, y1, x2, y2) = crop_box

@@ -17,9 +17,9 @@ from torchvision.transforms import ColorJitter
 from torch.utils.data import Dataset
 
 from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
-# from lib.utils import get_eucl, gen_bbox
+# from lib.utils import get_eucl
 from lib.utils import project_pts, uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
-from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center, resize_img, crop_img
+from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center_numpy, crop_img
 from lib.constants import TRAIN, VAL
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
@@ -37,12 +37,12 @@ ExtraInput = namedtuple('ExtraInput', [
     't1',
     'R2',
     't2',
+    'obj_diameter',
 ])
 
 SampleMetaData = namedtuple('SampleMetaData', [
     'ref_img_path',
     'obj_id',
-    'diameter',
     # 'scheme_name',
     'tasks_punished',
 ])
@@ -896,9 +896,8 @@ class DummyDataset(Dataset):
 
     def _calc_targets(self, R1, t1, R2, t2):
         # Compute crop box and everything in order to determine HK, which depends on the query pose.
-        crop_box = square_bbox_around_projected_object_center(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-        desired_height, desired_width = self._configs.data.crop_dims
-        H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
+        xc, yc, width, height = square_bbox_around_projected_object_center_numpy(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+        H = get_projectivity_for_crop_and_rescale(xc, yc, width, height, self._configs.data.crop_dims)
         HK = H @ self._K
 
         # How to rotate 2nd camera frame, to align it with 1st camera frame
@@ -1022,12 +1021,12 @@ class DummyDataset(Dataset):
             t1 = torch.tensor(t1, dtype=torch.float32),
             R2 = torch.tensor(R2, dtype=torch.float32),
             t2 = torch.tensor(t2, dtype=torch.float32),
+            obj_diameter = torch.tensor(self._metadata['objects'][self._obj_label]['diameter'], dtype=torch.float32),
         )
 
         meta_data = SampleMetaData(
             ref_img_path = ref_img_path,
             obj_id = self._obj_id,
-            diameter = self._metadata['objects'][self._obj_label]['diameter'],
             # scheme_name = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].scheme_name,
             tasks_punished = self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].tasks_punished,
         )

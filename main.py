@@ -1,6 +1,5 @@
 import torch
 # from torch import nn
-import torch.nn.functional as F
 import numpy as np
 from attrdict import AttrDict
 from importlib import import_module
@@ -12,7 +11,9 @@ from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
-from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center, crop_img
+from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center_numpy, crop_img
+from lib.utils import square_bbox_around_projected_object_center_pt_batched
+from lib.utils import crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -177,17 +178,16 @@ class Main():
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches)):
                 print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-                ref_img_full = maps.ref_img_full
                 # query_img = maps.query_img
                 # HK = extra_input.HK
                 pose_pipeline = FullPosePipeline(
                     self._configs,
                     self._model,
                     self._neural_rendering_wrapper,
-                    ref_img_full,
+                    maps.ref_img_full,
                     HK,
                     batch.meta_data.obj_id,
-                    ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
+                    maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
                 )
                 def nn_out2interp_pred_features(nn_out):
                     pred_features_raw = self._loss_handler.get_pred_features(nn_out)
@@ -367,55 +367,11 @@ class Main():
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-            ref_img_full = maps.ref_img_full
-            # query_img = maps.query_img
-            # HK = extra_input.HK
 
-            HK = []
-            ref_img = []
-            for sample_idx in range(ref_img_full.cpu().shape[0]):
-                t2 = extra_input.t2.cpu()[sample_idx].numpy()
-                K = extra_input.K.cpu()[sample_idx].numpy()
-                diameter = batch.meta_data.diameter[sample_idx]
-                ref_img_full_numpy = ref_img_full.cpu()[sample_idx].permute((1,2,0)).numpy()
-
-                # Define crop box in order to center object in query image
-                crop_box = square_bbox_around_projected_object_center(t2, K, diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-                desired_height, desired_width = self._configs.data.crop_dims
-                H = get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_width)
-                curr_HK = H @ K
-                # Crop ref image
-                curr_ref_img = crop_img(ref_img_full_numpy, crop_box, pad_if_outside=True)
-
-                curr_HK = torch.tensor(curr_HK, dtype=torch.float32)
-                curr_ref_img = torch.tensor(curr_ref_img, dtype=torch.float32).permute((2,0,1))
-                HK.append(curr_HK)
-                # print(curr_ref_img.min())
-                # print(curr_ref_img.max())
-                # Resize the cropped bounding box to the desired resolution. Cannot easily be batched due to varying resolution.
-                curr_ref_img = F.interpolate(curr_ref_img[None,:,:,:], size=self._configs.data.crop_dims, mode='bilinear', align_corners=True).squeeze(0)
-                ref_img.append(curr_ref_img)
-            HK = torch.stack(HK, dim=0).cuda()
-            ref_img = torch.stack(ref_img, dim=0).cuda()
-
-            # NOTE: 3 torch modules:
-            # - Zoomer
-            # - Renderer
-            # - Model
-            # TODO:
-            # (1) Simplify interface between modules - get rid of named tuples!
-            # (2) Assert neural rather than glumpy. Glumpy is for later.
-            # (3) Implement zoomer. Maybe with some components in numpy to start with.
-            # (4) Change dataset output interface. No query rendering in dataset.
-            # (5) Smoother crop box. Use functional affine_grid & grid_sample to build spatial transformer module.
-            # https://pytorch.org/docs/stable/nn.functional.html#grid-sample
-
-
-
-
-
-
-
+            # Define crop box in order to center object in query image
+            xc, yc, width, height = square_bbox_around_projected_object_center_pt_batched(extra_input.t2, extra_input.K, extra_input.obj_diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+            H, ref_img = crop_and_rescale_pt_batched(maps.ref_img_full, xc, yc, width, height, self._configs.data.crop_dims)
+            HK = torch.bmm(H, extra_input.K)
 
             assert self._configs.data.query_rendering_method == 'neural'
             pose_pipeline = FullPosePipeline(
@@ -425,7 +381,7 @@ class Main():
                 ref_img,
                 HK,
                 batch.meta_data.obj_id,
-                ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
+                maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
             )
             ref_img, query_img, nn_out = pose_pipeline(extra_input.R2, extra_input.t2)
 
