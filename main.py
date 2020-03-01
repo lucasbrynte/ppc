@@ -176,14 +176,13 @@ class Main():
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches)):
                 print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
-                # query_img = maps.query_img
-                # HK = extra_input.HK
                 pose_pipeline = FullPosePipeline(
                     self._configs,
                     self._model,
                     self._neural_rendering_wrapper,
                     maps.ref_img_full,
-                    HK,
+                    extra_input.K,
+                    extra_input.obj_diameter,
                     batch.meta_data.obj_id,
                     maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
                 )
@@ -197,7 +196,6 @@ class Main():
                     pose_pipeline,
                     nn_out2interp_pred_features,
                     extra_input.K,
-                    HK,
                     extra_input.R1, # R_gt
                     extra_input.t1, # t_gt
                     extra_input.R1, # R_refpt
