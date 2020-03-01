@@ -7,6 +7,7 @@ from torch.autograd import grad
 from lib.expm.expm32 import expm32
 from lib.expm.expm64 import expm64
 from lib.utils import get_rotation_axis_angle, order_dict
+from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched
 
 from torchvision.transforms.functional import normalize
 from lib.constants import TV_MEAN, TV_STD
@@ -93,8 +94,9 @@ class FullPosePipeline(nn.Module):
         configs,
         model,
         neural_rendering_wrapper,
-        ref_img,
-        HK,
+        ref_img_full,
+        K,
+        obj_diameter,
         obj_id_list,
         ambient_weight,
     ):
@@ -102,8 +104,9 @@ class FullPosePipeline(nn.Module):
         self._configs = configs
         self._model = model
         self._neural_rendering_wrapper = neural_rendering_wrapper
-        self._ref_img = ref_img
-        self._HK = HK
+        self._ref_img_full = ref_img_full
+        self._K = K
+        self._obj_diameter = obj_diameter
         self._obj_id_list = obj_id_list
         self._ambient_weight = ambient_weight
 
@@ -119,8 +122,15 @@ class FullPosePipeline(nn.Module):
         # theta = torch.acos(0.5*(trace-1.0))
         # return theta
 
-        HK = self._HK.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        ref_img_full = self._ref_img_full.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        K = self._K.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        obj_diameter = self._obj_diameter.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
         obj_id_list = [ obj_id for obj_id in self._obj_id_list for _ in range(batch_interleaved_repeat_factor) ]
+
+        # Define crop box in order to center object in query image
+        xc, yc, width, height = square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+        H, ref_img = crop_and_rescale_pt_batched(ref_img_full, xc, yc, width, height, self._configs.data.crop_dims)
+        HK = torch.bmm(H, K)
 
         if R_refpt is not None:
             R = torch.bmm(R, R_refpt)
@@ -131,8 +141,6 @@ class FullPosePipeline(nn.Module):
             obj_id_list,
             self._ambient_weight,
         )
-
-        ref_img = self._ref_img.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
 
         for sample_idx, fname in fname_dict.items():
             fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
@@ -152,7 +160,7 @@ class FullPosePipeline(nn.Module):
 
         nn_out = self._model(ref_img, query_img)
 
-        return ref_img, query_img, nn_out
+        return H, ref_img, query_img, nn_out
 
 def cross_normalized(v1,v2):
     assert v1.shape[1] == 3

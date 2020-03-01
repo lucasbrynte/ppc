@@ -11,9 +11,7 @@ from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
-from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center_numpy, crop_img
-from lib.utils import square_bbox_around_projected_object_center_pt_batched
-from lib.utils import crop_and_rescale_pt_batched
+from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -368,22 +366,18 @@ class Main():
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
 
-            # Define crop box in order to center object in query image
-            xc, yc, width, height = square_bbox_around_projected_object_center_pt_batched(extra_input.t2, extra_input.K, extra_input.obj_diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-            H, ref_img = crop_and_rescale_pt_batched(maps.ref_img_full, xc, yc, width, height, self._configs.data.crop_dims)
-            HK = torch.bmm(H, extra_input.K)
-
             assert self._configs.data.query_rendering_method == 'neural'
             pose_pipeline = FullPosePipeline(
                 self._configs,
                 self._model,
                 self._neural_rendering_wrapper,
-                ref_img,
-                HK,
+                maps.ref_img_full,
+                extra_input.K,
+                extra_input.obj_diameter,
                 batch.meta_data.obj_id,
                 maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
             )
-            ref_img, query_img, nn_out = pose_pipeline(extra_input.R2, extra_input.t2)
+            H, ref_img, query_img, nn_out = pose_pipeline(extra_input.R2, extra_input.t2)
 
             # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out)

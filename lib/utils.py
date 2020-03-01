@@ -161,7 +161,7 @@ def get_2d_scale_projectivity(scale_x, scale_y):
     T = np.diag([scale_x, scale_y, 1.0])
     return T
 
-def get_projectivity_for_crop_and_rescale(xc, yc, width, height, crop_dims):
+def get_projectivity_for_crop_and_rescale_numpy(xc, yc, width, height, crop_dims):
     """
     When cropping and rescaling the image, the calibration matrix will also
     be affected, mapping K -> H*K, where H is the projectivity, determined
@@ -218,6 +218,33 @@ def square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, cr
     height = torch.stack(height, dim=0).to(device)
     return xc, yc, width, height
 
+def get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop_dims):
+    """
+    When cropping and rescaling the image, the calibration matrix will also
+    be affected, mapping K -> H*K, where H is the projectivity, determined
+    and returned by this method.
+    
+    (xc, yc) - Center of bounding box. Coordinates represent pixel centers.
+    (width, height) - Distance between where left-most/right-most and top-most/bottom-most pixels will be samples. Coordinates represent pixel centers.
+    crop_dims - (height, width) of the resulting bounding box, in the sense of number of pixels.
+    """
+    bs = xc.shape[0]
+    device = xc.device
+    assert xc.shape == (bs,)
+    assert yc.shape == (bs,)
+    assert width.shape == (bs,)
+    assert height.shape == (bs,)
+
+    H = torch.stack([ torch.tensor(get_projectivity_for_crop_and_rescale_numpy(
+        xc[j].cpu().numpy(), 
+        yc[j].cpu().numpy(), 
+        width[j].cpu().numpy(), 
+        height[j].cpu().numpy(),
+        crop_dims,
+    ), dtype=torch.float32) for j in range(bs) ], dim=0).to(device)
+
+    return H
+
 def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
     assert len(full_img.shape) == 4
     device = full_img.device
@@ -227,13 +254,7 @@ def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
     assert width.shape == (bs,)
     assert height.shape == (bs,)
     full_img_height, full_img_width = full_img.shape[-2:]
-    H = torch.stack([ torch.tensor(get_projectivity_for_crop_and_rescale(
-        xc[j].cpu().numpy(), 
-        yc[j].cpu().numpy(), 
-        width[j].cpu().numpy(), 
-        height[j].cpu().numpy(),
-        crop_dims,
-    ), dtype=torch.float32) for j in range(bs) ], dim=0).to(device)
+    H = get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop_dims)
 
     # Rescale H such that input & output coordinate systems are in the [-1, 1] ranges (with endpoints at centers of extreme pixels)
     H_norm2full_img = torch.matmul(
