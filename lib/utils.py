@@ -201,21 +201,21 @@ def square_bbox_around_projected_object_center_numpy(t, K, obj_diameter, crop_bo
     return xc, yc, width, height
 
 def square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, crop_box_resize_factor = 1.0):
+    bs = t.shape[0]
     device = t.device
-    xc = []
-    yc = []
-    width = []
-    height = []
-    for sample_idx in range(t.shape[0]):
-        curr_xc, curr_yc, curr_width, curr_height = square_bbox_around_projected_object_center_numpy(t[sample_idx].cpu().numpy(), K[sample_idx].cpu().numpy(), obj_diameter[sample_idx].cpu().numpy(), crop_box_resize_factor = crop_box_resize_factor)
-        xc.append(torch.tensor(curr_xc))
-        yc.append(torch.tensor(curr_yc))
-        width.append(torch.tensor(curr_width))
-        height.append(torch.tensor(curr_height))
-    xc = torch.stack(xc, dim=0).to(device)
-    yc = torch.stack(yc, dim=0).to(device)
-    width = torch.stack(width, dim=0).to(device)
-    height = torch.stack(height, dim=0).to(device)
+    assert t.shape == (bs, 3, 1)
+    assert K.shape == (bs, 3, 3)
+    assert obj_diameter.shape == (bs,)
+    crop_dims = torch.ones((bs, 2), device=device)
+    crop_dims /= t[:,2,:] # Divide both dimensions with depth
+    crop_dims *= obj_diameter[:,None] # Multiply both dimensions with diameter
+    crop_dims[:,0] *= K[:,1,1] / K[:,2,2] # Multiply height with focal length fy
+    crop_dims[:,1] *= K[:,0,0] / K[:,2,2] # Multiply width with focal length fx
+    crop_dims *= crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
+    projected_center = torch.matmul(K, t)
+    projected_center = projected_center / projected_center[:,[2],:] # Perspective division & unhomogenization
+    xc, yc = projected_center[:,0,0], projected_center[:,1,0]
+    height, width = crop_dims[:,0], crop_dims[:,1]
     return xc, yc, width, height
 
 def get_2d_transl_projectivity_pt_batched(delta_x, delta_y):

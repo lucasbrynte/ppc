@@ -11,7 +11,6 @@ from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
-from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
