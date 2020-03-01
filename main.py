@@ -12,7 +12,7 @@ from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
-from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center, resize_img, crop_img
+from lib.utils import get_projectivity_for_crop_and_rescale, square_bbox_around_projected_object_center, crop_img
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -393,8 +393,7 @@ class Main():
                 # print(curr_ref_img.min())
                 # print(curr_ref_img.max())
                 # Resize the cropped bounding box to the desired resolution. Cannot easily be batched due to varying resolution.
-                curr_ref_img = F.interpolate(curr_ref_img[None,:,:,:], size=self._configs.data.crop_dims, mode='bilinear').squeeze(0)
-                # curr_ref_img = resize_img(curr_ref_img, self._configs.data.crop_dims)
+                curr_ref_img = F.interpolate(curr_ref_img[None,:,:,:], size=self._configs.data.crop_dims, mode='bilinear', align_corners=True).squeeze(0)
                 ref_img.append(curr_ref_img)
             HK = torch.stack(HK, dim=0).cuda()
             ref_img = torch.stack(ref_img, dim=0).cuda()

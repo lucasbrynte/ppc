@@ -176,19 +176,27 @@ def get_projectivity_for_crop_and_rescale(crop_box, desired_height, desired_widt
     delta_x = -x1
     delta_y = -y1
 
-    # Rescale (during which origin is fixed)
-    scale_x = desired_width / old_width
-    scale_y = desired_height / old_height
+    # Rescale (during which origin is fixed). Subtracting 1 from the number of pixels, assuming that pixel coordinates represent pixel centers, and that edge pixels will remain pixels during resize.
+    scale_x = (desired_width - 1) / (old_width - 1)
+    scale_y = (desired_height - 1) / (old_height - 1)
 
     T_transl = get_2d_transl_projectivity(delta_x, delta_y)
     T_scale = get_2d_scale_projectivity(scale_x, scale_y)
     return T_scale @ T_transl
 
 def gen_bbox(xc, yc, width, height):
-    x2 = int(xc + 0.5*width)
-    x1 = int(x2 - width)
-    y2 = int(yc + 0.5*height)
-    y1 = int(y2 - height)
+    """
+    (xc, yc) - Pixel coordinates of the top-left pixel in the bottom-right quadrant of the bounding box.
+    (width, height) - Even number of pixels representing the bounding box extent.
+    """
+    assert xc % 1 == 0
+    assert yc % 1 == 0
+    assert width % 2 == 0
+    assert height % 2 == 0
+    x1 = xc - width//2
+    x2 = xc + width//2
+    y1 = yc - height//2
+    y2 = yc + height//2
     bbox = (x1, y1, x2, y2)
     return bbox
 
@@ -202,7 +210,12 @@ def square_bbox_around_projected_object_center(t, K, obj_diameter, crop_box_resi
     crop_dims *= crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
     xc, yc = pflat(K @ t)[:2,:].squeeze(1)
 
-    crop_dims = crop_dims.astype(np.int64)
+    # TODO! Instead of enforcing integer bounding boxes - combined crop / resize method should be improved upon.
+    # Interpolate pixels such that obj center really projects to center.
+    # A crude way would be to upsample to a very high resolution, doing the pixel-aligned cropping there - and then downsample to the desired image size.
+    xc = xc.astype(np.int64) # Round to closest integer, which actually represents rounding to the closest pixel corner (which will be center of crop box), and then selecting the pixel right-below this corner.
+    yc = yc.astype(np.int64) # Round to closest integer, which actually represents rounding to the closest pixel corner (which will be center of crop box), and then selecting the pixel right-below this corner.
+    crop_dims = 2*(0.5*(crop_dims) + 0.5).astype(np.int64) # Round to nearest even integer
 
     height, width = crop_dims
     bbox = gen_bbox(xc, yc, width, height)
