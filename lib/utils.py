@@ -194,7 +194,7 @@ def square_bbox_around_projected_object_center_numpy(t, K, obj_diameter, crop_bo
     crop_dims = np.ones((2,))
     crop_dims /= t[2,0]
     crop_dims *= obj_diameter
-    crop_dims *= np.diag(K)[:2] / K[2,2] # Extract focal lengths fx & fy
+    crop_dims *= np.diag(K)[[1,0]] / K[2,2] # Extract focal lengths fx & fy, in fy/fx order.
     crop_dims *= crop_box_resize_factor # Could expand crop_box slightly, in order to cover object even when projection is very oblique. Seems unnecessary however.
     xc, yc = pflat(K @ t)[:2,:].squeeze(1)
     height, width = crop_dims
