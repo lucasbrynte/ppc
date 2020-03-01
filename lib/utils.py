@@ -218,6 +218,26 @@ def square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, cr
     height = torch.stack(height, dim=0).to(device)
     return xc, yc, width, height
 
+def get_2d_transl_projectivity_pt_batched(delta_x, delta_y):
+    bs = delta_x.shape[0]
+    device = delta_x.device
+    assert delta_x.shape == (bs,)
+    assert delta_y.shape == (bs,)
+    T = torch.eye(3, device=device)[None,:,:].repeat(bs,1,1)
+    T[:,0,2] = delta_x
+    T[:,1,2] = delta_y
+    return T
+
+def get_2d_scale_projectivity_pt_batched(scale_x, scale_y):
+    bs = scale_x.shape[0]
+    device = scale_x.device
+    assert scale_x.shape == (bs,)
+    assert scale_y.shape == (bs,)
+    T = torch.eye(3, device=device)[None,:,:].repeat(bs,1,1)
+    T[:,0,0] = scale_x
+    T[:,1,1] = scale_y
+    return T
+
 def get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop_dims):
     """
     When cropping and rescaling the image, the calibration matrix will also
@@ -229,21 +249,27 @@ def get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop
     crop_dims - (height, width) of the resulting bounding box, in the sense of number of pixels.
     """
     bs = xc.shape[0]
-    device = xc.device
     assert xc.shape == (bs,)
     assert yc.shape == (bs,)
     assert width.shape == (bs,)
     assert height.shape == (bs,)
 
-    H = torch.stack([ torch.tensor(get_projectivity_for_crop_and_rescale_numpy(
-        xc[j].cpu().numpy(), 
-        yc[j].cpu().numpy(), 
-        width[j].cpu().numpy(), 
-        height[j].cpu().numpy(),
-        crop_dims,
-    ), dtype=torch.float32) for j in range(bs) ], dim=0).to(device)
+    desired_height, desired_width = crop_dims
 
-    return H
+    x1 = xc - 0.5*width
+    y1 = yc - 0.5*height
+
+    # Translate to map origin
+    delta_x = -x1
+    delta_y = -y1
+
+    # Rescale (during which origin is fixed). Subtracting 1 from the number of pixels, assuming that pixel coordinates represent pixel centers, and that edge pixels will remain pixels during resize.
+    scale_x = (desired_width - 1) / width
+    scale_y = (desired_height - 1) / height
+
+    T_transl = get_2d_transl_projectivity_pt_batched(delta_x, delta_y)
+    T_scale = get_2d_scale_projectivity_pt_batched(scale_x, scale_y)
+    return torch.matmul(T_scale, T_transl)
 
 def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
     assert len(full_img.shape) == 4
