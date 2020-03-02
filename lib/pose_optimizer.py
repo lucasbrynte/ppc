@@ -331,8 +331,8 @@ class PoseOptimizer():
         rel_depth_est = pred_features['rel_depth_error']
         # Sum over batch for aggregated loss. Each term will only depend on its corresponding elements in the parameter tensors anyway.
         agg_loss = torch.sum(err_est)
-        wx_grad, tx_grad = grad((agg_loss,), (x,))
-        return H, err_est, wx_grad, tx_grad
+        wx_grad, tx_grad, d_grad = grad((agg_loss,), (wx, tx, d))
+        return H, err_est, wx_grad, tx_grad, d_grad
 
     def eval_func_and_calc_numerical_wx_grad(self, wx1, tx, d, y1, step_size, x_indices=None):
         """
@@ -370,6 +370,27 @@ class PoseOptimizer():
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             tx2[:,x_idx] += forward_diff*step_size
             H, pred_features = self.eval_func(wx, tx2, d, R_refpt=self._R_refpt, fname_dict={})
+            y2 = pred_features['avg_reproj_err'].squeeze(1)
+            assert y2.shape == (self._batch_size,)
+            grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
+        grad = grad.detach()
+        return grad
+
+    def eval_func_and_calc_numerical_d_grad(self, wx, tx, d1, y1, step_size, x_indices=None):
+        """
+        Eval function and calculate numerical gradients
+        """
+        nbr_params = d1.shape[1]
+        if x_indices is None:
+            x_indices = list(range(nbr_params))
+        assert y1.shape == (self._batch_size,)
+        grad = torch.zeros_like(d1)
+        assert grad.shape == (self._batch_size, nbr_params)
+        for x_idx in x_indices:
+            d2 = d1.clone()
+            forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
+            d2[:,x_idx] += forward_diff*step_size
+            H, pred_features = self.eval_func(wx, tx, d2, R_refpt=self._R_refpt, fname_dict={})
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
@@ -669,18 +690,29 @@ class PoseOptimizer():
             [
                 tx,
             ],
-            lr = 1.0,
+            lr = 2.0,
+            # lr = 1.0,
             momentum = 0.7,
         )
-        self._d_optimizer = torch.optim.SGD(
+        self._d_optimizer = torch.optim.Adam(
             [
                 d,
             ],
-            lr = 1.0,
-            momentum = 0.1,
+            # lr = 1e-1,
+            lr = 7e-2,
+            # lr = 3e-2,
+            # lr = 1e-2,
+            betas = (0.8, 0.9),
         )
+        # self._d_optimizer = torch.optim.SGD(
+        #     [
+        #         d,
+        #     ],
+        #     lr = 1.0,
+        #     momentum = 0.1,
+        # )
         if self._num_txdims > 0:
-            nbr_iter_tx_leap = 2
+            nbr_iter_tx_leap = 5
         else:
             nbr_iter_tx_leap = 0
         nbr_iter_tx_leap = nbr_iter_tx_leap
@@ -707,12 +739,14 @@ class PoseOptimizer():
         self._d_scheduler = self._init_cos_transition_scheduler(
             self._d_optimizer,
             zero_before = nbr_iter_tx_leap,
-            x_min = final_finetune_iter,
-            x_max = final_finetune_iter+10,
+            x_min = nbr_iter_tx_leap,
+            x_max = final_finetune_iter,
+            # x_min = final_finetune_iter,
+            # x_max = final_finetune_iter+10,
             # y_min = 1.0,
-            y_min = 1e-1,
+            # y_min = 1e-1,
             # y_min = 4e-2,
-            # y_min = 1e-2,
+            y_min = 1e-2,
             y_max = 1.0,
         )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
@@ -722,11 +756,13 @@ class PoseOptimizer():
 
         step_size_wx = 1e-2
         step_size_tx = 1.0 # 1 px
+        step_size_d = 5e-3
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_H = torch.empty((self._batch_size, N, 3, 3), dtype=self._dtype, device=self._device)
         all_wx_grads = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
         all_tx_grads = torch.empty((self._batch_size, N, self._num_txdims), dtype=self._dtype, device=self._device)
+        all_d_grads = torch.empty((self._batch_size, N, self._num_ddims), dtype=self._dtype, device=self._device)
         all_exp_avgs = torch.zeros((self._batch_size, N, self._num_params), dtype=self._dtype, device=self._device)
         all_exp_avg_sqs = torch.zeros((self._batch_size, N, self._num_params), dtype=self._dtype, device=self._device)
         all_wx = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
@@ -741,11 +777,13 @@ class PoseOptimizer():
                 rel_depth_est = pred_features['rel_depth_error']
                 if j >= nbr_iter_tx_leap:
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
+                    curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
                 else:
                     curr_wx_grad = torch.zeros_like(wx)
+                    curr_d_grad = torch.zeros_like(d)
                 curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
             else:
-                H, err_est, curr_wx_grad, curr_tx_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+                H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
                 print(
                     j,
@@ -760,6 +798,7 @@ class PoseOptimizer():
                     d.detach().cpu().numpy(),
                     curr_wx_grad.detach().cpu().numpy(),
                     curr_tx_grad.detach().cpu().numpy(),
+                    curr_d_grad.detach().cpu().numpy(),
                 )
             if self._num_wxdims > 0:
                 wx.grad = curr_wx_grad
@@ -770,7 +809,8 @@ class PoseOptimizer():
                 elif j >= nbr_iter_tx_leap:
                     tx.grad = curr_tx_grad
             if self._num_ddims == 1:
-                d.grad = torch.log(rel_depth_est[:,:])
+                d.grad = curr_d_grad
+                # d.grad = torch.log(rel_depth_est[:,:])
 
             if j > 0:
                 exp_avg_wx = self._wx_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._wx_optimizer.state[wx] else torch.zeros_like(wx)
@@ -789,6 +829,7 @@ class PoseOptimizer():
             all_d[:,j,:] = d.detach().clone()
             all_wx_grads[:,j,:] = curr_wx_grad.detach().clone()
             all_tx_grads[:,j,:] = curr_tx_grad.detach().clone()
+            all_d_grads[:,j,:] = curr_d_grad.detach().clone()
             if j > 0:
                 all_exp_avgs[:,j,:] = exp_avg.detach().clone()
                 all_exp_avg_sqs[:,j,:] = exp_avg_sq.detach().clone()
@@ -904,7 +945,8 @@ class PoseOptimizer():
         all_params = torch.stack(self._batch_size*[all_params], dim=0)
 
         step_size_wx = 1e-2
-        step_size_tx = 3e-3
+        step_size_tx = 1.0 # 1 px
+        step_size_d = 5e-3
 
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         all_pixel_offset_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
@@ -914,6 +956,7 @@ class PoseOptimizer():
         if calc_grad:
             all_wx_grads = torch.empty([self._batch_size, self._num_wxdims]+N_each, dtype=self._dtype, device=self._device)
             all_tx_grads = torch.empty([self._batch_size, self._num_txdims]+N_each, dtype=self._dtype, device=self._device)
+            all_d_grads = torch.empty([self._batch_size, self._num_ddims]+N_each, dtype=self._dtype, device=self._device)
         for j in range(N):
             param_vec = vec(all_params, N_each)[:,:,j] # shape: (sample_idx, x_idx)
             wx = param_vec[:,:self._num_wxdims]
@@ -928,8 +971,9 @@ class PoseOptimizer():
                     rel_depth_est = pred_features['rel_depth_error']
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
                     curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
+                    curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
                 else:
-                    H, err_est, curr_wx_grad, curr_tx_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
                 H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
@@ -945,6 +989,7 @@ class PoseOptimizer():
                 d.detach().cpu().numpy(),
                 curr_wx_grad.detach().cpu().numpy() if calc_grad else None,
                 curr_tx_grad.detach().cpu().numpy() if calc_grad else None,
+                curr_d_grad.detach().cpu().numpy() if calc_grad else None,
             )
 
             # Store iterations
@@ -952,6 +997,7 @@ class PoseOptimizer():
             if calc_grad:
                 vec(all_wx_grads, N_each)[:,:,j] = curr_wx_grad
                 vec(all_tx_grads, N_each)[:,:,j] = curr_tx_grad
+                vec(all_d_grads, N_each)[:,:,j] = curr_d_grad
 
             # Store iterations
             vec(all_err_est, N_each)[:,j] = err_est.detach()
