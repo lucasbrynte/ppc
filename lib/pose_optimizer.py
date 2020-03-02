@@ -7,7 +7,7 @@ from torch.autograd import grad
 from lib.expm.expm32 import expm32
 from lib.expm.expm64 import expm64
 from lib.utils import get_rotation_axis_angle, order_dict
-from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched
+from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched, get_projectivity_for_crop_and_rescale_pt_batched
 
 from torchvision.transforms.functional import normalize
 from lib.constants import TV_MEAN, TV_STD
@@ -456,7 +456,7 @@ class PoseOptimizer():
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
         R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
         t_est_numpy = t_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 1)
-        HK_numpy = HK.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), 3, 3)
+        HK_numpy = HK.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
         metrics = [ {
             'ref_img_path': ref_img_path,
             'optim_runs': self._optim_runs,
@@ -562,7 +562,7 @@ class PoseOptimizer():
             lambda x: 1.0,
         )
 
-    def _get_H0(self, t0, K):
+    def _get_H0(self, t0, K, obj_diameter):
         """
         Determine a nominal projectivity H0 which will be fixed throughout optimization.
         This determines the "pixel" space of the unknown translation parameters tx.
@@ -624,7 +624,8 @@ class PoseOptimizer():
         t0_before_u_perturb = (t0_before_perturb + t_perturb).detach()
         self._R_refpt = R0.clone()
 
-        H0 = self._get_H0(self, t0_before_u_perturb, self._K)
+        obj_diameter = self._pipeline._obj_diameter.repeat_interleave(self._num_optim_runs, dim=0)
+        H0 = self._get_H0(t0_before_u_perturb, self._K, obj_diameter)
         self._H0K = torch.matmul(H0, self._K)
         self._H0K_inv = torch.inverse(self._H0K)
 
@@ -853,10 +854,16 @@ class PoseOptimizer():
 
         self._R_refpt = self._R_gt.clone()
 
+        t0 = self._t_gt.detach()
+
+        H0 = self._get_H0(t0, self._K, self._pipeline._obj_diameter)
+        self._H0K = torch.matmul(H0, self._K)
+        self._H0K_inv = torch.inverse(self._H0K)
+
         self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
         self._w_basis = self._get_w_basis(primary_w_dir = None)
         self._ref_depth = self._t_gt[:,2,:].squeeze(1)
-        t0 = self._t_gt.detach()
+
         self._u_basis_origin = torch.bmm(self._H0K, t0)
         self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
         self._u_basis = self._get_u_basis()
