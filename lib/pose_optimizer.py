@@ -762,13 +762,13 @@ class PoseOptimizer():
                     curr_tx_grad.detach().cpu().numpy(),
                 )
             if self._num_wxdims > 0:
-                wx.grad = curr_wx_grad[:,:self._num_wxdims]
+                wx.grad = curr_wx_grad
             if self._num_txdims > 0:
                 if self._num_txdims == 2 and j < nbr_iter_tx_leap:
                     # Take a leap
                     tx -= pixel_offset_est[:,:]
                 elif j >= nbr_iter_tx_leap:
-                    tx.grad = curr_tx_grad[:,-self._num_txdims:]
+                    tx.grad = curr_tx_grad
             if self._num_ddims == 1:
                 d.grad = torch.log(rel_depth_est[:,:])
 
@@ -918,7 +918,7 @@ class PoseOptimizer():
             param_vec = vec(all_params, N_each)[:,:,j] # shape: (sample_idx, x_idx)
             wx = param_vec[:,:self._num_wxdims]
             tx = param_vec[:,self._num_wxdims:self._num_wxdims+self._num_txdims]
-            d = param_vec[:,-self._num_ddims:]
+            d = param_vec[:,self._num_wxdims+self._num_txdims:]
 
             if calc_grad:
                 if self._numerical_grad:
