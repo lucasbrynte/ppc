@@ -12,6 +12,7 @@ targets:
   avg_reproj_err:                  {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}
 
   pixel_offset:                    {n_out: 2,   activation: null,      min: null, max: null, unit: px}
+  # rel_depth_error:                 {n_out: 1,   activation: abs,       min: 0.0, max: null, unit: log_factor}
   rel_depth_error:                 {n_out: 1,   activation: null,      min: null, max: null, unit: log_factor}
   norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: null, unit: px}
   # norm_pixel_offset:               {n_out: 1,   activation: null,      min: 0.0, max: 50.0, unit: px}

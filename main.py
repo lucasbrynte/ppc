@@ -331,11 +331,11 @@ class Main():
                 #     # num_txdims = 2,
                 #     # num_ddims = 0,
                 #     # N_each = [20, 20],
-                #     num_txdims = 1,
-                #     num_ddims = 0,
+                #     num_txdims = 0,
+                #     num_ddims = 1,
                 #     N_each = [100],
-                #     # calc_grad=False,
-                #     calc_grad=True,
+                #     calc_grad=False,
+                #     # calc_grad=True,
                 # )
                 # assert False
 

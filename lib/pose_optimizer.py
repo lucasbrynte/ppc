@@ -677,6 +677,7 @@ class PoseOptimizer():
         self._wx_optimizer = torch.optim.Adam(
             [
                 wx,
+                # d,
             ],
             # lr = 1e-1,
             lr = 7e-2, # better than 3e-2 for max50..?
@@ -697,9 +698,11 @@ class PoseOptimizer():
         self._d_optimizer = torch.optim.Adam(
             [
                 d,
+                # d.clone(),
             ],
             # lr = 1e-1,
             lr = 7e-2,
+            # lr = 5e-2,
             # lr = 3e-2,
             # lr = 1e-2,
             betas = (0.8, 0.9),
@@ -855,6 +858,7 @@ class PoseOptimizer():
             nrows = 1
             nrows += 1
             fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
+            # TODO: Plot all_wx, all_tx and all_d separately and neatly.
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
             axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
             # axes_array[0,2].plot(all_wx_grads[sample_idx,:,:].detach().cpu().numpy())
@@ -928,10 +932,12 @@ class PoseOptimizer():
         # Plot along line
         # param_delta = 0.001
         # param_delta = 0.01
+        # param_delta = 0.05
         # param_delta = 0.15
-        param_delta = 0.5
-        # param_delta = 1.5
-        # param_delta = 150.
+        # param_delta = 0.25
+        # param_delta = 0.5
+        param_delta = 1.5
+        # param_delta = 50.
 
         param_range_limits = [ (-param_delta, param_delta) for x_idx in range(self._num_params) ]
 
@@ -1056,6 +1062,7 @@ class PoseOptimizer():
             # if calc_grad:
             #     axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
             #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_d_grads[sample_idx,:,:].detach().cpu().numpy().T)
         elif self._num_params == 2:
             nrows = 2
             ncols = 1
@@ -1063,6 +1070,7 @@ class PoseOptimizer():
             if calc_grad:
                 ncols += 1
             fig, axes_array = plt.subplots(figsize=(15,6), nrows=nrows, ncols=ncols, squeeze=False)
+            # TODO: Plot all_wx, all_tx and all_d separately and neatly.
             plot_surf(axes_array, 0, 0, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy(), title='all_err_est')
             plot_heatmap(axes_array, 1, 0, all_err_est[sample_idx,:,:].detach().cpu().numpy())
             plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy(), title='all_rel_depth_est')
@@ -1078,6 +1086,8 @@ class PoseOptimizer():
                 plot_heatmap(axes_array, 1, 1, all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 # plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 # plot_heatmap(axes_array, 1, 1, all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_d_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_heatmap(axes_array, 1, 1, all_d_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
         fig.savefig(os.path.join(self._out_path, '00_func.png'))
         # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-train100.png'))

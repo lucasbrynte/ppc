@@ -17,6 +17,7 @@ class Resnet18Wrapper(nn.Module):
         if self._include_lowlevel and self._include_highlevel:
             assert self._include_midlevel
 
+        # pretrained = False
         resnet18 = models.resnet18(pretrained=pretrained)
 
         if self._include_lowlevel:
