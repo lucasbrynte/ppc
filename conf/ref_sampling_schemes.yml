@@ -10,7 +10,7 @@ real_unoccl_train_keepbg:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 real_unoccl_train_voc:
   ref_source: real
@@ -21,7 +21,7 @@ real_unoccl_train_voc:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 real_unoccl_train_whitesilhouette:
   ref_source: real
@@ -32,7 +32,7 @@ real_unoccl_train_whitesilhouette:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 
 # ==============================================================================
@@ -47,7 +47,7 @@ real_unoccl_train_keepbg_frame100:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 real_unoccl_train_voc_frame100:
   ref_source: real
@@ -58,7 +58,7 @@ real_unoccl_train_voc_frame100:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
+    linemod_seq: train_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 real_unoccl_train_whitesilhouette_frame100:
   ref_source: real
@@ -69,7 +69,165 @@ real_unoccl_train_whitesilhouette_frame100:
     on_border_only: true
     sigma_range: [1.2, 1.2]
   real_opts:
+    linemod_seq: train_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+
+
+
+
+
+
+# ==============================================================================
+# real_unoccl_all
+# ==============================================================================
+real_unoccl_all_keepbg:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+real_unoccl_all_voc:
+  ref_source: real
+  background: voc
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+real_unoccl_all_whitesilhouette:
+  ref_source: real
+  background: black
+  white_silhouette: true
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+
+# ==============================================================================
+# real_unoccl_all FRAME 100
+# ==============================================================================
+real_unoccl_all_keepbg_frame100:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+real_unoccl_all_voc_frame100:
+  ref_source: real
+  background: voc
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+real_unoccl_all_whitesilhouette_frame100:
+  ref_source: real
+  background: black
+  white_silhouette: true
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: all_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+
+
+
+
+
+
+# ==============================================================================
+# real_unoccl_test
+# ==============================================================================
+real_unoccl_test_keepbg:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+real_unoccl_test_voc:
+  ref_source: real
+  background: voc
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+real_unoccl_test_whitesilhouette:
+  ref_source: real
+  background: black
+  white_silhouette: true
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: null
+
+# ==============================================================================
+# real_unoccl_test FRAME 100
+# ==============================================================================
+real_unoccl_test_keepbg_frame100:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+real_unoccl_test_voc_frame100:
+  ref_source: real
+  background: voc
+  white_silhouette: false
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: 100
+real_unoccl_test_whitesilhouette_frame100:
+  ref_source: real
+  background: black
+  white_silhouette: true
+  blur_opts:
+    apply_blur: true
+    on_border_only: true
+    sigma_range: [1.2, 1.2]
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
     static_frame_idx: 100
 
 
