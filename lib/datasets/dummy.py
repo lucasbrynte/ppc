@@ -681,6 +681,8 @@ class DummyDataset(Dataset):
         # NOTE: Last frame missing (from both data and annotations). Lost during pre-processing scripts in ~/research/3dod/preprocessing/rigidpose, due to wrong "sequence_length" entries in ~/object-pose-estimation/meta.json
         # nbr_frames = len(all_gts)
 
+        all_infos = self._read_yaml(os.path.join(self._configs.data.path, seq, 'info.yml'))
+
         NBR_ATTEMPTS = 50
         for j in range(NBR_ATTEMPTS):
             if self._ref_sampling_schemes[ref_scheme_idx].real_opts.static_frame_idx is not None:
@@ -692,6 +694,10 @@ class DummyDataset(Dataset):
                 frame_idx = np.random.choice(self._sequence_lengths[ref_scheme_idx])
                 frame_idx = self._sequence_frames_filtered[ref_scheme_idx][frame_idx]
             gts_in_frame = all_gts[frame_idx]
+
+            # Verify that calibration matrix is indeed constant, and the same as the one annotated in camera.yml
+            curr_K_anno = np.array(all_infos[frame_idx]['cam_K']).reshape((3, 3))
+            assert np.all(np.isclose(curr_K_anno, self._K))
 
             # Filter annotated instances on object id
             enumerated_and_filtered_gts = [(instance_idx, gt) for instance_idx, gt in enumerate(gts_in_frame) if gt['obj_id'] == self._obj_id]
