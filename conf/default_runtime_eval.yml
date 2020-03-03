@@ -1,20 +1,28 @@
 default_schemeset_opts:
   test:
+    # loading:
+    #   # nbr_batches: 1
+    #   # batch_size: 1
+    #   nbr_batches: 3
+    #   batch_size: 32
+    #   # shuffle: fixed
+    #   # shuffle: true
+    #   shuffle: false
+    #   coupled_ref_and_query_scheme_sampling: false
+    # poseopt:
+    #   enabled: false
+
     loading:
-      nbr_batches: 3
+      nbr_batches: null # ignored
       # batch_size: 1
-      # batch_size: 2
-      # batch_size: 3
-      # batch_size: 6
-      # batch_size: 7
       batch_size: 10
-      # batch_size: 32
       shuffle: fixed
       # shuffle: true
       # shuffle: false
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
-      enabled: false
+      enabled: true
+
     visualization:
       save_imgs: true
       plot_signals: false
