@@ -368,6 +368,7 @@ class LossHandler:
             'Moving Avg': self.get_scalar_averages(num_batches=self._configs.logging.avg_window_size),
             'Average': self.get_scalar_averages(num_batches=0)
         }
+        self._logger.info('Experiment: {:s}'.format(self._configs.experiment_name))
         status_total_loss = ('[{name:s}]  '
                              'Epoch:{epoch:<3d}  '
                              'Iteration:{iteration:<5d}  '.
