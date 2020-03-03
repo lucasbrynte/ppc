@@ -49,34 +49,11 @@ default_schemeset_opts:
 data_sampling_scheme_defs:
   train:
     train:
-      # # baseline
-      # ref_schemeset:
-      #   - {scheme_name: synth_blackbg, sampling_prob: 0.5}
-      #   - {scheme_name: real_unoccl_train_blackbg, sampling_prob: 0.5}
-      
-      # # synth_blackbg_real_mix
-      # ref_schemeset:
-      #   - {scheme_name: synth_blackbg, sampling_prob: 0.5}
-      #   - {scheme_name: real_unoccl_train_blackbg, sampling_prob: 0.25}
-      #   - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 0.125}
-      #   - {scheme_name: real_unoccl_train_voc, sampling_prob: 0.125}
-      
       # never_blackbg_ref
       ref_schemeset:
-        # - {scheme_name: synth_voc, sampling_prob: 1.0}
-        # - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 1.0}
-        # - {scheme_name: real_unoccl_train_voc, sampling_prob: 1.0}
-        # - {scheme_name: synth_voc, sampling_prob: 0.5}
-        # - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 0.25}
-        # - {scheme_name: real_unoccl_train_voc, sampling_prob: 0.25}
         - {scheme_name: synth_voc, sampling_prob: 0.34}
         - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 0.33}
         - {scheme_name: real_unoccl_train_voc, sampling_prob: 0.33}
-
-      # # whitesilhouette
-      # ref_schemeset:
-      #   - {scheme_name: synth_whitesilhouette, sampling_prob: 0.5}
-      #   - {scheme_name: real_unoccl_train_whitesilhouette, sampling_prob: 0.5}
 
       query_schemeset:
         # - scheme_name: default
@@ -134,48 +111,6 @@ data_sampling_scheme_defs:
         #   tasks_punished: [rel_depth_error]
 
   val:
-    # real_unoccl_train_blackbg_default:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: default}
-    #   use_for_val_score: false
-    # real_occl_val_blackbg_default:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: default}
-    #   use_for_val_score: true
-    # synth_blackbg:
-    #   ref_schemeset:
-    #     - {scheme_name: synth_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: default}
-    #   use_for_val_score: false
-
-
-
-    # real_unoccl_train_blackbg_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: 20deg_std}
-    #   use_for_val_score: false
-    # real_occl_val_blackbg_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: 20deg_std}
-    #   use_for_val_score: true
-    # synth_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: synth_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: 20deg_std}
-    #   use_for_val_score: false
-
-
-
     # real_unoccl_train_rot_only_5deg_std:
     #   ref_schemeset:
     #     - scheme_name: real_unoccl_train_keepbg
@@ -307,44 +242,4 @@ data_sampling_scheme_defs:
     #     - scheme_name: synth_voc
     #   query_schemeset:
     #     - scheme_name: depth_1_3
-    #   use_for_val_score: false
-
-    # real_unoccl_train_blackbg_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_20deg_std}
-    #   use_for_val_score: false
-    # real_occl_val_blackbg_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_20deg_std}
-    #   use_for_val_score: true
-    # synth_rot_only_20deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: synth_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_20deg_std}
-    #   use_for_val_score: false
-
-
-
-    # real_unoccl_train_blackbg_rot_only_90deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_unoccl_train_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_90deg_std}
-    #   use_for_val_score: false
-    # real_occl_val_blackbg_rot_only_90deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: real_occl_val_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_90deg_std}
-    #   use_for_val_score: true
-    # synth_rot_only_90deg_std:
-    #   ref_schemeset:
-    #     - {scheme_name: synth_blackbg}
-    #   query_schemeset:
-    #     - {scheme_name: rot_only_90deg_std}
     #   use_for_val_score: false

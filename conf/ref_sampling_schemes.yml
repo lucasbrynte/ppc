@@ -12,17 +12,6 @@ real_unoccl_train_keepbg:
   real_opts:
     linemod_seq: all_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_train_blackbg:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
-    static_frame_idx: null
 real_unoccl_train_voc:
   ref_source: real
   background: voc
@@ -52,17 +41,6 @@ real_unoccl_train_whitesilhouette:
 real_unoccl_train_keepbg_frame100:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: all_unoccl/<OBJ_LABEL>
-    static_frame_idx: 100
-real_unoccl_train_blackbg_frame100:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
@@ -113,17 +91,6 @@ real_occl_val_keepbg:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: null
-real_occl_val_blackbg:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: train_occl/ape
-    static_frame_idx: null
 real_occl_val_voc:
   ref_source: real
   background: voc
@@ -153,17 +120,6 @@ real_occl_val_whitesilhouette:
 real_occl_val_keepbg_frame100:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: train_occl/ape
-    static_frame_idx: 100
-real_occl_val_blackbg_frame100:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
@@ -209,17 +165,6 @@ real_occl_val_keepbg_frame228:
   real_opts:
     linemod_seq: train_occl/ape
     static_frame_idx: 228
-real_occl_val_blackbg_frame228:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: train_occl/ape
-    static_frame_idx: 228
 real_occl_val_voc_frame228:
   ref_source: real
   background: voc
@@ -249,17 +194,6 @@ real_occl_val_whitesilhouette_frame228:
 real_occl_val_keepbg_frame327:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: train_occl/ape
-    static_frame_idx: 327
-real_occl_val_blackbg_frame327:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
@@ -310,17 +244,6 @@ real_occl_test_keepbg:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     static_frame_idx: null
-real_occl_test_blackbg:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: null
 
 # ==============================================================================
 # real_occl_test FRAME 30
@@ -328,17 +251,6 @@ real_occl_test_blackbg:
 real_occl_test_keepbg_frame30:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: 30
-real_occl_test_blackbg_frame30:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
@@ -362,17 +274,6 @@ real_occl_test_keepbg_frame109:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     static_frame_idx: 109
-real_occl_test_blackbg_frame109:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: 109
 
 # ==============================================================================
 # real_occl_test FRAME 112
@@ -380,17 +281,6 @@ real_occl_test_blackbg_frame109:
 real_occl_test_keepbg_frame112:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: 112
-real_occl_test_blackbg_frame112:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
@@ -414,17 +304,6 @@ real_occl_test_keepbg_frame159:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     static_frame_idx: 159
-real_occl_test_blackbg_frame159:
-  ref_source: real
-  background: black
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: 159
 
 # ==============================================================================
 # real_occl_test FRAME 649
@@ -432,17 +311,6 @@ real_occl_test_blackbg_frame159:
 real_occl_test_keepbg_frame649:
   ref_source: real
   background: null
-  white_silhouette: false
-  blur_opts:
-    apply_blur: true
-    on_border_only: true
-    sigma_range: [1.2, 1.2]
-  real_opts:
-    linemod_seq: test_occl/benchviseblue
-    static_frame_idx: 649
-real_occl_test_blackbg_frame649:
-  ref_source: real
-  background: black
   white_silhouette: false
   blur_opts:
     apply_blur: true
