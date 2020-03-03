@@ -128,6 +128,7 @@ model:
     weight_decay: 3.e-5
     # resnet_freeze_nbr_epochs: null
     resnet_freeze_nbr_epochs: 3
+    pretrained: true
     E2_pretrained: true
     E2_include_highlevel: false
     head_layer_specs:

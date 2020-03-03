@@ -17,7 +17,6 @@ class Resnet18Wrapper(nn.Module):
         if self._include_lowlevel and self._include_highlevel:
             assert self._include_midlevel
 
-        # pretrained = False
         resnet18 = models.resnet18(pretrained=pretrained)
 
         if self._include_lowlevel:
@@ -97,7 +96,7 @@ class Model(nn.Module):
         # Embedding modules as referred to in DPOD paper:
         self.E11 = Resnet18Wrapper(
             self._configs,
-            pretrained = True,
+            pretrained = self._configs.model.resnet18_opts.pretrained,
             include_lowlevel = True,
             include_midlevel = False,
             include_highlevel = False,
@@ -106,14 +105,14 @@ class Model(nn.Module):
             param.requires_grad = False
         self.E12 = Resnet18Wrapper(
             self._configs,
-            pretrained = True,
+            pretrained = self._configs.model.resnet18_opts.pretrained,
             include_lowlevel = True,
             include_midlevel = False,
             include_highlevel = False,
         )
         self.E2 = Resnet18Wrapper(
             self._configs,
-            pretrained = self._configs.model.resnet18_opts.E2_pretrained,
+            pretrained = self._configs.model.resnet18_opts.pretrained and self._configs.model.resnet18_opts.E2_pretrained,
             include_lowlevel = False,
             include_midlevel = True,
             include_highlevel = self._configs.model.resnet18_opts.E2_include_highlevel,
