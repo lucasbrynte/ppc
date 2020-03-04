@@ -694,10 +694,11 @@ class PoseOptimizer():
         self._H0K = torch.matmul(H0, self._K)
         self._H0K_inv = torch.inverse(self._H0K)
 
+        w_gt = R_to_w(torch.matmul(self._R_gt, self._R_refpt.permute((0,2,1)))).detach()
+
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
         self._w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
         if self._num_wxdims < 3:
-            w_gt = R_to_w(torch.matmul(self._R_gt, self._R_refpt.permute((0,2,1)))).detach()
             self._w_basis = self._get_w_basis(primary_w_dir = w_gt-self._w_basis_origin)
         else:
             self._w_basis = self._get_w_basis(primary_w_dir = None)
@@ -816,6 +817,9 @@ class PoseOptimizer():
         step_size_d = 5e-3
 
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        all_real_rel_depth_error = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        all_t_errmag = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
+        all_w_errmag = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_H = torch.empty((self._batch_size, N, 3, 3), dtype=self._dtype, device=self._device)
         all_wx_grads = torch.empty((self._batch_size, N, self._num_wxdims), dtype=self._dtype, device=self._device)
         all_tx_grads = torch.empty((self._batch_size, N, self._num_txdims), dtype=self._dtype, device=self._device)
@@ -850,6 +854,11 @@ class PoseOptimizer():
                     curr_d_grad = torch.zeros_like(d)
             else:
                 H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+            curr_t_est = self._x2t(tx, d)
+            curr_w_est = self._x2w(wx)
+            real_rel_depth_error = (curr_t_est[:,2] / self._t_gt[:,2]).squeeze(dim=1)
+            t_errmag = (curr_t_est - self._t_gt).norm(dim=1).squeeze(dim=1)
+            w_errmag = (curr_w_est - w_gt).norm(dim=1)
             if print_iterates:
                 print(
                     j,
@@ -866,6 +875,9 @@ class PoseOptimizer():
                     curr_tx_grad.detach().cpu().numpy(),
                     curr_d_grad.detach().cpu().numpy(),
                 )
+                print('real_rel_depth_error: {}'.format(real_rel_depth_error.cpu().numpy()))
+                print('t_errmag: {}'.format(t_errmag.cpu().numpy()))
+                print('w_errmag: {}'.format(w_errmag.cpu().numpy()))
             if self._num_wxdims > 0:
                 wx.grad = curr_wx_grad
             if self._num_txdims > 0:
@@ -909,6 +921,9 @@ class PoseOptimizer():
 
             # Store iterations
             all_err_est[:,j] = err_est.detach()
+            all_real_rel_depth_error[:,j] = real_rel_depth_error.detach()
+            all_t_errmag[:,j] = t_errmag.detach()
+            all_w_errmag[:,j] = w_errmag.detach()
 
         if store_eval:
             all_metrics = self.eval_pose(all_H, all_wx, all_tx, all_d, all_err_est)
@@ -923,11 +938,19 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=nrows, ncols=3, squeeze=False)
             # TODO: Plot all_wx, all_tx and all_d separately and neatly.
             axes_array[0,0].plot(all_x[sample_idx,:,:].detach().cpu().numpy())
+            axes_array[0,0].set_title('all_x')
             axes_array[0,1].plot(all_err_est[sample_idx,:].detach().cpu().numpy())
+            axes_array[0,1].set_title('all_err_est')
+            axes_array[1,0].plot(all_real_rel_depth_error[sample_idx,:].detach().cpu().numpy())
+            axes_array[1,0].set_title('all_real_rel_depth_error')
+            axes_array[1,1].plot(all_t_errmag[sample_idx,:].detach().cpu().numpy())
+            axes_array[1,1].set_title('all_t_errmag')
+            axes_array[1,2].plot(all_w_errmag[sample_idx,:].detach().cpu().numpy())
+            axes_array[1,2].set_title('all_w_errmag')
             # axes_array[0,2].plot(all_wx_grads[sample_idx,:,:].detach().cpu().numpy())
             # # axes_array[0,2].plot(all_tx_grads[sample_idx,:,:].detach().cpu().numpy())
-            axes_array[1,2].plot(all_exp_avgs[sample_idx,:,:].abs().detach().cpu().numpy())
-            axes_array[1,2].plot(all_exp_avg_sqs[sample_idx,:,:].abs().detach().cpu().numpy())
+            # axes_array[0,2].plot(all_exp_avgs[sample_idx,:,:].abs().detach().cpu().numpy())
+            # axes_array[1,2].plot(all_exp_avg_sqs[sample_idx,:,:].abs().detach().cpu().numpy())
             # if self._num_wxdims+self._num_txdims == 2:
             #     axes_array[1,0].plot(all_x[sample_idx,:,0].detach().cpu().numpy(), all_x[sample_idx,:,1].detach().cpu().numpy())
             #     # axes_array[1,1].plot(np.diff(all_x[sample_idx,:,:].detach().cpu().numpy(), axis=0))
