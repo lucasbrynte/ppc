@@ -531,6 +531,50 @@ class PoseOptimizer():
         with open(os.path.join(self._out_path, 'evaluation', seq, json_fname), 'w') as f:
             json.dump(metrics, f)
 
+    def _init_cos_transitions_scheduler(
+        self,
+        optimizer,
+        x_vals,
+        y_vals,
+    ):
+        x_vals = np.array(x_vals, np.float64)
+        y_vals = np.array(y_vals, np.float64)
+        nbr_breakpoints = x_vals.shape[0]
+        assert x_vals.shape == (nbr_breakpoints,)
+        assert y_vals.shape == (nbr_breakpoints,)
+        assert np.all(np.diff(x_vals) >= 0.) # Verify monotonically increasing
+
+        def calc_lr_decay_factor(x):
+            for j, bp in enumerate(x_vals):
+                if x <= bp:
+                    break
+            else:
+                # Out of range on right side
+                return y_vals[-1]
+            if j == 0:
+                # Out of range on left side
+                return y_vals[0]
+            assert j >= 1 and j <= nbr_breakpoints
+            x1 = x_vals[j-1]
+            x2 = x_vals[j]
+            y1 = y_vals[j-1]
+            y2 = y_vals[j]
+            assert x >= x1
+            assert x <= x2
+            y = y2 + 0.5 * (y1-y2) * (1.0 + np.cos((x-x1)/(x2-x1)*np.pi))
+            if y2 >= y1: # verify within range (better safe than sorry)
+                assert y >= y1
+                assert y <= y2
+            else:
+                assert y <= y1
+                assert y >= y2
+            return y
+
+        return torch.optim.lr_scheduler.LambdaLR(
+            optimizer,
+            calc_lr_decay_factor,
+        )
+
     def _init_cos_transition_scheduler(
         self,
         optimizer,
@@ -722,40 +766,45 @@ class PoseOptimizer():
             nbr_iter_tx_leap = 0
         nbr_iter_tx_leap = nbr_iter_tx_leap
         final_finetune_iter = nbr_iter_tx_leap + 50
-        self._wx_scheduler = self._init_cos_transition_scheduler(
+        self._wx_scheduler = self._init_cos_transitions_scheduler(
             self._wx_optimizer,
-            zero_before = nbr_iter_tx_leap+20,
-            x_min = nbr_iter_tx_leap+20,
-            x_max = final_finetune_iter+20,
-            # y_min = 1e-1,
-            y_min = 1e-2,
-            y_max = 1.0,
+            [
+                nbr_iter_tx_leap + 20 - 1,
+                nbr_iter_tx_leap + 20,
+                final_finetune_iter + 20,
+            ],
+            [
+                0.0,
+                1.0,
+                1e-2,
+            ],
         )
-        self._tx_scheduler = self._init_cos_transition_scheduler(
+        self._tx_scheduler = self._init_cos_transitions_scheduler(
             self._tx_optimizer,
-            zero_before = nbr_iter_tx_leap,
-            x_min = nbr_iter_tx_leap,
-            x_max = final_finetune_iter,
-            y_min = 1e-1,
-            # y_min = 4e-2,
-            # y_min = 1e-2,
-            y_max = 1.0,
+            [
+                nbr_iter_tx_leap - 1,
+                nbr_iter_tx_leap,
+                final_finetune_iter,
+            ],
+            [
+                0.0,
+                1.0,
+                1e-1,
+            ],
         )
-        self._d_scheduler = self._init_cos_transition_scheduler(
+        self._d_scheduler = self._init_cos_transitions_scheduler(
             self._d_optimizer,
-            zero_before = nbr_iter_tx_leap,
-            x_min = nbr_iter_tx_leap,
-            x_max = final_finetune_iter+30,
-            # x_min = nbr_iter_tx_leap,
-            # x_max = final_finetune_iter,
-            # x_min = final_finetune_iter,
-            # x_max = final_finetune_iter+10,
-            # y_min = 1.0,
-            # y_min = 1e-1,
-            # y_min = 4e-2,
-            y_min = 3e-2,
-            # y_min = 1e-2,
-            y_max = 1.0,
+            [
+                nbr_iter_tx_leap - 1,
+                nbr_iter_tx_leap,
+                final_finetune_iter + 30,
+            ],
+            [
+                0.0,
+                1.0,
+                3e-2,
+                # 1e-2,
+            ],
         )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
         # self._tx_scheduler = self._init_constant_scheduler(self._tx_optimizer)
@@ -786,13 +835,19 @@ class PoseOptimizer():
                 # reproj only "hack":
                 pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
                 rel_depth_est = pred_features['avg_reproj_err']
-                if j >= nbr_iter_tx_leap:
+                
+                if self._wx_scheduler.get_lr()[0] > 1e-13: # Assuming only one parameter group for each optimizer
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
-                    curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
                 else:
                     curr_wx_grad = torch.zeros_like(wx)
+                if self._tx_scheduler.get_lr()[0] > 1e-13: # Assuming only one parameter group for each optimizer
+                    curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
+                else:
+                    curr_tx_grad = torch.zeros_like(tx)
+                if self._d_scheduler.get_lr()[0] > 1e-13: # Assuming only one parameter group for each optimizer
+                    curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
+                else:
                     curr_d_grad = torch.zeros_like(d)
-                curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
             else:
                 H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
             if print_iterates:
