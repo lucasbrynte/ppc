@@ -715,16 +715,18 @@ class PoseOptimizer():
         #     momentum = 0.1,
         # )
         if self._num_txdims > 0:
-            nbr_iter_tx_leap = 5
+            # nbr_iter_tx_leap = 2
+            nbr_iter_tx_leap = 0
+            # nbr_iter_tx_leap = 5
         else:
             nbr_iter_tx_leap = 0
         nbr_iter_tx_leap = nbr_iter_tx_leap
         final_finetune_iter = nbr_iter_tx_leap + 50
         self._wx_scheduler = self._init_cos_transition_scheduler(
             self._wx_optimizer,
-            zero_before = nbr_iter_tx_leap,
-            x_min = nbr_iter_tx_leap,
-            x_max = final_finetune_iter,
+            zero_before = nbr_iter_tx_leap+20,
+            x_min = nbr_iter_tx_leap+20,
+            x_max = final_finetune_iter+20,
             # y_min = 1e-1,
             y_min = 1e-2,
             y_max = 1.0,
@@ -743,13 +745,16 @@ class PoseOptimizer():
             self._d_optimizer,
             zero_before = nbr_iter_tx_leap,
             x_min = nbr_iter_tx_leap,
-            x_max = final_finetune_iter,
+            x_max = final_finetune_iter+30,
+            # x_min = nbr_iter_tx_leap,
+            # x_max = final_finetune_iter,
             # x_min = final_finetune_iter,
             # x_max = final_finetune_iter+10,
             # y_min = 1.0,
             # y_min = 1e-1,
             # y_min = 4e-2,
-            y_min = 1e-2,
+            y_min = 3e-2,
+            # y_min = 1e-2,
             y_max = 1.0,
         )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
@@ -776,8 +781,11 @@ class PoseOptimizer():
             if self._numerical_grad:
                 H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
-                pixel_offset_est = pred_features['pixel_offset']
-                rel_depth_est = pred_features['rel_depth_error']
+                # pixel_offset_est = pred_features['pixel_offset']
+                # rel_depth_est = pred_features['rel_depth_error']
+                # reproj only "hack":
+                pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
+                rel_depth_est = pred_features['avg_reproj_err']
                 if j >= nbr_iter_tx_leap:
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
                     curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
@@ -982,9 +990,13 @@ class PoseOptimizer():
                     H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
                 H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                # err_est = pred_features['avg_reproj_err'].squeeze(1)
+                # pixel_offset_est = pred_features['pixel_offset']
+                # rel_depth_est = pred_features['rel_depth_error']
+                # reproj only "hack":
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
-                pixel_offset_est = pred_features['pixel_offset']
-                rel_depth_est = pred_features['rel_depth_error']
+                pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
+                rel_depth_est = pred_features['avg_reproj_err']
             print(
                 j,
                 err_est.detach().cpu().numpy(),
