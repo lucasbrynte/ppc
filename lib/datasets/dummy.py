@@ -90,6 +90,7 @@ class DummyDataset(Dataset):
         self._obj_label = self._configs.obj_label
         self._obj_id = self._determine_obj_id(self._obj_label)
         self._models = self._init_models()
+        self._object_max_horizontal_extents = self._calc_object_max_horizontal_extents()
         self._renderer = self._init_renderer()
         self._nyud_img_paths = self._init_nyud_img_paths()
         self._voc_img_paths = self._init_voc_img_paths()
@@ -451,18 +452,35 @@ class DummyDataset(Dataset):
         T[:3,3] *= new_depth / old_depth
         return T
 
-    def _get_object_max_extent(self, obj_label, plane_normal=None):
+    def _calc_object_max_horizontal_extent(self, obj_label):
         """
         Computes the distance between object center and the bounding box corner farthest away from the object center.
         If plane_normal is supplied, bbox corners will be projected to the corresponding plane before determining the maximum extent.
         """
-        min_max_corners = self._metadata['objects'][obj_label]['bbox3d'].copy() # 2 columns, representing opposite corners
+        plane_normal = self._metadata['objects'][obj_label]['up_dir'].copy()
+        pts = self._models[self._determine_obj_id(obj_label)]['pts'].copy().T
         if plane_normal is not None:
             plane_normal = plane_normal / np.linalg.norm(plane_normal)
-            parallel_component = np.sum(min_max_corners * plane_normal[:,None], axis=0, keepdims=True) * plane_normal[:,None]
-            min_max_corners -= parallel_component
-        max_extent = np.max(np.linalg.norm(min_max_corners, axis=0))
+            parallel_component = np.sum(pts * plane_normal[:,None], axis=0, keepdims=True) * plane_normal[:,None]
+            pts -= parallel_component
+        max_extent = np.max(np.linalg.norm(pts, axis=0))
         return max_extent
+
+    def _calc_object_max_horizontal_extents(self):
+        return { obj_label: self._calc_object_max_horizontal_extent(obj_label) for obj_label in self._metadata['objects'].keys() }
+
+    # def _get_object_max_extent(self, obj_label, plane_normal=None):
+    #     """
+    #     Computes the distance between object center and the bounding box corner farthest away from the object center.
+    #     If plane_normal is supplied, bbox corners will be projected to the corresponding plane before determining the maximum extent.
+    #     """
+    #     min_max_corners = self._metadata['objects'][obj_label]['bbox3d'].copy() # 2 columns, representing opposite corners
+    #     if plane_normal is not None:
+    #         plane_normal = plane_normal / np.linalg.norm(plane_normal)
+    #         parallel_component = np.sum(min_max_corners * plane_normal[:,None], axis=0, keepdims=True) * plane_normal[:,None]
+    #         min_max_corners -= parallel_component
+    #     max_extent = np.max(np.linalg.norm(min_max_corners, axis=0))
+    #     return max_extent
 
     def _sample_perturbation_params(self, query_scheme_idx, sample_index_in_epoch):
         return {param_name: self._deterministic_perturbation_ranges[query_scheme_idx][param_name][sample_index_in_epoch, ...] if sample_spec['deterministic_quantile_range'] else sample_param(AttrDict(sample_spec)) for param_name, sample_spec in self._query_sampling_schemes[query_scheme_idx].perturbation.items()}
@@ -473,10 +491,12 @@ class DummyDataset(Dataset):
     def _perturb_object_pose_params_for_occluder(self, base_params, obj_label_occluder, perturb_dir_angle_range=[0., 2*np.pi]):
         phi = np.random.uniform(low=perturb_dir_angle_range[0], high=perturb_dir_angle_range[1])
         xy_perturb_dir = np.array([np.cos(phi), np.sin(phi)])
-        min_safe_cc_dist = self._get_object_max_extent(self._obj_label, plane_normal=self._metadata['objects'][self._obj_label]['up_dir']) + self._get_object_max_extent(obj_label_occluder, plane_normal=self._metadata['objects'][obj_label_occluder]['up_dir'])
 
-        xy_perturb_magnitude = np.random.uniform(low=0.8*min_safe_cc_dist, high=1.1*min_safe_cc_dist)
-        # xy_perturb_magnitude = min_safe_cc_dist
+        # min_safe_cc_dist = self._get_object_max_extent(self._obj_label, plane_normal=self._metadata['objects'][self._obj_label]['up_dir']) + self._get_object_max_extent(obj_label_occluder, plane_normal=self._metadata['objects'][obj_label_occluder]['up_dir'])
+        min_safe_cc_dist = self._object_max_horizontal_extents[self._obj_label] \
+                         + self._object_max_horizontal_extents[obj_label_occluder]
+        # xy_perturb_magnitude = np.random.uniform(low=0.8*min_safe_cc_dist, high=1.1*min_safe_cc_dist)
+        xy_perturb_magnitude = min_safe_cc_dist
 
         xy_perturb = xy_perturb_dir * xy_perturb_magnitude
         return {
