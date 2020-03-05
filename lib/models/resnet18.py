@@ -103,6 +103,9 @@ class Model(nn.Module):
         )
         for param in self.E11.parameters():
             param.requires_grad = False
+        if self._configs.model.resnet18_opts.unfreeze_merge_layer:
+            for param in self.E11.layer1[-1].conv2.parameters():
+                param.requires_grad = True
         self.E12 = Resnet18Wrapper(
             self._configs,
             pretrained = self._configs.model.resnet18_opts.pretrained,
