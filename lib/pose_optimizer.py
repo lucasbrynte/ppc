@@ -730,7 +730,7 @@ class PoseOptimizer():
             # lr = 3e-2, # best for nomax50..?
             # lr = 1e-2,
             # betas = (0.95, 0.99),
-            betas = (0.8, 0.9),
+            betas = (0.6, 0.9),
         )
         self._tx_optimizer = torch.optim.SGD(
             [
@@ -750,7 +750,7 @@ class PoseOptimizer():
             # lr = 5e-2,
             # lr = 3e-2,
             # lr = 1e-2,
-            betas = (0.8, 0.9),
+            betas = (0.6, 0.9),
         )
         # self._d_optimizer = torch.optim.SGD(
         #     [
@@ -759,23 +759,40 @@ class PoseOptimizer():
         #     lr = 1.0,
         #     momentum = 0.1,
         # )
+
+        # tx_leap_flag = True
+        tx_leap_flag = False
+
+        if tx_leap_flag:
+            assert self._num_txdims == 2
+
         if self._num_txdims > 0:
-            # nbr_iter_tx_leap = 2
-            nbr_iter_tx_leap = 0
-            # nbr_iter_tx_leap = 5
+            # nbr_iter_translonly = 2
+            # nbr_iter_translonly = 0
+            # nbr_iter_translonly = 5
+            nbr_iter_translonly = 8
         else:
-            nbr_iter_tx_leap = 0
-        nbr_iter_tx_leap = nbr_iter_tx_leap
-        final_finetune_iter = nbr_iter_tx_leap + 50
+            nbr_iter_translonly = 0
+        final_finetune_iter = nbr_iter_translonly + 50
         self._wx_scheduler = self._init_cos_transitions_scheduler(
             self._wx_optimizer,
             [
-                nbr_iter_tx_leap + 20 - 1,
-                nbr_iter_tx_leap + 20,
+                nbr_iter_translonly + 15 - 1,
+                nbr_iter_translonly + 15,
+                nbr_iter_translonly + 20,
+                nbr_iter_translonly + 25,
+                # nbr_iter_translonly + 20 - 1,
+                # nbr_iter_translonly + 20,
                 final_finetune_iter + 20,
             ],
             [
                 0.0,
+                # 1e-1,
+                # 1e-1,
+                3e-2,
+                3e-2,
+                # 1e-2,
+                # 1e-2,
                 1.0,
                 1e-2,
             ],
@@ -783,12 +800,12 @@ class PoseOptimizer():
         self._tx_scheduler = self._init_cos_transitions_scheduler(
             self._tx_optimizer,
             [
-                nbr_iter_tx_leap - 1,
-                nbr_iter_tx_leap,
+                nbr_iter_translonly - 1,
+                nbr_iter_translonly,
                 final_finetune_iter,
             ],
             [
-                0.0,
+                0.0 if tx_leap_flag else 1.0,
                 1.0,
                 1e-1,
             ],
@@ -796,21 +813,40 @@ class PoseOptimizer():
         self._d_scheduler = self._init_cos_transitions_scheduler(
             self._d_optimizer,
             [
-                nbr_iter_tx_leap - 1,
-                nbr_iter_tx_leap,
+                nbr_iter_translonly - 1,
+                nbr_iter_translonly,
+                # nbr_iter_translonly + 20,
+                # final_finetune_iter + 25,
+                # final_finetune_iter + 35,
                 final_finetune_iter + 30,
+                N,
             ],
             [
                 0.0,
                 1.0,
+                # 1.0,
                 3e-2,
-                # 1e-2,
+                1e-2,
             ],
+            # self._d_optimizer,
+            # [
+            #     nbr_iter_translonly - 1,
+            #     nbr_iter_translonly,
+            #     # nbr_iter_translonly + 20,
+            #     final_finetune_iter + 30,
+            # ],
+            # [
+            #     0.0,
+            #     1.0,
+            #     # 1.0,
+            #     3e-2,
+            #     # 1e-2,
+            # ],
         )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
         # self._tx_scheduler = self._init_constant_scheduler(self._tx_optimizer)
         # self._d_scheduler = self._init_constant_scheduler(self._d_optimizer)
-        # self._d_scheduler = torch.optim.lr_scheduler.LambdaLR(self._d_optimizer, lambda k: 1.0 if k < nbr_iter_tx_leap else 0.0)
+        # self._d_scheduler = torch.optim.lr_scheduler.LambdaLR(self._d_optimizer, lambda k: 1.0 if k < nbr_iter_translonly else 0.0)
 
         step_size_wx = 1e-2
         step_size_tx = 1.0 # 1 px
@@ -834,10 +870,11 @@ class PoseOptimizer():
             if self._numerical_grad:
                 H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
-                # pixel_offset_est = pred_features['pixel_offset']
+                if tx_leap_flag:
+                    pixel_offset_est = pred_features['pixel_offset']
                 # rel_depth_est = pred_features['rel_depth_error']
                 # reproj only "hack":
-                pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
+                # pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
                 rel_depth_est = pred_features['avg_reproj_err']
                 
                 if self._wx_scheduler.get_lr()[0] > 1e-13: # Assuming only one parameter group for each optimizer
@@ -866,7 +903,7 @@ class PoseOptimizer():
                     self._tx_scheduler.get_lr(),
                     self._d_scheduler.get_lr(),
                     err_est.detach().cpu().numpy(),
-                    pixel_offset_est.detach().cpu().numpy(),
+                    pixel_offset_est.detach().cpu().numpy() if tx_leap_flag else None,
                     rel_depth_est.detach().cpu().numpy(),
                     wx.detach().cpu().numpy(),
                     tx.detach().cpu().numpy(),
@@ -875,16 +912,17 @@ class PoseOptimizer():
                     curr_tx_grad.detach().cpu().numpy(),
                     curr_d_grad.detach().cpu().numpy(),
                 )
+                print('err_est: {}'.format(err_est.cpu().numpy()))
                 print('real_rel_depth_error: {}'.format(real_rel_depth_error.cpu().numpy()))
                 print('t_errmag: {}'.format(t_errmag.cpu().numpy()))
                 print('w_errmag: {}'.format(w_errmag.cpu().numpy()))
             if self._num_wxdims > 0:
                 wx.grad = curr_wx_grad
             if self._num_txdims > 0:
-                if self._num_txdims == 2 and j < nbr_iter_tx_leap:
+                if tx_leap_flag and j < nbr_iter_translonly:
                     # Take a leap
                     tx -= pixel_offset_est[:,:]
-                elif j >= nbr_iter_tx_leap:
+                else:
                     tx.grad = curr_tx_grad
             if self._num_ddims == 1:
                 d.grad = curr_d_grad
@@ -1040,11 +1078,18 @@ class PoseOptimizer():
         step_size_tx = 1.0 # 1 px
         step_size_d = 5e-3
 
+        # has_pixel_offset_flag = True
+        # has_rel_depth_error_flag = True
+        has_pixel_offset_flag = False
+        has_rel_depth_error_flag = False
+
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
-        all_pixel_offset_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
-        all_pixel_offset_x_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
-        all_pixel_offset_y_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
-        all_rel_depth_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
+        if has_pixel_offset_flag:
+            all_pixel_offset_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
+            all_pixel_offset_x_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
+            all_pixel_offset_y_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
+        if has_rel_depth_error_flag:
+            all_rel_depth_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         if calc_grad:
             all_wx_grads = torch.empty([self._batch_size, self._num_wxdims]+N_each, dtype=self._dtype, device=self._device)
             all_tx_grads = torch.empty([self._batch_size, self._num_txdims]+N_each, dtype=self._dtype, device=self._device)
@@ -1059,8 +1104,10 @@ class PoseOptimizer():
                 if self._numerical_grad:
                     H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
                     err_est = pred_features['avg_reproj_err'].squeeze(1)
-                    pixel_offset_est = pred_features['pixel_offset']
-                    rel_depth_est = pred_features['rel_depth_error']
+                    if has_pixel_offset_flag:
+                        pixel_offset_est = pred_features['pixel_offset']
+                    if has_rel_depth_error_flag:
+                        rel_depth_est = pred_features['rel_depth_error']
                     curr_wx_grad = self.eval_func_and_calc_numerical_wx_grad(wx, tx, d, err_est, step_size_wx)
                     curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
                     curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
@@ -1068,18 +1115,16 @@ class PoseOptimizer():
                     H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
             else:
                 H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
-                # err_est = pred_features['avg_reproj_err'].squeeze(1)
-                # pixel_offset_est = pred_features['pixel_offset']
-                # rel_depth_est = pred_features['rel_depth_error']
-                # reproj only "hack":
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
-                pixel_offset_est = pred_features['avg_reproj_err'].repeat(1,2)
-                rel_depth_est = pred_features['avg_reproj_err']
+                if has_pixel_offset_flag:
+                    pixel_offset_est = pred_features['pixel_offset']
+                if has_rel_depth_error_flag:
+                    rel_depth_est = pred_features['rel_depth_error']
             print(
                 j,
                 err_est.detach().cpu().numpy(),
-                pixel_offset_est.detach().cpu().numpy(),
-                rel_depth_est.detach().cpu().numpy(),
+                pixel_offset_est.detach().cpu().numpy() if has_pixel_offset_flag else None,
+                rel_depth_est.detach().cpu().numpy() if has_rel_depth_error_flag else None,
                 wx.detach().cpu().numpy(),
                 tx.detach().cpu().numpy(),
                 d.detach().cpu().numpy(),
@@ -1097,10 +1142,12 @@ class PoseOptimizer():
 
             # Store iterations
             vec(all_err_est, N_each)[:,j] = err_est.detach()
-            vec(all_pixel_offset_est, N_each)[:,j] = pixel_offset_est.norm(dim=1).detach()
-            vec(all_pixel_offset_x_est, N_each)[:,j] = pixel_offset_est[:,0].detach()
-            vec(all_pixel_offset_y_est, N_each)[:,j] = pixel_offset_est[:,1].detach()
-            vec(all_rel_depth_est, N_each)[:,j] = rel_depth_est.squeeze(1).detach()
+            if has_pixel_offset_flag:
+                vec(all_pixel_offset_est, N_each)[:,j] = pixel_offset_est.norm(dim=1).detach()
+                vec(all_pixel_offset_x_est, N_each)[:,j] = pixel_offset_est[:,0].detach()
+                vec(all_pixel_offset_y_est, N_each)[:,j] = pixel_offset_est[:,1].detach()
+            if has_rel_depth_error_flag:
+                vec(all_rel_depth_est, N_each)[:,j] = rel_depth_est.squeeze(1).detach()
 
         def plot_surf(axes_array, j, k, all_params, mapvals, title=None):
             fig.delaxes(axes_array[j,k])
@@ -1141,14 +1188,16 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
             axes_array[0,0].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
             axes_array[0,0].set_title('all_err_est')
-            axes_array[0,1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_rel_depth_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,1].set_title('all_rel_depth_est')
-            axes_array[0,2].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,2].set_title('all_pixel_offset_est')
-            axes_array[0,3].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_x_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,3].set_title('all_pixel_offset_x_est')
-            axes_array[0,4].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,4].set_title('all_pixel_offset_y_est')
+            if has_rel_depth_error_flag:
+                axes_array[0,1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_rel_depth_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[0,1].set_title('all_rel_depth_est')
+            if has_pixel_offset_flag:
+                axes_array[0,2].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[0,2].set_title('all_pixel_offset_est')
+                axes_array[0,3].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_x_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[0,3].set_title('all_pixel_offset_x_est')
+                axes_array[0,4].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[0,4].set_title('all_pixel_offset_y_est')
             # if calc_grad:
             #     axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
             #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
@@ -1163,14 +1212,16 @@ class PoseOptimizer():
             # TODO: Plot all_wx, all_tx and all_d separately and neatly.
             plot_surf(axes_array, 0, 0, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy(), title='all_err_est')
             plot_heatmap(axes_array, 1, 0, all_err_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy(), title='all_rel_depth_est')
-            plot_heatmap(axes_array, 1, 1, all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_surf(axes_array, 0, 2, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_est')
-            plot_heatmap(axes_array, 1, 2, all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_surf(axes_array, 0, 3, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_x_est')
-            plot_heatmap(axes_array, 1, 3, all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy())
-            plot_surf(axes_array, 0, 4, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_y_est')
-            plot_heatmap(axes_array, 1, 4, all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy())
+            if has_rel_depth_error_flag:
+                plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy(), title='all_rel_depth_est')
+                plot_heatmap(axes_array, 1, 1, all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy())
+            if has_pixel_offset_flag:
+                plot_surf(axes_array, 0, 2, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_est')
+                plot_heatmap(axes_array, 1, 2, all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 0, 3, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_x_est')
+                plot_heatmap(axes_array, 1, 3, all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 0, 4, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_y_est')
+                plot_heatmap(axes_array, 1, 4, all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy())
             if calc_grad:
                 plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 plot_heatmap(axes_array, 1, 1, all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
