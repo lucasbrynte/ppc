@@ -133,8 +133,15 @@ def infer_sampling_probs(sampling_scheme_list):
     assert np.isclose(total_prob, 1.0)
     # NOTE: Not returning sampling_scheme_list, in order to emphasize in-place behavior
 
-def set_default_tasks_punished(sampling_scheme_list, all_tasks):
+def set_ref_scheme_defaults(sampling_scheme_list):
     for sampling_scheme_def in sampling_scheme_list:
+        if 'loss_weight' not in sampling_scheme_def:
+            sampling_scheme_def['loss_weight'] = 1.0
+
+def set_query_scheme_defaults(sampling_scheme_list, all_tasks):
+    for sampling_scheme_def in sampling_scheme_list:
+        if 'loss_weight' not in sampling_scheme_def:
+            sampling_scheme_def['loss_weight'] = 1.0
         if 'tasks_punished' not in sampling_scheme_def:
             sampling_scheme_def['tasks_punished'] = all_tasks
 
@@ -202,7 +209,8 @@ def get_configs(args):
         for scheme_set_name in configs['runtime']['data_sampling_scheme_defs'][mode].keys():
             ref_sampling_scheme_list = configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['ref_schemeset'] # List of elements such as {ref_scheme: real_unoccl_train}
             query_sampling_scheme_list = configs['runtime']['data_sampling_scheme_defs'][mode][scheme_set_name]['query_schemeset'] # List of elements such as {query_scheme: rot_only_20deg_std}
-            set_default_tasks_punished(query_sampling_scheme_list, list(configs['tasks'].keys())) # Modified in-place
+            set_ref_scheme_defaults(ref_sampling_scheme_list) # Modified in-place
+            set_query_scheme_defaults(query_sampling_scheme_list, list(configs['tasks'].keys())) # Modified in-place
             infer_sampling_probs(ref_sampling_scheme_list) # Modified in-place
             if configs.runtime.data_sampling_scheme_defs[mode][scheme_set_name]['opts']['loading']['coupled_ref_and_query_scheme_sampling']:
                 # Ref & query schemes are sampled jointly. Lists need to be of same length to be able to map elements.

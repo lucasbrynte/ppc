@@ -224,15 +224,24 @@ class LossHandler:
 
         assert False
 
-    def calc_loss_decay(self, target_features, pertarget_target_features, tasks_punished=None):
+    def calc_loss_decay(self, target_features, pertarget_target_features, tasks_punished=None, ref_scheme_loss_weight=None, query_scheme_loss_weight=None):
+        batch_size = next(iter(target_features.values())).shape[0]
+
+        scheme_loss_weight = torch.ones((batch_size,), dtype=torch.float32).cuda()
+        if ref_scheme_loss_weight is not None:
+            scheme_loss_weight *= ref_scheme_loss_weight
+        if query_scheme_loss_weight is not None:
+            scheme_loss_weight *= query_scheme_loss_weight
+
         task_loss_decays = {}
         loss_notapplied = {}
         for task_name in self._configs.tasks.keys():
 
-            batch_size = target_features[task_name].shape[0]
-
             # Initialize decay to 1.0:
             loss_decay = torch.ones((batch_size,), dtype=torch.float32).cuda()
+
+            # Punish each sample according to potential sampling scheme specific loss weights
+            loss_decay *= scheme_loss_weight
 
             # Assume loss applied for every sample until proven wrong:
             loss_notapplied_mask = torch.zeros((batch_size,), dtype=torch.bool)

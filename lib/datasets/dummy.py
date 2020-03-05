@@ -38,6 +38,8 @@ ExtraInput = namedtuple('ExtraInput', [
     'R2',
     't2',
     'obj_diameter',
+    'ref_scheme_loss_weight',
+    'query_scheme_loss_weight',
 ])
 
 SampleMetaData = namedtuple('SampleMetaData', [
@@ -1053,6 +1055,8 @@ class DummyDataset(Dataset):
             R2 = torch.tensor(R2, dtype=torch.float32),
             t2 = torch.tensor(t2, dtype=torch.float32),
             obj_diameter = torch.tensor(self._metadata['objects'][self._obj_label]['diameter'], dtype=torch.float32),
+            ref_scheme_loss_weight = torch.tensor(self._data_sampling_scheme_defs.ref_schemeset[ref_scheme_idx].loss_weight, dtype=torch.float32),
+            query_scheme_loss_weight = torch.tensor(self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].loss_weight, dtype=torch.float32),
         )
 
         meta_data = SampleMetaData(
