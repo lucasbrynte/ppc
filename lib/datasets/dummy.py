@@ -834,7 +834,7 @@ class DummyDataset(Dataset):
         else:
             assert False, 'No proper background image found'
 
-    def _blur_synth_obj(self, img, instance_seg, blur_opts, inplace=False):
+    def _blur_obj(self, img, instance_seg, blur_opts, inplace=False):
         if not inplace:
             img = img.copy()
 
@@ -848,12 +848,16 @@ class DummyDataset(Dataset):
         silhouette = (instance_seg == 1).astype(np.uint8)
         kernel = np.ones((3,3), dtype=np.uint8)
 
-        if blur_opts.on_border_only:
+        if blur_opts.mode == 'on_border_only':
             # Compute morphological gradient
             blur_region_uint8 = cv.morphologyEx(silhouette, cv.MORPH_GRADIENT, kernel)
-        else:
+        elif blur_opts.mode == 'dilated_silhouette':
             # Just dilate the silhouette
-            blur_region_uint8 = cv.dilate(silhouette, kernel, iterations=blur_opts.nbr_px_margin)
+            blur_region_uint8 = cv.dilate(silhouette, kernel, iterations=blur_opts.dilate_nbr_px_margin)
+        else:
+            assert blur_opts.mode == 'silhouette'
+            # Just apply on silhouette as-is
+            blur_region_uint8 = silhouette
 
         blur_region = blur_region_uint8.astype(np.bool)
         assert np.allclose(blur_region, blur_region)
@@ -985,11 +989,12 @@ class DummyDataset(Dataset):
             img1 = self._set_white_silhouette(img1, instance_seg1)
 
         # Apply blurring
-        if self._ref_sampling_schemes[ref_scheme_idx].blur_opts.apply_blur:
-            img1 = self._blur_synth_obj(
+        for blur_opts in self._ref_sampling_schemes[ref_scheme_idx].blur_chain:
+            # NOTE: At least blurring the edges is probably quite important for synthetic images, since they are rendered without any anti-aliasing mechanism.
+            img1 = self._blur_obj(
                 img1,
                 instance_seg1,
-                self._ref_sampling_schemes[ref_scheme_idx].blur_opts,
+                blur_opts,
             )
 
         return R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
