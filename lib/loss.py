@@ -229,22 +229,24 @@ class LossHandler:
         loss_notapplied = {}
         for task_name in self._configs.tasks.keys():
 
+            batch_size = target_features[task_name].shape[0]
+
             # Initialize decay to 1.0:
-            loss_decay = 1.0
+            loss_decay = torch.ones((batch_size,), dtype=torch.float32).cuda()
 
             # Assume loss applied for every sample until proven wrong:
-            batch_size = target_features[task_name].shape[0]
             loss_notapplied_mask = torch.zeros((batch_size,), dtype=torch.bool)
 
             if tasks_punished is not None:
                 for sample_idx in range(batch_size):
                     if tasks_punished[sample_idx] is not None and task_name not in tasks_punished[sample_idx]:
+                        loss_decay[sample_idx] = 0.0
                         loss_notapplied_mask[sample_idx] = 1
 
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:
                     decay_controlling_variable = target_features[task_name] if not 'target' in decay_spec else pertarget_target_features[decay_spec['target']]
-                    loss_decay *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
+                    loss_decay[:] *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
 
                     if decay_controlling_variable is not target_features[task_name]:
                         # A target other than itself is being used to control loss decay
@@ -282,7 +284,9 @@ class LossHandler:
                     pred_features[task_name],
                     target_features[task_name],
                 )
-            task_loss = task_loss * task_loss_decays[task_name]
+            batch_size = task_loss.shape[0]
+            assert len(task_loss.shape) == 2 # 2nd dimension is determined by the dimension of the feature itself
+            task_loss = task_loss * task_loss_decays[task_name][:,None] # Broadcast same decay over all dimensions of the feature
             task_loss = task_loss * self._configs.tasks[task_name]['loss_weight']
             task_loss = task_loss.mean() # So far loss is element-wise. Reduce over entire batch.
             assert torch.isfinite(task_loss)
