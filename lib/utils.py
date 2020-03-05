@@ -339,6 +339,12 @@ def sample_param(sample_spec):
         param = np.array(sample_spec.value)
     elif sample_spec.method == 'uniform':
         param = np.random.uniform(low=sample_spec.range[0], high=sample_spec.range[1], size=shape)
+    elif sample_spec.method == 'cos_uniform':
+        # Samples an angle in the given the range. Corresponds to uniform sampling on S2, limited to the given polar angle range.
+        assert sample_spec.range[0] >= 0. and sample_spec.range[0] <= 180.
+        assert sample_spec.range[1] >= 0. and sample_spec.range[1] <= 180.
+        # Flipped order of high/low, since cos is a decreasing function from cos(0)=1 to cos(pi)=-1
+        param = 180./np.pi*np.arccos(np.random.uniform(low=np.cos(sample_spec.range[1]*np.pi/180.), high=np.cos(sample_spec.range[0]*np.pi/180.), size=shape))
     elif sample_spec.method == 'uniform_S2':
         param = uniform_sampling_on_S2(shape=())
     elif sample_spec.method == 'normal':
