@@ -1190,6 +1190,9 @@ class PoseOptimizer():
             if title is not None:
                 axes_array[j,k].set_title(title)
 
+        all_params_interp = all_params.clone()
+        all_params_interp[:,self._num_wxdims+self._num_txdims:] = torch.exp(all_params_interp[:,self._num_wxdims+self._num_txdims:])
+
         sample_idx = 0
         # Scalar parameter x.
         if self._num_params == 1:
