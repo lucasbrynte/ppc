@@ -1081,8 +1081,8 @@ class PoseOptimizer():
         step_size_d = 5e-3
 
         # has_pixel_offset_flag = True
-        # has_rel_depth_error_flag = True
         has_pixel_offset_flag = False
+        # has_rel_depth_error_flag = True
         has_rel_depth_error_flag = False
 
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
@@ -1197,53 +1197,63 @@ class PoseOptimizer():
         # Scalar parameter x.
         if self._num_params == 1:
             nrows = 1
-            ncols = 1
-            ncols += 4
-            if calc_grad:
-                ncols += 1
-            fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False)
-            axes_array[0,0].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
-            axes_array[0,0].set_title('all_err_est')
             if has_rel_depth_error_flag:
-                axes_array[0,1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_rel_depth_est[sample_idx,:].detach().cpu().numpy())
-                axes_array[0,1].set_title('all_rel_depth_est')
+                nrows += 1
             if has_pixel_offset_flag:
-                axes_array[0,2].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_est[sample_idx,:].detach().cpu().numpy())
-                axes_array[0,2].set_title('all_pixel_offset_est')
-                axes_array[0,3].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_x_est[sample_idx,:].detach().cpu().numpy())
-                axes_array[0,3].set_title('all_pixel_offset_x_est')
-                axes_array[0,4].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
-                axes_array[0,4].set_title('all_pixel_offset_y_est')
-            # if calc_grad:
-            #     axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
-            #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
-            #     # axes_array[0,-1].plot(all_params[sample_idx,:,:].detach().cpu().numpy().T, all_d_grads[sample_idx,:,:].detach().cpu().numpy().T)
-        elif self._num_params == 2:
-            nrows = 2
-            ncols = 1
-            ncols += 4
+                nrows += 3
             if calc_grad:
-                ncols += 1
+                nrows += 1
+            ncols = 1
+            fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, figsize=(ncols*5, nrows*2), squeeze=False)
+            row_idx = 0
+            axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
+            axes_array[row_idx,0].set_title('all_err_est')
+            row_idx += 1
+            if has_rel_depth_error_flag:
+                axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_rel_depth_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[row_idx,0].set_title('all_rel_depth_est')
+                row_idx += 1
+            if has_pixel_offset_flag:
+                axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[row_idx,0].set_title('all_pixel_offset_est')
+                row_idx += 1
+                axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_x_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[row_idx,0].set_title('all_pixel_offset_x_est')
+                row_idx += 1
+                axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_pixel_offset_y_est[sample_idx,:].detach().cpu().numpy())
+                axes_array[row_idx,0].set_title('all_pixel_offset_y_est')
+                row_idx += 1
+            # if calc_grad:
+            #     axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_wx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            #     # axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_tx_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            #     # axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_d_grads[sample_idx,:,:].detach().cpu().numpy().T)
+            #     row_idx += 1
+        elif self._num_params == 2:
+            nrows = 1
+            nrows += 4
+            if calc_grad:
+                nrows += 1
+            ncols = 2
             fig, axes_array = plt.subplots(figsize=(15,6), nrows=nrows, ncols=ncols, squeeze=False)
             # TODO: Plot all_wx, all_tx and all_d separately and neatly.
-            plot_surf(axes_array, 0, 0, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy(), title='all_err_est')
-            plot_heatmap(axes_array, 1, 0, all_err_est[sample_idx,:,:].detach().cpu().numpy())
+            plot_surf(axes_array, 0, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_err_est[sample_idx,:,:].detach().cpu().numpy(), title='all_err_est')
+            plot_heatmap(axes_array, 0, 1, all_err_est[sample_idx,:,:].detach().cpu().numpy())
             if has_rel_depth_error_flag:
-                plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy(), title='all_rel_depth_est')
+                plot_surf(axes_array, 1, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy(), title='all_rel_depth_est')
                 plot_heatmap(axes_array, 1, 1, all_rel_depth_est[sample_idx,:,:].detach().cpu().numpy())
             if has_pixel_offset_flag:
-                plot_surf(axes_array, 0, 2, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_est')
-                plot_heatmap(axes_array, 1, 2, all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy())
-                plot_surf(axes_array, 0, 3, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_x_est')
-                plot_heatmap(axes_array, 1, 3, all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy())
-                plot_surf(axes_array, 0, 4, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_y_est')
-                plot_heatmap(axes_array, 1, 4, all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 2, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_est')
+                plot_heatmap(axes_array, 2, 1, all_pixel_offset_est[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 3, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_x_est')
+                plot_heatmap(axes_array, 3, 1, all_pixel_offset_x_est[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 4, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy(), title='all_pixel_offset_y_est')
+                plot_heatmap(axes_array, 4, 1, all_pixel_offset_y_est[sample_idx,:,:].detach().cpu().numpy())
             if calc_grad:
-                plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                plot_surf(axes_array, 1, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 plot_heatmap(axes_array, 1, 1, all_wx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
-                # plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_surf(axes_array, 1, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 # plot_heatmap(axes_array, 1, 1, all_tx_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
-                # plot_surf(axes_array, 0, 1, all_params[sample_idx,:,:,:].detach().cpu().numpy(), all_d_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
+                # plot_surf(axes_array, 1, 0, all_params_interp[sample_idx,:,:,:].detach().cpu().numpy(), all_d_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
                 # plot_heatmap(axes_array, 1, 1, all_d_grads.norm(dim=1)[sample_idx,:,:].detach().cpu().numpy())
 
         fig.savefig(os.path.join(self._out_path, '00_func.png'))
