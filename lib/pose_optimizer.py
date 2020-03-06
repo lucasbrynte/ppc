@@ -1029,6 +1029,8 @@ class PoseOptimizer():
         self._H0K = torch.matmul(H0, self._K)
         self._H0K_inv = torch.inverse(self._H0K)
 
+        w_gt = R_to_w(torch.matmul(self._R_gt, self._R_refpt.permute((0,2,1)))).detach()
+
         self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
         self._w_basis = self._get_w_basis(primary_w_dir = None)
         self._ref_depth = self._t_gt[:,2,:].squeeze(1)
@@ -1120,6 +1122,11 @@ class PoseOptimizer():
                     pixel_offset_est = pred_features['pixel_offset']
                 if has_rel_depth_error_flag:
                     rel_depth_est = pred_features['rel_depth_error']
+            curr_t_est = self._x2t(tx, d)
+            curr_w_est = self._x2w(wx)
+            real_rel_depth_error = (curr_t_est[:,2] / self._t_gt[:,2]).squeeze(dim=1)
+            t_errmag = (curr_t_est - self._t_gt).norm(dim=1).squeeze(dim=1)
+            w_errmag = (curr_w_est - w_gt).norm(dim=1)
             print(
                 j,
                 err_est.detach().cpu().numpy(),
@@ -1132,6 +1139,12 @@ class PoseOptimizer():
                 curr_tx_grad.detach().cpu().numpy() if calc_grad else None,
                 curr_d_grad.detach().cpu().numpy() if calc_grad else None,
             )
+            print('err_est: {}'.format(err_est.cpu().numpy()))
+            print('real_rel_depth_error: {}'.format(real_rel_depth_error.cpu().numpy()))
+            print('t_est[2]', curr_t_est[:,2])
+            print('t_gt[2]', self._t_gt[:,2])
+            print('t_errmag: {}'.format(t_errmag.cpu().numpy()))
+            print('w_errmag: {}'.format(w_errmag.cpu().numpy()))
 
             # Store iterations
             # vec(all_params, N_each)[:,:,j] = x.detach().clone()
