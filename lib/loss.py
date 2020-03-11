@@ -210,11 +210,16 @@ class LossHandler:
         decay_controlling_variable = torch.norm(decay_controlling_variable, dim=1, keepdim=True)
 
         if decay_spec['method'] == 'relative':
+            decay_controlling_variable = decay_controlling_variable.abs()
             return 1. / (decay_controlling_variable + decay_spec['min_denominator'])
 
         if decay_spec['method'] == 'exp_decay':
+            decay_controlling_variable = decay_controlling_variable.abs()
             gamma = np.log(2.0) / decay_spec['halflife']
-            return torch.exp(-gamma * decay_controlling_variable)
+            decay = torch.exp(-gamma * decay_controlling_variable)
+            if 'additive_decay_bias' in decay_spec:
+                decay += decay_spec['additive_decay_bias']
+            return decay
 
         if decay_spec['method'] == 'smoothstep':
             x1, x2, y1, y2 = decay_spec['x1'], decay_spec['x2'], decay_spec['y1'], decay_spec['y2']
