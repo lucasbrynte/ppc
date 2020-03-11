@@ -255,7 +255,7 @@ class LossHandler:
             if self._configs.tasks[task_name]['loss_decay'] is not None:
                 for decay_spec in self._configs.tasks[task_name]['loss_decay']:
                     decay_controlling_variable = target_features[task_name] if not 'target' in decay_spec else pertarget_target_features[decay_spec['target']]
-                    loss_decay[:] *= self.calc_decay_factor(decay_spec, decay_controlling_variable)
+                    loss_decay[:] *= self.calc_decay_factor(decay_spec, decay_controlling_variable).squeeze(dim=1)
 
                     if decay_controlling_variable is not target_features[task_name]:
                         # A target other than itself is being used to control loss decay
