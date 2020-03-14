@@ -2,7 +2,8 @@ from attrdict import AttrDict
 import numpy as np
 import torch
 from torch import nn
-import torchvision.models as models
+# from torchvision.models import resnet18 as r18
+from lib.models.resnet_tv050 import resnet18 as r18
 from lib.utils import get_module_parameters, get_device
 
 
@@ -17,7 +18,7 @@ class Resnet18Wrapper(nn.Module):
         if self._include_lowlevel and self._include_highlevel:
             assert self._include_midlevel
 
-        resnet18 = models.resnet18(pretrained=pretrained)
+        resnet18 = r18(pretrained=pretrained)
 
         if self._include_lowlevel:
             self.conv1 = resnet18.conv1
