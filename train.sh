@@ -39,7 +39,6 @@ for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
         $CONTAINER python $PROFILE_ARGS main.py \
         train \
-        --overwrite-experiment \
         --config-name $CONFIGNAME \
         --experiment-name $EXPERIMENT_PREFIX/$OBJ \
         --obj-label $OBJ

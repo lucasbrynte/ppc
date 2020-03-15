@@ -23,8 +23,6 @@ def parse_arguments():
                         help='name of the config dir that is going to be used')
     parser.add_argument('--experiment-root-path', default=get_default_root(),
                         help='the root directory to hold experiments')
-    parser.add_argument('--overwrite-experiment', action='store_true', default=False,
-                        help='causes experiment to be overwritten, if it already exists')
     parser.add_argument('--experiment-name', required=True, type=str,
                         help='name of the execution, will be '
                              'the name of the experiment\'s directory')
@@ -51,7 +49,7 @@ def parse_arguments():
     if args.train_or_eval in ['eval', 'eval_poseopt']:
         args.old_experiment_path = os.path.join(args.experiment_root_path, args.old_experiment_name)
 
-    if args.overwrite_experiment and os.path.exists(args.experiment_path):
+    if os.path.exists(args.experiment_path):
         shutil.rmtree(args.experiment_path)
 
     args.checkpoint_root_dir = os.path.join(args.experiment_path, 'checkpoints')

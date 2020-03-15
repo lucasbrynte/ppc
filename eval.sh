@@ -46,7 +46,6 @@ for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
         $CONTAINER python $PROFILE_ARGS main.py \
         $EVALMODE \
-        --overwrite-experiment \
         --config-name $CONFIGNAME \
         --experiment-name $NEW_EXPERIMENT_PREFIX/$OBJ \
         --old-experiment-name $OLD_EXPERIMENT_PREFIX/$OBJ \
