@@ -18,7 +18,9 @@ CHECKPOINT_FNAME=latest_model.pth.tar
 # Create tmp dir (needs to exist for automatic cleanup to work)
 mkdir -p /tmp/ppc-ws
 # Remove all but 20 most recent tmp dirs
-ls -t1 /tmp/ppc-ws | tail -n+20 | xargs rm -rf
+pushd /tmp/ppc-ws
+ls -t1 . | tail -n+20 | xargs rm -rf
+popd
 TMP_SUFFIX=$(openssl rand -hex 4)
 WS=/tmp/ppc-ws/$TMP_SUFFIX
 rm -rf $WS
