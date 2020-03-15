@@ -173,6 +173,35 @@ real_unoccl_test_whitesilhouette_frame331:
 
 
 
+# ==============================================================================
+# real_unoccl_test FRAME 720
+# ==============================================================================
+real_unoccl_test_keepbg_frame720:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: 720
+real_unoccl_test_voc_frame720:
+  ref_source: real
+  background: voc
+  white_silhouette: false
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: 720
+real_unoccl_test_whitesilhouette_frame720:
+  ref_source: real
+  background: black
+  white_silhouette: true
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_unoccl/<OBJ_LABEL>
+    static_frame_idx: 720
+
+
 
 
 
@@ -364,6 +393,18 @@ real_occl_test_keepbg_frame649:
   real_opts:
     linemod_seq: test_occl/benchviseblue
     static_frame_idx: 649
+
+# ==============================================================================
+# real_occl_test FRAME 845
+# ==============================================================================
+real_occl_test_keepbg_frame845:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_occl/benchviseblue
+    static_frame_idx: 845
 
 
 
