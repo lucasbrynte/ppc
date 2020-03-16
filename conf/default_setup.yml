@@ -130,7 +130,8 @@ model:
     # resnet_freeze_nbr_epochs: null
     resnet_freeze_nbr_epochs: 3
     pretrained: true
-    unfreeze_merge_layer: false
+    unfreeze_merge_layer: true
+    # unfreeze_merge_layer: false
     E2_pretrained: true
     E2_include_highlevel: false
     head_layer_specs:
