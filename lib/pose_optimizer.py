@@ -1,6 +1,7 @@
 import os
 import json
 import numpy as np
+# np.random.seed(314159)
 import torch
 from torch import nn
 from torch.autograd import grad
@@ -9,6 +10,7 @@ from lib.expm.expm64 import expm64
 from lib.utils import get_rotation_axis_angle, order_dict
 from lib.utils import square_bbox_around_projected_object_center_pt_batched, crop_and_rescale_pt_batched, get_projectivity_for_crop_and_rescale_pt_batched
 
+from PIL import Image
 from torchvision.transforms.functional import normalize
 from lib.constants import TV_MEAN, TV_STD
 
@@ -143,12 +145,19 @@ class FullPosePipeline(nn.Module):
         )
 
         for sample_idx, fname in fname_dict.items():
+            # img1 = _retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu())
+            # img2 = _retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu())
+            # Image.fromarray((img1*255.).astype(np.uint8)).save('/workspace/experiments/01_rawimgs_{:02d}_img1.png'.format(sample_idx))
+            # Image.fromarray((img2*255.).astype(np.uint8)).save('/workspace/experiments/01_rawimgs_{:02d}_img2.png'.format(sample_idx))
+
             fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
             axes_array[0,0].imshow(_retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu()))
             axes_array[0,1].imshow(_retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu()))
             full_fpath = os.path.join(self._out_path, fname)
             os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
             fig.savefig(full_fpath)
+
+        # assert False
 
         # # Punish pixels
         # sh = query_img.shape
