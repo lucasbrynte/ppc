@@ -386,11 +386,11 @@ class Main():
         ):
         if mode == TRAIN:
             self._model.train()
-            if self._configs.model.architecture == 'resnet18' and self._configs.model.resnet18_opts.resnet_freeze_nbr_epochs is not None:
-                if epoch <= self._configs.model.resnet18_opts.resnet_freeze_nbr_epochs:
-                    self._model.freeze_resnet()
+            if self._configs.model.architecture == 'resnet18' and self._configs.model.resnet18_opts.encoder_freeze_nbr_epochs is not None:
+                if epoch <= self._configs.model.resnet18_opts.encoder_freeze_nbr_epochs:
+                    self._model.freeze_encoder()
                 else:
-                    self._model.unfreeze_resnet()
+                    self._model.unfreeze_encoder()
         else:
             self._model.eval()
 

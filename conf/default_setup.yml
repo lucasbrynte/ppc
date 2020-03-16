@@ -127,8 +127,8 @@ model:
   architecture: resnet18
   resnet18_opts:
     weight_decay: 3.e-5
-    # resnet_freeze_nbr_epochs: null
-    resnet_freeze_nbr_epochs: 3
+    # encoder_freeze_nbr_epochs: null
+    encoder_freeze_nbr_epochs: 3
     pretrained: true
     unfreeze_merge_layer: true
     # unfreeze_merge_layer: false
