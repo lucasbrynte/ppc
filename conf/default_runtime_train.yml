@@ -79,29 +79,269 @@ data_sampling_scheme_defs:
         # # - scheme_name: transl_10perc
         # - scheme_name: depth_1_1
 
+
+
+
+        # # reprojonly-depthonly1_005
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_005
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+
+        # # reprojonly-depthonly1_02
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_02
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+
+        # # reprojonly-depthonly1_05
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+
+        # # reprojonly-depthonly1_15
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_15
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+
+        # reprojonly-depthonly_1_3
         - scheme_name: default
           sampling_prob: 0.2
-        - scheme_name: noperturb
-          # sampling_prob: 0.2
-          # sampling_prob: 0.15
-          sampling_prob: 0.1
-          tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
-          # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset, rel_depth_error] # Exclude fine_rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
-          # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset] # Exclude rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+          # loss_weight: 1.0
         - scheme_name: rot_only_90deg_std
-          sampling_prob: 0.2
-          tasks_punished: [avg_reproj_err]
+          sampling_prob: 0.3
+          # loss_weight: 1.0
         - scheme_name: transl_30perc
           sampling_prob: 0.2
-          tasks_punished: [pixel_offset]
-          # tasks_punished: [norm_pixel_offset, pixel_offset]
-        # - scheme_name: depth_1_05
-        #   tasks_punished: [fine_rel_depth_error]
+          # loss_weight: 1.0
         - scheme_name: depth_1_3
-          # sampling_prob: 0.2
-          # sampling_prob: 0.25
           sampling_prob: 0.3
-          tasks_punished: [rel_depth_error]
+          # loss_weight: 1.0
+          loss_weight: 3.0
+
+
+
+        # # reprojonly-finedepth
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+
+
+
+        # # reprojonly-finedepthonly
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+
+
+
+        # # reprojonly-no_depthonly_sample
+        # - scheme_name: default
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1429 # = 0.1 / 0.7
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+
+
+
+        # # reproj_and_fine_rel_depth_error
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   tasks_punished: [rel_depth_error]
+
+
+
+        # # mix-depth_1_3
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [pixel_offset]
+        # - scheme_name: depth_1_3
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   tasks_punished: [rel_depth_error]
+
+
+
+        # # mix-depth_1_05
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err, pixel_offset]
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset, rel_depth_error] # Exclude fine_rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset] # Exclude rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [pixel_offset]
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   tasks_punished: [rel_depth_error]
+
+
+
+        # # mix-depth_1_02
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err, pixel_offset]
+        # - scheme_name: noperturb
+        #   sampling_prob: 0.1
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset, rel_depth_error] # Exclude fine_rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset] # Exclude rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        #   tasks_punished: [pixel_offset]
+        # - scheme_name: depth_1_02
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   tasks_punished: [rel_depth_error]
+
+
+
+        # # mix-nodepth
+        # - scheme_name: default
+        #   # sampling_prob: 0.2
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+        # - scheme_name: noperturb
+        #   # sampling_prob: 0.1
+        #   sampling_prob: 0.1429 # = 0.1 / 0.7
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err] # Main point of this is to push down and get an easily optimized shape for avg_reproj_err. Other tasks could be included, but may be a risk of learning flat regions.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset, rel_depth_error] # Exclude fine_rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        #   # tasks_punished: [avg_reproj_err, norm_pixel_offset, pixel_offset] # Exclude rel_depth_error in order to avoid flat regions and thus increase precision close to optimum.
+        # - scheme_name: rot_only_90deg_std
+        #   # sampling_prob: 0.2
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+        #   tasks_punished: [avg_reproj_err]
+        # - scheme_name: transl_30perc
+        #   # sampling_prob: 0.2
+        #   sampling_prob: 0.2857 # = 0.2 / 0.7
+        #   # loss_weight: 1.0
+        #   tasks_punished: [pixel_offset]
+
+
+
 
         # - scheme_name: default
         #   # sampling_prob: 0.2
