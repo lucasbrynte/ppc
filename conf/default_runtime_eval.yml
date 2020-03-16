@@ -22,6 +22,11 @@ default_schemeset_opts:
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
       enabled: true
+      # OccludedLINEMOD
+      # init_pose_suffix: _pvnet
+      # init_pose_suffix: _pvnet_depthfix # 180 degree rotation around camera frame y-axis to ensure positive depth
+      # LINEMOD
+      init_pose_suffix: _posecnn
 
     visualization:
       save_imgs: true
@@ -57,15 +62,28 @@ data_sampling_scheme_defs:
 
     posesearch:
       ref_schemeset:
-        - {scheme_name: real_occl_test_keepbg}
-        # - {scheme_name: real_unoccl_all_keepbg_frame100}
+        # # OccludedLINEMOD
+        # - {scheme_name: real_occl_test_keepbg}
+        # LINEMOD
+        - {scheme_name: real_unoccl_test_keepbg}
+
         # - {scheme_name: real_occl_test_keepbg_frame30}
         # - {scheme_name: real_occl_test_keepbg_frame109}
         # - {scheme_name: real_occl_test_keepbg_frame112}
         # - {scheme_name: real_occl_test_keepbg_frame159}
         # - {scheme_name: real_occl_test_keepbg_frame649}
+        # - {scheme_name: real_occl_test_keepbg_frame845}
+
+
+        # - {scheme_name: real_unoccl_all_keepbg}
+        # - {scheme_name: real_unoccl_all_keepbg_frame100}
+
         # - {scheme_name: real_unoccl_test_keepbg_frame194}
         # - {scheme_name: real_unoccl_test_keepbg_frame331}
+        # - {scheme_name: real_unoccl_test_keepbg_frame720}
+
+        # - {scheme_name: synth_voc}
+
       query_schemeset: # NOTE: should ideally be disabled / not required during pose search
         # - scheme_name: 20deg_std
         - scheme_name: mild_gradual_rot

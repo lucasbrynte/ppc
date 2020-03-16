@@ -75,6 +75,27 @@ transl_30perc:
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 0.3} # 30% of object size along each dimension. tx=ty=tz
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+depth_1_005:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.005}
+depth_1_01:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.01}
+depth_1_02:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.02}
 depth_1_05:
   white_silhouette: false
   perturbation:
@@ -82,13 +103,13 @@ depth_1_05:
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.05}
-depth_1_1:
+depth_1_15:
   white_silhouette: false
   perturbation:
     axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
-    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.1}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.15}
 depth_1_3:
   white_silhouette: false
   perturbation:

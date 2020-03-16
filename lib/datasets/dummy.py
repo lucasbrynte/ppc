@@ -20,7 +20,7 @@ from lib.utils import read_yaml_and_pickle, pextend, pflat, numpy_to_pt
 # from lib.utils import get_eucl
 from lib.utils import project_pts, uniform_sampling_on_S2, get_rotation_axis_angle, get_translation, sample_param, calc_param_quantile_range, closest_rotmat
 from lib.utils import get_projectivity_for_crop_and_rescale_numpy, square_bbox_around_projected_object_center_numpy, crop_img
-from lib.constants import TRAIN, VAL
+from lib.constants import TRAIN, VAL, TEST
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
 from lib.rendering.glumpy_renderer import Renderer
@@ -37,6 +37,8 @@ ExtraInput = namedtuple('ExtraInput', [
     't1',
     'R2',
     't2',
+    'R2_init',
+    't2_init',
     'obj_diameter',
     'ref_scheme_loss_weight',
     'query_scheme_loss_weight',
@@ -236,7 +238,7 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
@@ -262,6 +264,8 @@ class DummyDataset(Dataset):
             img1,
             R2,
             t2,
+            R2_init,
+            t2_init,
         )
 
         if self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt']:
@@ -277,6 +281,8 @@ class DummyDataset(Dataset):
                 img1,
                 R1, # Ref pose sent in as query pose!
                 t1, # Ref pose sent in as query pose!
+                R2_init,
+                t2_init,
             )
             pushopt_prob = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['pushopt_prob']
             if pushopt_prob is None:
@@ -733,13 +739,20 @@ class DummyDataset(Dataset):
             R1 = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
             t1 = np.array(gt['cam_t_m2c']).reshape((3,1))
 
+            if self._mode == TEST and 'init_pose_suffix' in self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']:
+                R2_init = closest_rotmat(np.array(gt['cam_R_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3, 3)))
+                t2_init = np.array(gt['cam_t_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3,1))
+            else:
+                R2_init = R1
+                t2_init = t1
+
             break
         else:
             # print(gts_in_frame)
             # print(seq, frame_idx)
             assert False, 'After {} attempts, no frame found with annotations for desired object'.format(NBR_ATTEMPTS)
 
-        return R1, t1, frame_idx, instance_idx
+        return R1, t1, R2_init, t2_init, frame_idx, instance_idx
 
     def _generate_synthetic_pose(self, ref_scheme_idx):
         # Resample pose until accepted
@@ -987,9 +1000,11 @@ class DummyDataset(Dataset):
         assert self._ref_sampling_schemes[ref_scheme_idx].ref_source in ['real', 'synthetic'], 'Unrecognized ref_source: {}.'.format(self._ref_sampling_schemes[ref_scheme_idx].ref_source)
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            R1, t1, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, fixed_frame_idx=fixed_frame_idx)
+            R1, t1, R2_init, t2_init, frame_idx, instance_idx = self._read_pose_from_anno(ref_scheme_idx, fixed_frame_idx=fixed_frame_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             T1_model2world, T1_occluders, T_world2cam, R1, t1 = self._generate_synthetic_pose(ref_scheme_idx)
+            # In synthetic case, set initial pose (the proposal) to ground truth
+            R2_init, t2_init = R1, t1
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
             img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, frame_idx, instance_idx)
@@ -1019,7 +1034,7 @@ class DummyDataset(Dataset):
                 blur_opts,
             )
 
-        return R1, t1, ref_img_path, img1, instance_seg1, safe_anno_mask
+        return R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_anno_mask
 
     def _generate_sample(
             self,
@@ -1032,6 +1047,8 @@ class DummyDataset(Dataset):
             img1,
             R2,
             t2,
+            R2_init,
+            t2_init,
         ):
         # # Transformation from 1st camera frame to 2nd camera frame
         # T12_cam = get_eucl(R2, t2) @ get_eucl(R1.T, -R1.T@t1)
@@ -1054,6 +1071,8 @@ class DummyDataset(Dataset):
             t1 = torch.tensor(t1, dtype=torch.float32),
             R2 = torch.tensor(R2, dtype=torch.float32),
             t2 = torch.tensor(t2, dtype=torch.float32),
+            R2_init = torch.tensor(R2_init, dtype=torch.float32),
+            t2_init = torch.tensor(t2_init, dtype=torch.float32),
             obj_diameter = torch.tensor(self._metadata['objects'][self._obj_label]['diameter'], dtype=torch.float32),
             ref_scheme_loss_weight = torch.tensor(self._data_sampling_scheme_defs.ref_schemeset[ref_scheme_idx].loss_weight, dtype=torch.float32),
             query_scheme_loss_weight = torch.tensor(self._data_sampling_scheme_defs.query_schemeset[query_scheme_idx].loss_weight, dtype=torch.float32),
