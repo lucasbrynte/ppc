@@ -133,7 +133,95 @@ model:
     unfreeze_merge_layer: true
     # unfreeze_merge_layer: false
     E2_pretrained: true
+
+    # Original
     E2_include_highlevel: false
+    depth: 18
+    init_ds: true
+    max_pool: true
+    final_ds: null
+    avg_pool: false
+
+    # # avg_pool
+    # E2_include_highlevel: false
+    # depth: 18
+    # init_ds: true
+    # max_pool: true
+    # final_ds: null
+    # avg_pool: true
+
+    # # 14-highres
+    # E2_include_highlevel: false # Effectively 14 layers
+    # depth: 18
+    # init_ds: false
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: true
+
+    # # 14-nomaxpool
+    # E2_include_highlevel: false # Effectively 14 layers
+    # depth: 18
+    # init_ds: true
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: false
+
+    # # 18-nomaxpool
+    # E2_include_highlevel: true
+    # depth: 18
+    # init_ds: true
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: false
+
+    # # 14-nomaxpool-ds2
+    # E2_include_highlevel: false # Effectively 14 layers
+    # depth: 18
+    # init_ds: true
+    # max_pool: false
+    # final_ds: 2
+    # avg_pool: false
+
+    # # 14-highres-ds2
+    # E2_include_highlevel: false # Effectively 14 layers
+    # depth: 18
+    # init_ds: false
+    # max_pool: false
+    # final_ds: 2
+    # avg_pool: false
+
+    # # 18-highres
+    # E2_include_highlevel: true
+    # depth: 18
+    # init_ds: false
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: true
+
+    # # 18-highres-ds4
+    # E2_include_highlevel: true
+    # depth: 18
+    # init_ds: false
+    # max_pool: false
+    # final_ds: 4
+    # avg_pool: false
+
+    # # 28-highres
+    # E2_include_highlevel: false # Effectively 28 layers
+    # depth: 34
+    # init_ds: false
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: true
+
+    # # 34-highres
+    # E2_include_highlevel: true
+    # depth: 34
+    # init_ds: false
+    # max_pool: false
+    # final_ds: null
+    # avg_pool: true
+
     head_layer_specs:
       avg_reproj_err:
         tasks: [avg_reproj_err]
@@ -180,7 +268,9 @@ data:
   nyud_path: /datasets/nyud
   voc_path: /datasets/voc
   img_dims: [480, 640]
-  crop_dims: [128, 128]
+  # crop_dims: [128, 128]
+  crop_dims: [256, 256]
+  # crop_dims: [512, 512]
   # Pipeline was modified such that rendering is done in the pipeline itself, rather than in dataset module.
   # For convenience, glumpy is not yet supported. Multiple glumpy renderer instances seem to interfere, i.e. allowing for this would require a central renderer module, taking requests from either pipelin or dataset module.
   # query_rendering_method: glumpy

@@ -4,27 +4,44 @@ import torch
 from torch import nn
 # from torchvision.models import resnet18 as r18
 from lib.models.resnet_tv050 import resnet18 as r18
+from lib.models.resnet_tv050 import resnet34 as r34
 from lib.utils import get_module_parameters, get_device
 
 
 class Resnet18Wrapper(nn.Module):
-    def __init__(self, configs, pretrained=False, include_lowlevel=True, include_midlevel=True, include_highlevel=True):
+    def __init__(self, configs, pretrained=False, include_lowlevel=True, include_midlevel=True, include_highlevel=True, depth=18, init_ds=True, max_pool=True, final_ds=None, avg_pool=False):
         super().__init__()
         self._configs = configs
         self._include_lowlevel = include_lowlevel
         self._include_midlevel = include_midlevel
         self._include_highlevel = include_highlevel
+        self._init_ds = init_ds
+        self._max_pool = max_pool
+        self._final_ds = final_ds
+        self._avg_pool = avg_pool
         assert self._include_lowlevel or self._include_midlevel or self._include_highlevel
         if self._include_lowlevel and self._include_highlevel:
             assert self._include_midlevel
 
-        resnet18 = r18(pretrained=pretrained)
+        if depth == 18:
+            resnet18 = r18(
+                pretrained = pretrained,
+                init_ds = self._init_ds,
+                max_pool = self._max_pool,
+            )
+        else:
+            assert depth == 34
+            resnet18 = r34(
+                pretrained = pretrained,
+                init_ds = self._init_ds,
+                max_pool = self._max_pool,
+            )
 
         if self._include_lowlevel:
             self.conv1 = resnet18.conv1
             self.bn1 = resnet18.bn1
             self.relu = resnet18.relu
-            self.maxpool = resnet18.maxpool
+            self.max_pool = resnet18.max_pool
             self.layer1 = resnet18.layer1
 
         if self._include_midlevel:
@@ -34,7 +51,8 @@ class Resnet18Wrapper(nn.Module):
         if self._include_highlevel:
             self.layer4 = resnet18.layer4
 
-        # self.avgpool = resnet18.avgpool
+        if self._avg_pool:
+            self.avgpool = resnet18.avgpool
         # self.fc = resnet18.fc
 
     def forward(self, x):
@@ -42,7 +60,7 @@ class Resnet18Wrapper(nn.Module):
             x = self.conv1(x)
             x = self.bn1(x)
             x = self.relu(x)
-            x = self.maxpool(x)
+            x = self.max_pool(x)
 
             x = self.layer1(x)
 
@@ -53,7 +71,11 @@ class Resnet18Wrapper(nn.Module):
         if self._include_highlevel:
             x = self.layer4(x)
 
-        # x = self.avgpool(x)
+        if self._final_ds is not None:
+            x = nn.functional.avg_pool2d(x, self._final_ds, self._final_ds)
+
+        if self._avg_pool:
+            x = self.avgpool(x)
         # x = torch.flatten(x, 1)
         # x = self.fc(x)
 
@@ -101,6 +123,11 @@ class Model(nn.Module):
             include_lowlevel = True,
             include_midlevel = False,
             include_highlevel = False,
+            depth = self._configs.model.resnet18_opts.depth,
+            init_ds = self._configs.model.resnet18_opts.init_ds,
+            max_pool = self._configs.model.resnet18_opts.max_pool,
+            final_ds = None,
+            avg_pool = False,
         )
         for param in self.E11.parameters():
             param.requires_grad = False
@@ -120,6 +147,11 @@ class Model(nn.Module):
             include_lowlevel = True,
             include_midlevel = False,
             include_highlevel = False,
+            depth = self._configs.model.resnet18_opts.depth,
+            init_ds = self._configs.model.resnet18_opts.init_ds,
+            max_pool = self._configs.model.resnet18_opts.max_pool,
+            final_ds = None,
+            avg_pool = False,
         )
         self.E2 = Resnet18Wrapper(
             self._configs,
@@ -127,6 +159,11 @@ class Model(nn.Module):
             include_lowlevel = False,
             include_midlevel = True,
             include_highlevel = self._configs.model.resnet18_opts.E2_include_highlevel,
+            depth = self._configs.model.resnet18_opts.depth,
+            init_ds = self._configs.model.resnet18_opts.init_ds,
+            max_pool = self._configs.model.resnet18_opts.max_pool,
+            final_ds = self._configs.model.resnet18_opts.final_ds,
+            avg_pool = self._configs.model.resnet18_opts.avg_pool,
         )
 
         resnet_output_dims = self._check_resnet_output_dims()
