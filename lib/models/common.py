@@ -1,3 +1,4 @@
+import numpy as np
 from torch import nn
 
 class Head(nn.Module):
