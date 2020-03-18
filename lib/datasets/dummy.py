@@ -28,6 +28,8 @@ from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_cam
 
 Maps = namedtuple('Maps', [
     'ref_img_full',
+    'instance_seg1_full',
+    'safe_anno_mask_full',
 ])
 
 ExtraInput = namedtuple('ExtraInput', [
@@ -262,6 +264,8 @@ class DummyDataset(Dataset):
             t1,
             ref_img_path,
             img1,
+            instance_seg1,
+            safe_anno_mask,
             R2,
             t2,
             R2_init,
@@ -279,6 +283,8 @@ class DummyDataset(Dataset):
                 t1,
                 ref_img_path,
                 img1,
+                instance_seg1,
+                safe_anno_mask,
                 R1, # Ref pose sent in as query pose!
                 t1, # Ref pose sent in as query pose!
                 R2_init,
@@ -1045,6 +1051,8 @@ class DummyDataset(Dataset):
             t1,
             ref_img_path,
             img1,
+            instance_seg1,
+            safe_anno_mask,
             R2,
             t2,
             R2_init,
@@ -1060,6 +1068,8 @@ class DummyDataset(Dataset):
         # Convert maps to pytorch tensors, and organize in attrdict
         maps = Maps(
             ref_img_full = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
+            instance_seg1_full = numpy_to_pt(instance_seg1.astype(np.int64), normalize_flag=False),
+            safe_anno_mask_full = numpy_to_pt(safe_anno_mask.astype(np.bool), normalize_flag=False),
         )
 
         targets = self._calc_targets(R1, t1, R2, t2)
