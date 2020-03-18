@@ -120,148 +120,159 @@ tasks:
   #   #   # 1.2-1.5
   #   #   # - {method: smoothstep, target: rel_depth_error, x1: -0.176, x2: -0.079, y1: 0.0, y2: 1.0} # log(1.2)=0.079, log(1.5)=0.176
   #   #   # - {method: smoothstep, target: rel_depth_error, x1: 0.079, x2: 0.176, y1: 1.0, y2: 0.0} # log(1.2)=0.079, log(1.5)=0.176
-
+aux_tasks:
+  fg_mask: true
+  # fg_mask: false
 logging:
   avg_window_size: 25
 model:
-  architecture: resnet18
-  resnet18_opts:
+  architecture: flownet2
+  flownet2_opts:
+    type: FlowNetS
+    # type: FlowNetSD
     weight_decay: 3.e-5
-    # encoder_freeze_nbr_epochs: null
-    encoder_freeze_nbr_epochs: 3
-    pretrained: true
-    unfreeze_merge_layer: true
-    # unfreeze_merge_layer: false
-    E2_pretrained: true
-
-    # Original
-    E2_include_highlevel: false
-    depth: 18
-    init_ds: true
-    max_pool: true
-    final_ds: null
-    avg_pool: false
-
-    # # avg_pool
-    # E2_include_highlevel: false
-    # depth: 18
-    # init_ds: true
-    # max_pool: true
-    # final_ds: null
-    # avg_pool: true
-
-    # # 14-highres
-    # E2_include_highlevel: false # Effectively 14 layers
-    # depth: 18
-    # init_ds: false
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: true
-
-    # # 14-nomaxpool
-    # E2_include_highlevel: false # Effectively 14 layers
-    # depth: 18
-    # init_ds: true
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: false
-
-    # # 18-nomaxpool
-    # E2_include_highlevel: true
-    # depth: 18
-    # init_ds: true
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: false
-
-    # # 14-nomaxpool-ds2
-    # E2_include_highlevel: false # Effectively 14 layers
-    # depth: 18
-    # init_ds: true
-    # max_pool: false
-    # final_ds: 2
-    # avg_pool: false
-
-    # # 14-highres-ds2
-    # E2_include_highlevel: false # Effectively 14 layers
-    # depth: 18
-    # init_ds: false
-    # max_pool: false
-    # final_ds: 2
-    # avg_pool: false
-
-    # # 18-highres
-    # E2_include_highlevel: true
-    # depth: 18
-    # init_ds: false
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: true
-
-    # # 18-highres-ds4
-    # E2_include_highlevel: true
-    # depth: 18
-    # init_ds: false
-    # max_pool: false
-    # final_ds: 4
-    # avg_pool: false
-
-    # # 28-highres
-    # E2_include_highlevel: false # Effectively 28 layers
-    # depth: 34
-    # init_ds: false
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: true
-
-    # # 34-highres
-    # E2_include_highlevel: true
-    # depth: 34
-    # init_ds: false
-    # max_pool: false
-    # final_ds: null
-    # avg_pool: true
-
-    head_layer_specs:
-      avg_reproj_err:
-        tasks: [avg_reproj_err]
-        layers:
-          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-          - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-          - {dropout_factor: null, bias: true, relu_flag: false}
-      # pixel_offset:
-      #   tasks: [pixel_offset]
-      #   layers:
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {dropout_factor: null, bias: true, relu_flag: false}
-      # norm_pixel_offset:
-      #   tasks: [norm_pixel_offset]
-      #   layers:
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {dropout_factor: null, bias: true, relu_flag: false}
-      # rel_depth_error:
-      #   tasks: [rel_depth_error]
-      #   layers:
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {dropout_factor: null, bias: true, relu_flag: false}
-      # fine_rel_depth_error:
-      #   tasks: [fine_rel_depth_error]
-      #   layers:
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {dropout_factor: null, bias: true, relu_flag: false}
-      # dflt:
-      #   tasks: null
-      #   layers:
-      #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
-      #     - {dropout_factor: null, bias: true, relu_flag: false}
-      #     # - {dropout_factor: null, bias: false, relu_flag: false}
+    renormalize_imgs: true
+    encoder_freeze_nbr_epochs: null
+    # encoder_freeze_nbr_epochs: 3
+# model:
+#   architecture: resnet18
+#   resnet18_opts:
+#     weight_decay: 3.e-5
+#     # encoder_freeze_nbr_epochs: null
+#     encoder_freeze_nbr_epochs: 3
+#     pretrained: true
+#     unfreeze_merge_layer: true
+#     # unfreeze_merge_layer: false
+#     E2_pretrained: true
+# 
+#     # Original
+#     E2_include_highlevel: false
+#     depth: 18
+#     init_ds: true
+#     max_pool: true
+#     final_ds: null
+#     avg_pool: false
+# 
+#     # # avg_pool
+#     # E2_include_highlevel: false
+#     # depth: 18
+#     # init_ds: true
+#     # max_pool: true
+#     # final_ds: null
+#     # avg_pool: true
+# 
+#     # # 14-highres
+#     # E2_include_highlevel: false # Effectively 14 layers
+#     # depth: 18
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: true
+# 
+#     # # 14-nomaxpool
+#     # E2_include_highlevel: false # Effectively 14 layers
+#     # depth: 18
+#     # init_ds: true
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: false
+# 
+#     # # 18-nomaxpool
+#     # E2_include_highlevel: true
+#     # depth: 18
+#     # init_ds: true
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: false
+# 
+#     # # 14-nomaxpool-ds2
+#     # E2_include_highlevel: false # Effectively 14 layers
+#     # depth: 18
+#     # init_ds: true
+#     # max_pool: false
+#     # final_ds: 2
+#     # avg_pool: false
+# 
+#     # # 14-highres-ds2
+#     # E2_include_highlevel: false # Effectively 14 layers
+#     # depth: 18
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: 2
+#     # avg_pool: false
+# 
+#     # # 18-highres
+#     # E2_include_highlevel: true
+#     # depth: 18
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: true
+# 
+#     # # 18-highres-ds4
+#     # E2_include_highlevel: true
+#     # depth: 18
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: 4
+#     # avg_pool: false
+# 
+#     # # 28-highres
+#     # E2_include_highlevel: false # Effectively 28 layers
+#     # depth: 34
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: true
+# 
+#     # # 34-highres
+#     # E2_include_highlevel: true
+#     # depth: 34
+#     # init_ds: false
+#     # max_pool: false
+#     # final_ds: null
+#     # avg_pool: true
+# 
+  head_layer_specs:
+    avg_reproj_err:
+      tasks: [avg_reproj_err]
+      layers:
+        - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+        - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+        - {dropout_factor: null, bias: true, relu_flag: false}
+    # pixel_offset:
+    #   tasks: [pixel_offset]
+    #   layers:
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {dropout_factor: null, bias: true, relu_flag: false}
+    # norm_pixel_offset:
+    #   tasks: [norm_pixel_offset]
+    #   layers:
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {dropout_factor: null, bias: true, relu_flag: false}
+    # rel_depth_error:
+    #   tasks: [rel_depth_error]
+    #   layers:
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {dropout_factor: null, bias: true, relu_flag: false}
+    # fine_rel_depth_error:
+    #   tasks: [fine_rel_depth_error]
+    #   layers:
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {dropout_factor: null, bias: true, relu_flag: false}
+    # dflt:
+    #   tasks: null
+    #   layers:
+    #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     # - {n_out: 1024, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {n_out: 2048, dropout_factor: 0.3, bias: true, relu_flag: true}
+    #     - {dropout_factor: null, bias: true, relu_flag: false}
+    #     # - {dropout_factor: null, bias: false, relu_flag: false}
 data:
   dataformat: dummy
   path: /datasets/occluded-linemod-augmented
@@ -269,8 +280,8 @@ data:
   voc_path: /datasets/voc
   img_dims: [480, 640]
   # crop_dims: [128, 128]
-  crop_dims: [256, 256]
-  # crop_dims: [512, 512]
+  # crop_dims: [256, 256]
+  crop_dims: [512, 512]
   # Pipeline was modified such that rendering is done in the pipeline itself, rather than in dataset module.
   # For convenience, glumpy is not yet supported. Multiple glumpy renderer instances seem to interfere, i.e. allowing for this would require a central renderer module, taking requests from either pipelin or dataset module.
   # query_rendering_method: glumpy

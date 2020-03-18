@@ -1,5 +1,5 @@
 import torch
-# from torch import nn
+from torch import nn
 import numpy as np
 from attrdict import AttrDict
 from importlib import import_module
@@ -11,6 +11,7 @@ from lib.loss import LossHandler
 from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
+from lib.utils import crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
 
@@ -186,7 +187,7 @@ class Main():
                     maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
                 )
                 def nn_out2interp_pred_features(nn_out):
-                    pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+                    pred_features_raw = self._loss_handler.get_pred_features(nn_out['features'])
                     pred_features = self._loss_handler.apply_activation(pred_features_raw)
                     interp_pred_features = self._loss_handler.calc_human_interpretable_features(pred_features)
                     return interp_pred_features
@@ -394,6 +395,8 @@ class Main():
         else:
             self._model.eval()
 
+        bce_loss = nn.BCEWithLogitsLoss(reduction='none')
+
         # cnt = 0
         visual_cnt = 1
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
@@ -411,9 +414,11 @@ class Main():
                 maps.ref_img_full.shape[0]*[self._configs.data.query_rendering_opts.ambient_weight],
             )
             H, ref_img, query_img, nn_out = pose_pipeline(extra_input.R2, extra_input.t2)
+            instance_seg1 = crop_and_rescale_pt_batched(maps.instance_seg1_full, H, self._configs.data.crop_dims, interpolation_mode='nearest')
+            safe_anno_mask = crop_and_rescale_pt_batched(maps.safe_anno_mask_full, H, self._configs.data.crop_dims, interpolation_mode='nearest')
 
             # Raw predicted features (neural net output)
-            pred_features_raw = self._loss_handler.get_pred_features(nn_out)
+            pred_features_raw = self._loss_handler.get_pred_features(nn_out['features'])
 
             # Apply activation, and get corresponding target features
             pred_features = self._loss_handler.apply_activation(pred_features_raw)
@@ -430,6 +435,10 @@ class Main():
             if mode in (TRAIN, VAL):
                 task_losses = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decays)
                 loss = sum(task_losses.values())
+                if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask:
+                    fg_mask_loss = bce_loss(nn_out['fg_mask'], (instance_seg1 == 1).float())
+                    fg_mask_loss = fg_mask_loss[safe_anno_mask].mean()
+                    loss += 0.1 * fg_mask_loss
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
                     loss += sum(prior_loss_signal_vals.values())

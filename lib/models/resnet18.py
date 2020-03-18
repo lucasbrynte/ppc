@@ -86,7 +86,7 @@ class Model(nn.Module):
     def __init__(self, configs):
         super().__init__()
         self._configs = configs
-        self.verify_head_layer_specs(self._configs['model']['resnet18_opts']['head_layer_specs']) # Access by key important - needs to be mutable
+        self.verify_head_layer_specs(self._configs['model']['head_layer_specs']) # Access by key important - needs to be mutable
 
         # Embedding modules as referred to in DPOD paper:
         self.E11 = Resnet18Wrapper(
@@ -140,7 +140,7 @@ class Model(nn.Module):
 
         resnet_output_dims = self._check_resnet_output_dims()
 
-        self.heads = nn.ModuleDict({ head_name: Head(self._configs, resnet_output_dims, list(map(AttrDict, head_spec['layers']))) for head_name, head_spec in self._configs.model.resnet18_opts.head_layer_specs.items() })
+        self.heads = nn.ModuleDict({ head_name: Head(self._configs, resnet_output_dims, list(map(AttrDict, head_spec['layers']))) for head_name, head_spec in self._configs.model.head_layer_specs.items() })
 
     def freeze_resnet(self):
         for param in list(self.E12.parameters()) + list(self.E2.parameters()):
@@ -186,4 +186,6 @@ class Model(nn.Module):
         x = self.E2(x)
         x = { head_name: self.heads[head_name](x) for head_name in self.heads }
         # x = self.head(x)
-        return x
+        return {
+            'features': x,
+        }

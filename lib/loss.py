@@ -71,7 +71,7 @@ class LossHandler:
         pred_features = {}
         for head_name, features in nn_out.items():
             offset = 0
-            for task_name in self._configs.model.resnet18_opts.head_layer_specs[head_name]['tasks']:
+            for task_name in self._configs.model.head_layer_specs[head_name]['tasks']:
                 handled_tasks.append(task_name)
                 pred_features[task_name] = nn_out[head_name][:, offset : offset + self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']]
                 offset += self._configs.targets[self._configs.tasks[task_name]['target']]['n_out']

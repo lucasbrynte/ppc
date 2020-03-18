@@ -274,9 +274,16 @@ def get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop
 def crop_and_rescale_pt_batched(full_img, H, crop_dims, interpolation_mode='bilinear'):
     assert len(full_img.shape) == 4
     device = full_img.device
+    dtype = full_img.dtype
     bs = full_img.shape[0]
     assert H.shape == (bs, 3, 3)
     full_img_height, full_img_width = full_img.shape[-2:]
+
+    if dtype in (torch.bool, torch.int32, torch.int64):
+        # Assuming positive integers simplifies rounding (pytorch rounds towards zero at casting)
+        assert torch.all(full_img >= 0)
+    else:
+        assert dtype in (torch.float32, torch.float64)
 
     # Rescale H such that input & output coordinate systems are in the [-1, 1] ranges (with endpoints at centers of extreme pixels)
     H_norm2full_img = torch.matmul(
@@ -290,7 +297,9 @@ def crop_and_rescale_pt_batched(full_img, H, crop_dims, interpolation_mode='bili
     H_normalized_coords = torch.inverse(torch.matmul(H_crop_img2norm, torch.matmul(H, H_norm2full_img)))
 
     grid = F.affine_grid(H_normalized_coords[:,:2,:], (bs,3,crop_dims[0],crop_dims[1]), align_corners=True)
-    img = F.grid_sample(full_img, grid, mode=interpolation_mode, padding_mode='zeros', align_corners=True)
+    img = F.grid_sample(full_img.float(), grid, mode=interpolation_mode, padding_mode='zeros', align_corners=True)
+    if dtype in (torch.bool, torch.int32, torch.int64):
+        img = (img + 0.5).type(dtype)
     return img
 
 def crop_img(img, crop_box, pad_if_outside=False):
