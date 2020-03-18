@@ -271,16 +271,12 @@ def get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop
     T_scale = get_2d_scale_projectivity_pt_batched(scale_x, scale_y)
     return torch.matmul(T_scale, T_transl)
 
-def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
+def crop_and_rescale_pt_batched(full_img, H, crop_dims, interpolation_mode='bilinear'):
     assert len(full_img.shape) == 4
     device = full_img.device
     bs = full_img.shape[0]
-    assert xc.shape == (bs,)
-    assert yc.shape == (bs,)
-    assert width.shape == (bs,)
-    assert height.shape == (bs,)
+    assert H.shape == (bs, 3, 3)
     full_img_height, full_img_width = full_img.shape[-2:]
-    H = get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, crop_dims)
 
     # Rescale H such that input & output coordinate systems are in the [-1, 1] ranges (with endpoints at centers of extreme pixels)
     H_norm2full_img = torch.matmul(
@@ -294,8 +290,8 @@ def crop_and_rescale_pt_batched(full_img, xc, yc, width, height, crop_dims):
     H_normalized_coords = torch.inverse(torch.matmul(H_crop_img2norm, torch.matmul(H, H_norm2full_img)))
 
     grid = F.affine_grid(H_normalized_coords[:,:2,:], (bs,3,crop_dims[0],crop_dims[1]), align_corners=True)
-    img = F.grid_sample(full_img, grid, mode='bilinear', padding_mode='zeros', align_corners=True)
-    return H, img
+    img = F.grid_sample(full_img, grid, mode=interpolation_mode, padding_mode='zeros', align_corners=True)
+    return img
 
 def crop_img(img, crop_box, pad_if_outside=False):
     (x1, y1, x2, y2) = crop_box

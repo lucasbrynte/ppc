@@ -131,7 +131,8 @@ class FullPosePipeline(nn.Module):
 
         # Define crop box in order to center object in query image
         xc, yc, width, height = square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-        H, ref_img = crop_and_rescale_pt_batched(ref_img_full, xc, yc, width, height, self._configs.data.crop_dims)
+        H = get_projectivity_for_crop_and_rescale_pt_batched(xc, yc, width, height, self._configs.data.crop_dims)
+        ref_img = crop_and_rescale_pt_batched(ref_img_full, H, self._configs.data.crop_dims, interpolation_mode='bilinear')
         HK = torch.bmm(H, K)
 
         if R_refpt is not None:
