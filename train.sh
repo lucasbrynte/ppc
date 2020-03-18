@@ -19,7 +19,9 @@ rm -rf $WS
 cp -r $REPOPATH $WS
 pushd $WS
 
-# PROFILE_ARGS="-m cProfile -s cumtime"
+CMD="python"
+# CMD="python -m cProfile -s cumtime"
+# CMD="kernprof -l"
 
 OBJECTS=(duck)
 # OBJECTS=(duck can cat)
@@ -37,7 +39,7 @@ done
 xhost + # allow connections to X server
 for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
-        $CONTAINER python $PROFILE_ARGS main.py \
+        $CONTAINER $CMD main.py \
         train \
         --config-name $CONFIGNAME \
         --experiment-name $EXPERIMENT_PREFIX/$OBJ \
