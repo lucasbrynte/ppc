@@ -132,6 +132,7 @@ model:
     # type: FlowNetSD
     weight_decay: 3.e-5
     renormalize_imgs: true
+    rescale_img_factor: 1.0 # Keep in [-0.5, 0.5] range
     encoder_freeze_nbr_epochs: null
     # encoder_freeze_nbr_epochs: 3
 # model:
