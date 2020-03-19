@@ -58,6 +58,7 @@ class FlowNetS(nn.Module):
                     init.uniform_(m.bias)
                 init.xavier_uniform_(m.weight)
                 # init_deconv_bilinear(m.weight)
+        # NOTE: Unclear whether the new default align_corners=False is actually desired. It should make more sense, but might not exactly fit the pretrained case.
         self.upsample1 = nn.Upsample(scale_factor=4, mode='bilinear')
 
     def forward(self, x):

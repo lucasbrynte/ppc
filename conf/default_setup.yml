@@ -288,6 +288,11 @@ data:
   query_rendering_method: neural
   query_rendering_opts:
     ambient_weight: 0.8
+    # lowres_render_size: null
+    # lowres_render_size: [8, 8]
+    # lowres_render_size: [16, 16]
+    # lowres_render_size: [32, 32]
+    lowres_render_size: [128, 128] # for efficiency - render at (128,128), but upsample to crop_size
   crop_box_resize_factor: 1.2
   synth_ref_min_nbr_unoccluded_pixels: 200
   ref_colorjitter_during_train: true

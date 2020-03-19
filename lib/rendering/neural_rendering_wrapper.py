@@ -2,6 +2,7 @@ import os
 import ruamel.yaml as yaml
 import numpy as np
 import torch
+from torch import nn
 from lib.constants import TV_MEAN, TV_STD
 from lib.utils import read_yaml_and_pickle
 from lib.sixd_toolkit.pysixd import inout
@@ -24,8 +25,15 @@ class NeuralRenderingWrapper():
 
     def _init_render_opts(self):
         self._texture_size = 2
+        if self._configs.data.query_rendering_opts.lowres_render_size is not None:
+            assert self._configs.data.crop_dims[0] % self._configs.data.query_rendering_opts.lowres_render_size[0] == 0
+            self._lowres_render_factor = self._configs.data.crop_dims[0] // self._configs.data.query_rendering_opts.lowres_render_size[0]
+            assert self._configs.data.crop_dims[1] % self._configs.data.query_rendering_opts.lowres_render_size[1] == 0
+            assert self._lowres_render_factor == self._configs.data.crop_dims[1] // self._configs.data.query_rendering_opts.lowres_render_size[1]
+        else:
+            self._lowres_render_factor = 1
         assert self._configs.data.crop_dims[0] == self._configs.data.crop_dims[1]
-        self._render_size = self._configs.data.crop_dims[0]
+        self._render_size = self._configs.data.crop_dims[0] // self._lowres_render_factor
         self._light_dir_camframe = [0,0,1]
 
     def _init_models_info(self):
@@ -109,6 +117,10 @@ class NeuralRenderingWrapper():
         )
 
     def render(self, HK, R, t, obj_id, ambient_weight):
+        if self._lowres_render_factor != 1:
+            HK = HK.clone()
+            HK[:,:2,:] /= self._lowres_render_factor
+
         # Configure ambient / diffuse components weighting
         assert len(set(ambient_weight)) == 1
         ambient_weight = ambient_weight[0]
@@ -135,5 +147,10 @@ class NeuralRenderingWrapper():
         # images, _, _ = self._renderer(vertices, faces, textures)  # [batch_size, RGB, image_size, image_size]
         img = self._renderer(vertices, faces, textures, mode='rgb', K=HK, R=R, t=t.permute((0,2,1)))  # [batch_size, RGB, image_size, image_size]
         img = (255.*img - TV_MEAN[None,:,None,None].cuda()) / TV_STD[None,:,None,None].cuda()
+
+        if self._lowres_render_factor != 1:
+            # Not entirely sure whether align_corners should be True or False. It should relate to renderer discretization & image coordinate frame convention. Might be that OpenGL has origin at center of top-left pixel, while neural renderer has it at top-left corner of top-left pixel, but not entirely sure.
+            # From experiments with heavy upsampling, it seems like if align_corners=True, discretization should also have an effect on the factor by which HK is rescaled, otherwise object will be too enlarged.
+            img = nn.functional.upsample(img, self._configs.data.crop_dims, mode='bilinear', align_corners=False)
 
         return img
