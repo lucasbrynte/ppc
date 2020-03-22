@@ -438,7 +438,8 @@ class Main():
                 if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask:
                     fg_mask_loss = bce_loss(nn_out['fg_mask'], (instance_seg1 == 1).float())
                     fg_mask_loss = fg_mask_loss[safe_anno_mask].mean()
-                    loss += 0.1 * fg_mask_loss
+                    # print(loss, fg_mask_loss)
+                    loss += 0.3 * fg_mask_loss
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
                     loss += sum(prior_loss_signal_vals.values())

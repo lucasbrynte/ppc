@@ -26,8 +26,11 @@ class FlowNetS_wrapper(FlowNetS):
         super().__init__(*args, **kwargs)
         self._configs = configs
 
+        self.predict_mask4 = predict_mask(770)
+        self.upsampled_flow4_to_0 = nn.Upsample(scale_factor=16, mode='bilinear')
+        self.upsampled_mask4_to_0 = nn.Upsample(scale_factor=16, mode='nearest')
         self.predict_mask2 = predict_mask(194)
-        self.upsample_mask1 = nn.Upsample(scale_factor=4, mode='nearest')
+        self.upsampled_mask2_to_0 = nn.Upsample(scale_factor=4, mode='nearest')
 
     def forward(self, ref_img, query_img):
         if self._configs.model.flownet2_opts.renormalize_imgs:
@@ -58,39 +61,49 @@ class FlowNetS_wrapper(FlowNetS):
             
             concat4 = torch.cat((out_conv4,out_deconv4,flow5_up),1)
             flow4       = self.predict_flow4(concat4)
-            flow4_up    = self.upsampled_flow4_to_3(flow4)
-            out_deconv3 = self.deconv3(concat4)
-            
-            concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
-            flow3       = self.predict_flow3(concat3)
-            flow3_up    = self.upsampled_flow3_to_2(flow3)
-            out_deconv2 = self.deconv2(concat3)
 
-            concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
-            flow2 = self.predict_flow2(concat2)
-
-        # NOTE: Put aux loss on flow on all levels?
-        # if self.training:
-        #     return flow2,flow3,flow4,flow5,flow6
-        # else:
-        #     return flow2,
-
-        x = out_conv6
-
-        with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask):
-            flow = self.upsample1(flow2)
-            fg_mask2 = self.predict_mask2(concat2)
-            fg_mask = self.upsample_mask1(fg_mask2)
-
+            x = out_conv6
+            flow = self.upsampled_mask4_to_0(flow4)
+            fg_mask4 = self.predict_mask4(concat4)
+            fg_mask = self.upsampled_mask4_to_0(fg_mask4)
         return x, fg_mask, flow
+
+        #     flow4_up    = self.upsampled_flow4_to_3(flow4)
+        #     out_deconv3 = self.deconv3(concat4)
+        # 
+        #     concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
+        #     flow3       = self.predict_flow3(concat3)
+        #     flow3_up    = self.upsampled_flow3_to_2(flow3)
+        #     out_deconv2 = self.deconv2(concat3)
+        # 
+        #     concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
+        #     flow2 = self.predict_flow2(concat2)
+        # 
+        # # NOTE: Put aux loss on flow on all levels?
+        # # if self.training:
+        # #     return flow2,flow3,flow4,flow5,flow6
+        # # else:
+        # #     return flow2,
+        # 
+        # x = out_conv6
+        # 
+        # with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask):
+        #     flow = self.upsample1(flow2)
+        #     fg_mask2 = self.predict_mask2(concat2)
+        #     fg_mask = self.upsampled_mask2_to_0(fg_mask2)
+        # 
+        # return x, fg_mask, flow
 
 class FlowNetSD_wrapper(FlowNetSD):
     def __init__(self, configs, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._configs = configs
 
+        self.predict_mask4 = predict_mask(256)
+        self.upsampled_flow4_to_0 = nn.Upsample(scale_factor=16, mode='bilinear')
+        self.upsampled_mask4_to_0 = nn.Upsample(scale_factor=16, mode='nearest')
         self.predict_mask2 = predict_mask(64)
-        self.upsample_mask1 = nn.Upsample(scale_factor=4, mode='nearest')
+        self.upsampled_mask2_to_0 = nn.Upsample(scale_factor=4, mode='nearest')
 
     def forward(self, ref_img, query_img):
         if self._configs.model.flownet2_opts.renormalize_imgs:
@@ -125,33 +138,40 @@ class FlowNetSD_wrapper(FlowNetSD):
             concat4 = torch.cat((out_conv4,out_deconv4,flow5_up),1)
             out_interconv4 = self.inter_conv4(concat4)
             flow4       = self.predict_flow4(out_interconv4)
-            flow4_up    = self.upsampled_flow4_to_3(flow4)
-            out_deconv3 = self.deconv3(concat4)
-            
-            concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
-            out_interconv3 = self.inter_conv3(concat3)
-            flow3       = self.predict_flow3(out_interconv3)
-            flow3_up    = self.upsampled_flow3_to_2(flow3)
-            out_deconv2 = self.deconv2(concat3)
 
-            concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
-            out_interconv2 = self.inter_conv2(concat2)
-            flow2 = self.predict_flow2(out_interconv2)
-
-        # NOTE: Put aux loss on flow on all levels?
-        # if self.training:
-        #     return flow2,flow3,flow4,flow5,flow6
-        # else:
-        #     return flow2,
-
-        x = out_conv6
-
-        with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask):
-            flow = self.upsample1(flow2)
-            fg_mask2 = self.predict_mask2(out_interconv2)
-            fg_mask = self.upsample_mask1(fg_mask2)
-
+            x = out_conv6
+            flow = self.upsampled_mask4_to_0(flow4)
+            fg_mask4 = self.predict_mask4(out_interconv4)
+            fg_mask = self.upsampled_mask4_to_0(fg_mask4)
         return x, fg_mask, flow
+
+        #     flow4_up    = self.upsampled_flow4_to_3(flow4)
+        #     out_deconv3 = self.deconv3(concat4)
+        # 
+        #     concat3 = torch.cat((out_conv3,out_deconv3,flow4_up),1)
+        #     out_interconv3 = self.inter_conv3(concat3)
+        #     flow3       = self.predict_flow3(out_interconv3)
+        #     flow3_up    = self.upsampled_flow3_to_2(flow3)
+        #     out_deconv2 = self.deconv2(concat3)
+        # 
+        #     concat2 = torch.cat((out_conv2,out_deconv2,flow3_up),1)
+        #     out_interconv2 = self.inter_conv2(concat2)
+        #     flow2 = self.predict_flow2(out_interconv2)
+        # 
+        # # NOTE: Put aux loss on flow on all levels?
+        # # if self.training:
+        # #     return flow2,flow3,flow4,flow5,flow6
+        # # else:
+        # #     return flow2,
+        # 
+        # x = out_conv6
+        # 
+        # with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask):
+        #     flow = self.upsample1(flow2)
+        #     fg_mask2 = self.predict_mask2(out_interconv2)
+        #     fg_mask = self.upsampled_mask2_to_0(fg_mask2)
+        # 
+        # return x, fg_mask, flow
 
 class Model(nn.Module):
     def __init__(self, configs):
@@ -169,7 +189,7 @@ class Model(nn.Module):
             expected_params = set(list(zip(*self.encoder.named_parameters()))[0])
             saved_params = set(checkpoint['state_dict'].keys())
             assert saved_params <= expected_params
-            assert expected_params - saved_params == {'predict_mask2.weight', 'predict_mask2.bias'}
+            assert all('predict_mask' in pname for pname in expected_params - saved_params)
             self.encoder.load_state_dict(checkpoint['state_dict'], strict=False)
         else:
             assert self._configs.model.flownet2_opts.type == 'FlowNetSD'
@@ -181,7 +201,7 @@ class Model(nn.Module):
             expected_params = set(list(zip(*self.encoder.named_parameters()))[0])
             saved_params = set(checkpoint['state_dict'].keys())
             assert saved_params <= expected_params
-            assert expected_params - saved_params == {'predict_mask2.weight', 'predict_mask2.bias'}
+            assert all('predict_mask' in pname for pname in expected_params - saved_params)
             self.encoder.load_state_dict(checkpoint['state_dict'], strict=False)
 
         encoder_output_dims = self._check_encoder_output_dims()
