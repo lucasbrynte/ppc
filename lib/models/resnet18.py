@@ -142,11 +142,11 @@ class Model(nn.Module):
 
         self.heads = nn.ModuleDict({ head_name: Head(self._configs, resnet_output_dims, list(map(AttrDict, head_spec['layers']))) for head_name, head_spec in self._configs.model.head_layer_specs.items() })
 
-    def freeze_resnet(self):
+    def freeze_encoder(self):
         for param in list(self.E12.parameters()) + list(self.E2.parameters()):
             param.requires_grad = False
 
-    def unfreeze_resnet(self):
+    def unfreeze_encoder(self):
         for param in list(self.E12.parameters()) + list(self.E2.parameters()):
             param.requires_grad = True
 
