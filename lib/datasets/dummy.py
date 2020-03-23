@@ -940,8 +940,8 @@ class DummyDataset(Dataset):
         if img1 is None:
             return None
 
-        # Determine at what pixels the annotated segmentation can be relied upon
-        safe_fg_anno_mask = np.ones(self._configs.data.img_dims, dtype=np.bool)
+        # Determine at what foreground pixels the annotated segmentation can be relied upon
+        safe_fg_anno_mask = instance_seg1 == 1
 
         return img1, instance_seg1, ref_bg, safe_fg_anno_mask
 
