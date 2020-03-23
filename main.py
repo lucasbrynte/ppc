@@ -415,7 +415,7 @@ class Main():
             )
             H, ref_img, query_img, nn_out = pose_pipeline(extra_input.R2, extra_input.t2)
             instance_seg1 = crop_and_rescale_pt_batched(maps.instance_seg1_full, H, self._configs.data.crop_dims, interpolation_mode='nearest')
-            safe_anno_mask = crop_and_rescale_pt_batched(maps.safe_anno_mask_full, H, self._configs.data.crop_dims, interpolation_mode='nearest')
+            safe_fg_anno_mask = crop_and_rescale_pt_batched(maps.safe_fg_anno_mask_full, H, self._configs.data.crop_dims, interpolation_mode='nearest')
 
             # Raw predicted features (neural net output)
             pred_features_raw = self._loss_handler.get_pred_features(nn_out['features'])
@@ -437,7 +437,10 @@ class Main():
                 loss = sum(task_losses.values())
                 if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask:
                     fg_mask_loss = bce_loss(nn_out['fg_mask'], (instance_seg1 == 1).float())
-                    fg_mask_loss = fg_mask_loss[safe_anno_mask].mean()
+
+                    # Trust segmentation everywhere
+                    fg_mask_loss = fg_mask_loss.mean()
+
                     # print(loss, fg_mask_loss)
                     loss += 0.3 * fg_mask_loss
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):

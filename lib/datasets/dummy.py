@@ -29,7 +29,7 @@ from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_cam
 Maps = namedtuple('Maps', [
     'ref_img_full',
     'instance_seg1_full',
-    'safe_anno_mask_full',
+    'safe_fg_anno_mask_full',
 ])
 
 ExtraInput = namedtuple('ExtraInput', [
@@ -240,7 +240,7 @@ class DummyDataset(Dataset):
             query_scheme_idx = ref_scheme_idx
         else:
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
-        R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
+        R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_fg_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         # Augmentation + numpy -> pytorch conversion
         if self._aug_transform is not None:
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
@@ -265,7 +265,7 @@ class DummyDataset(Dataset):
             ref_img_path,
             img1,
             instance_seg1,
-            safe_anno_mask,
+            safe_fg_anno_mask,
             R2,
             t2,
             R2_init,
@@ -284,7 +284,7 @@ class DummyDataset(Dataset):
                 ref_img_path,
                 img1,
                 instance_seg1,
-                safe_anno_mask,
+                safe_fg_anno_mask,
                 R1, # Ref pose sent in as query pose!
                 t1, # Ref pose sent in as query pose!
                 R2_init,
@@ -695,7 +695,7 @@ class DummyDataset(Dataset):
     # 
     #     return gt_optflow
 
-    def _get_safe_anno_mask(self, depth_map, depth_map_rendered):
+    def _get_safe_fg_anno_mask(self, depth_map, depth_map_rendered):
         """
         Reads observed depth (from RGB-D sensor) and rendered depth, and returns a mask such that:
         (1) The observed depth is positive (i.e. not corrupted / missing data)
@@ -704,9 +704,9 @@ class DummyDataset(Dataset):
         """
         MIN_DEPTH_FOR_VALID_OBS = 0.05 # 5 cm
         DEPTH_TH = 0.02 # At most 2 cm depth discrepancy for pixel to be safely annotated (no unannotated occlusion detected)
-        safe_anno_mask = (depth_map >= MIN_DEPTH_FOR_VALID_OBS) & (np.abs(depth_map - depth_map_rendered) < DEPTH_TH)
+        safe_fg_anno_mask = (depth_map >= MIN_DEPTH_FOR_VALID_OBS) & (np.abs(depth_map - depth_map_rendered) < DEPTH_TH)
 
-        return safe_anno_mask
+        return safe_fg_anno_mask
 
     def _read_pose_from_anno(self, ref_scheme_idx, fixed_frame_idx=None):
         seq = self._get_seq(ref_scheme_idx)
@@ -923,10 +923,10 @@ class DummyDataset(Dataset):
         depth_map = self._get_depth_map(seq, frame_idx, depth_scale=depth_scale, rendered=False)
         depth_map_rendered = self._get_depth_map(seq, frame_idx, depth_scale=depth_scale, rendered=True)
 
-        # Determine at what pixels the annotated segmentation can be relied upon
-        safe_anno_mask = self._get_safe_anno_mask(depth_map, depth_map_rendered)
+        # Determine at what foreground pixels the annotated segmentation can be relied upon
+        safe_fg_anno_mask = self._get_safe_fg_anno_mask(depth_map, depth_map_rendered)
 
-        return img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path
+        return img1, instance_seg1, ref_bg, safe_fg_anno_mask, ref_img_path
 
     def _get_ref_img_synthetic(self, ref_scheme_idx, R1, t1, T1_occluders, T_world2cam):
         ref_bg = self._get_ref_bg(ref_scheme_idx, self._configs.data.img_dims, black_already=True)
@@ -941,9 +941,9 @@ class DummyDataset(Dataset):
             return None
 
         # Determine at what pixels the annotated segmentation can be relied upon
-        safe_anno_mask = np.ones(self._configs.data.img_dims, dtype=np.bool)
+        safe_fg_anno_mask = np.ones(self._configs.data.img_dims, dtype=np.bool)
 
-        return img1, instance_seg1, ref_bg, safe_anno_mask
+        return img1, instance_seg1, ref_bg, safe_fg_anno_mask
 
     def _calc_targets(self, R1, t1, R2, t2):
         # Compute crop box and everything in order to determine HK, which depends on the query pose.
@@ -1013,14 +1013,14 @@ class DummyDataset(Dataset):
             R2_init, t2_init = R1, t1
 
         if self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real':
-            img1, instance_seg1, ref_bg, safe_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, frame_idx, instance_idx)
+            img1, instance_seg1, ref_bg, safe_fg_anno_mask, ref_img_path = self._get_ref_img_real(ref_scheme_idx, frame_idx, instance_idx)
         elif self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic':
             ret = self._get_ref_img_synthetic(ref_scheme_idx, R1, t1, T1_occluders, T_world2cam)
             if ret is None:
                 print('Too few visible pixels - resampling via recursive call.')
                 return self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
             else:
-                img1, instance_seg1, ref_bg, safe_anno_mask = ret
+                img1, instance_seg1, ref_bg, safe_fg_anno_mask = ret
                 ref_img_path = None
         else:
             assert False
@@ -1040,7 +1040,7 @@ class DummyDataset(Dataset):
                 blur_opts,
             )
 
-        return R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_anno_mask
+        return R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_fg_anno_mask
 
     def _generate_sample(
             self,
@@ -1052,7 +1052,7 @@ class DummyDataset(Dataset):
             ref_img_path,
             img1,
             instance_seg1,
-            safe_anno_mask,
+            safe_fg_anno_mask,
             R2,
             t2,
             R2_init,
@@ -1069,7 +1069,7 @@ class DummyDataset(Dataset):
         maps = Maps(
             ref_img_full = numpy_to_pt(img1.astype(np.float32), normalize_flag=True),
             instance_seg1_full = numpy_to_pt(instance_seg1.astype(np.int64), normalize_flag=False),
-            safe_anno_mask_full = numpy_to_pt(safe_anno_mask.astype(np.bool), normalize_flag=False),
+            safe_fg_anno_mask_full = numpy_to_pt(safe_fg_anno_mask.astype(np.bool), normalize_flag=False),
         )
 
         targets = self._calc_targets(R1, t1, R2, t2)
