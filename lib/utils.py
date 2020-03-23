@@ -298,7 +298,9 @@ def crop_and_rescale_pt_batched(full_img, H, crop_dims, interpolation_mode='bili
 
     grid = F.affine_grid(H_normalized_coords[:,:2,:], (bs,3,crop_dims[0],crop_dims[1]), align_corners=True)
     img = F.grid_sample(full_img.float(), grid, mode=interpolation_mode, padding_mode='zeros', align_corners=True)
-    if dtype in (torch.bool, torch.int32, torch.int64):
+    if dtype == torch.bool:
+        img = img > 0.5
+    elif dtype in (torch.int32, torch.int64):
         img = (img + 0.5).type(dtype)
     return img
 
