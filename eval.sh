@@ -39,7 +39,7 @@ OBJECTS=(duck)
 
 
 for OBJ in ${OBJECTS[@]}; do
-    echo "Removing experiment /hdd/lucas/out/3dod-experiments/$NEW_EXPERIMENT_PREFIX/$OBJ"
+    echo "Removing experiment /hdd/lucas/out/ppc-experiments/$NEW_EXPERIMENT_PREFIX/$OBJ"
     rm -rf /hdd/lucas/out/ppc-experiments/$NEW_EXPERIMENT_PREFIX/$OBJ
 done
 
