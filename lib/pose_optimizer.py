@@ -1217,13 +1217,15 @@ class PoseOptimizer():
         N = np.prod(N_each)
 
         # Plot along line
+        # param_delta = 0.0
         # param_delta = 0.001
         # param_delta = 0.01
+        # param_delta = 0.02
         # param_delta = 0.05
-        # param_delta = 0.15
+        param_delta = 0.15
         # param_delta = 0.25
         # param_delta = 0.5
-        param_delta = 1.5
+        # param_delta = 1.5
         # param_delta = 50.
 
         param_range_limits = [ (-param_delta, param_delta) for x_idx in range(self._num_params) ]
