@@ -357,7 +357,7 @@ def sample_param(sample_spec):
     elif sample_spec.method == 'normal':
         param = np.random.normal(loc=sample_spec.loc, scale=sample_spec.scale, size=shape)
     elif sample_spec.method == 'lognormal':
-        param = np.exp(np.random.normal(loc=np.log(sample_spec.loc), scale=np.log(sample_spec.scale), size=shape))
+        param = np.exp(np.random.normal(loc=np.log(sample_spec.loc), scale=np.log((sample_spec.loc + sample_spec.scale) / sample_spec.loc), size=shape))
     else:
         assert False, 'Unrecognized sampling method: {}'.format(sample_spec.method)
     assert param.shape == shape
