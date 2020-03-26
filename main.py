@@ -173,7 +173,10 @@ class Main():
         with torch.set_grad_enabled(not numerical_grad):
             # NOTE: This is how to enable deterministic ref scheme sampling
             nbr_batches = None
+            # nbr_batches = 100 # hack for being able to evaluate on synth
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches)):
+                # if batch_id < 50:
+                #     continue
                 print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
                 pose_pipeline = FullPosePipeline(
