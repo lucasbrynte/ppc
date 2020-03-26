@@ -732,43 +732,34 @@ class PoseOptimizer():
         self._wx_optimizer = torch.optim.Adam(
             [
                 wx,
-                # d,
             ],
-            # lr = 1e-1,
-            lr = 7e-2, # better than 3e-2 for max50..?
+            lr = 1.3e-1,
+            # lr = 7e-2,
             # lr = 5e-2,
-            # lr = 3e-2, # best for nomax50..?
-            # lr = 1e-2,
-            # betas = (0.95, 0.99),
+            # lr = 3e-2,
             betas = (0.6, 0.9),
         )
         self._tx_optimizer = torch.optim.SGD(
             [
                 tx,
             ],
-            lr = 2.0,
-            # lr = 1.0,
-            momentum = 0.7,
+            # lr = 2.0,
+            lr = 1.0,
+            # momentum = 0.9,
+            # momentum = 0.7,
+            momentum = 0.5,
+            # momentum = 0.3,
         )
         self._d_optimizer = torch.optim.Adam(
             [
                 d,
-                # d.clone(),
             ],
-            # lr = 1e-1,
-            lr = 7e-2,
+            # lr = 7e-2,
             # lr = 5e-2,
-            # lr = 3e-2,
+            lr = 3e-2,
             # lr = 1e-2,
-            betas = (0.6, 0.9),
+            betas = (0.4, 0.9),
         )
-        # self._d_optimizer = torch.optim.SGD(
-        #     [
-        #         d,
-        #     ],
-        #     lr = 1.0,
-        #     momentum = 0.1,
-        # )
 
         # tx_leap_flag = True
         tx_leap_flag = False
@@ -778,81 +769,241 @@ class PoseOptimizer():
 
         if self._num_txdims > 0:
             # nbr_iter_translonly = 2
-            # nbr_iter_translonly = 0
+            nbr_iter_translonly = 0
             # nbr_iter_translonly = 5
-            nbr_iter_translonly = 8
+            # nbr_iter_translonly = 8
         else:
             nbr_iter_translonly = 0
-        final_finetune_iter = nbr_iter_translonly + 50
+
+
         self._wx_scheduler = self._init_cos_transitions_scheduler(
             self._wx_optimizer,
             [
-                nbr_iter_translonly + 15 - 1,
-                nbr_iter_translonly + 15,
-                nbr_iter_translonly + 20,
-                nbr_iter_translonly + 25,
-                # nbr_iter_translonly + 20 - 1,
-                # nbr_iter_translonly + 20,
-                final_finetune_iter + 20,
-            ],
-            [
-                0.0,
-                # 1e-1,
-                # 1e-1,
-                3e-2,
-                3e-2,
-                # 1e-2,
-                # 1e-2,
-                1.0,
-                1e-2,
-            ],
-        )
-        self._tx_scheduler = self._init_cos_transitions_scheduler(
-            self._tx_optimizer,
-            [
                 nbr_iter_translonly - 1,
                 nbr_iter_translonly,
-                final_finetune_iter,
-            ],
-            [
-                0.0 if tx_leap_flag else 1.0,
-                1.0,
-                1e-1,
-            ],
-        )
-        self._d_scheduler = self._init_cos_transitions_scheduler(
-            self._d_optimizer,
-            [
-                nbr_iter_translonly - 1,
-                nbr_iter_translonly,
-                # nbr_iter_translonly + 20,
-                # final_finetune_iter + 25,
-                # final_finetune_iter + 35,
-                final_finetune_iter + 30,
-                N,
+                nbr_iter_translonly + 50,
             ],
             [
                 0.0,
                 1.0,
                 # 1.0,
                 3e-2,
+            ],
+        )
+
+
+        self._tx_scheduler = self._init_cos_transitions_scheduler(
+            self._tx_optimizer,
+            [
+                nbr_iter_translonly - 1,
+                nbr_iter_translonly,
+                nbr_iter_translonly + 50,
+            ],
+            [
+                0.0 if tx_leap_flag else 1.0,
+                1.0,
+                1.0,
+                # 1e+1,
+            ],
+        )
+        self._d_scheduler = self._init_cos_transitions_scheduler(
+            self._d_optimizer,
+            [
+                nbr_iter_translonly + 10,
+                nbr_iter_translonly + 50,
+                N,
+            ],
+            [
+                # 0.0,
+                5e-1,
+                5e-1,
+                # 1.0,
                 1e-2,
             ],
-            # self._d_optimizer,
-            # [
-            #     nbr_iter_translonly - 1,
-            #     nbr_iter_translonly,
-            #     # nbr_iter_translonly + 20,
-            #     final_finetune_iter + 30,
-            # ],
-            # [
-            #     0.0,
-            #     1.0,
-            #     # 1.0,
-            #     3e-2,
-            #     # 1e-2,
-            # ],
         )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        # self._wx_optimizer = torch.optim.Adam(
+        #     [
+        #         wx,
+        #         # d,
+        #     ],
+        #     # lr = 1e-1,
+        #     lr = 7e-2, # better than 3e-2 for max50..?
+        #     # lr = 5e-2,
+        #     # lr = 3e-2, # best for nomax50..?
+        #     # lr = 1e-2,
+        #     # betas = (0.95, 0.99),
+        #     betas = (0.6, 0.9),
+        # )
+        # self._tx_optimizer = torch.optim.SGD(
+        #     [
+        #         tx,
+        #     ],
+        #     lr = 2.0,
+        #     # lr = 1.0,
+        #     momentum = 0.7,
+        # )
+        # self._d_optimizer = torch.optim.Adam(
+        #     [
+        #         d,
+        #         # d.clone(),
+        #     ],
+        #     # lr = 1e-1,
+        #     lr = 7e-2,
+        #     # lr = 5e-2,
+        #     # lr = 3e-2,
+        #     # lr = 1e-2,
+        #     betas = (0.6, 0.9),
+        # )
+        # # self._d_optimizer = torch.optim.SGD(
+        # #     [
+        # #         d,
+        # #     ],
+        # #     lr = 1.0,
+        # #     momentum = 0.1,
+        # # )
+        # 
+        # # tx_leap_flag = True
+        # tx_leap_flag = False
+        # 
+        # if tx_leap_flag:
+        #     assert self._num_txdims == 2
+        # 
+        # if self._num_txdims > 0:
+        #     # nbr_iter_translonly = 2
+        #     # nbr_iter_translonly = 0
+        #     # nbr_iter_translonly = 5
+        #     nbr_iter_translonly = 8
+        # else:
+        #     nbr_iter_translonly = 0
+        # 
+        # 
+        # # final_finetune_iter = nbr_iter_translonly + 50
+        # # self._wx_scheduler = self._init_cos_transitions_scheduler(
+        # #     self._wx_optimizer,
+        # #     [
+        # #         nbr_iter_translonly + 15 - 1,
+        # #         nbr_iter_translonly + 15,
+        # #         nbr_iter_translonly + 20,
+        # #         nbr_iter_translonly + 25,
+        # #         # nbr_iter_translonly + 20 - 1,
+        # #         # nbr_iter_translonly + 20,
+        # #         final_finetune_iter + 20,
+        # #     ],
+        # #     [
+        # #         0.0,
+        # #         # 1e-1,
+        # #         # 1e-1,
+        # #         3e-2,
+        # #         3e-2,
+        # #         # 1e-2,
+        # #         # 1e-2,
+        # #         1.0,
+        # #         1e-2,
+        # #     ],
+        # # )
+        # 
+        # 
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: opt over transl only initially, even if not taking "leaps".
+        # # TODO: slightly higher rot warmup lR
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
+        # # NOTE: below seemed to work out actually, but took a while to converge.
+        # final_finetune_iter = nbr_iter_translonly + 60
+        # self._wx_scheduler = self._init_cos_transitions_scheduler(
+        #     self._wx_optimizer,
+        #     [
+        #         nbr_iter_translonly + 20 - 1,
+        #         nbr_iter_translonly + 20,
+        #         nbr_iter_translonly + 25,
+        #         nbr_iter_translonly + 30,
+        #         # nbr_iter_translonly + 20 - 1,
+        #         # nbr_iter_translonly + 20,
+        #         final_finetune_iter + 20,
+        #     ],
+        #     [
+        #         0.0,
+        #         1e-1,
+        #         1e-1,
+        #         1.0,
+        #         1e-2,
+        #     ],
+        # )
+        # 
+        # 
+        # self._tx_scheduler = self._init_cos_transitions_scheduler(
+        #     self._tx_optimizer,
+        #     [
+        #         nbr_iter_translonly - 1,
+        #         nbr_iter_translonly,
+        #         final_finetune_iter,
+        #     ],
+        #     [
+        #         0.0 if tx_leap_flag else 1.0,
+        #         1.0,
+        #         1e-1,
+        #     ],
+        # )
+        # self._d_scheduler = self._init_cos_transitions_scheduler(
+        #     self._d_optimizer,
+        #     [
+        #         nbr_iter_translonly - 1,
+        #         nbr_iter_translonly,
+        #         # nbr_iter_translonly + 20,
+        #         # final_finetune_iter + 25,
+        #         # final_finetune_iter + 35,
+        #         final_finetune_iter + 30,
+        #         N,
+        #     ],
+        #     [
+        #         0.0,
+        #         1.0,
+        #         # 1.0,
+        #         3e-2,
+        #         1e-2,
+        #     ],
+        #     # self._d_optimizer,
+        #     # [
+        #     #     nbr_iter_translonly - 1,
+        #     #     nbr_iter_translonly,
+        #     #     # nbr_iter_translonly + 20,
+        #     #     final_finetune_iter + 30,
+        #     # ],
+        #     # [
+        #     #     0.0,
+        #     #     1.0,
+        #     #     # 1.0,
+        #     #     3e-2,
+        #     #     # 1e-2,
+        #     # ],
+        # )
         # self._wx_scheduler = self._init_constant_scheduler(self._wx_optimizer)
         # self._tx_scheduler = self._init_constant_scheduler(self._tx_optimizer)
         # self._d_scheduler = self._init_constant_scheduler(self._d_optimizer)
