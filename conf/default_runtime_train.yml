@@ -137,6 +137,66 @@ data_sampling_scheme_defs:
 
 
 
+        # # deepim_perturb
+        # - scheme_name: deepim
+
+
+        # # deepim_perturb_sepdev
+        # - scheme_name: deepim
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_20deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # # deepim_perturb_sepdepth
+        # - scheme_name: deepim
+        #   sampling_prob: 0.5
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.5
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # deepim_perturb_sepdevonly_depth_1_05_lognorm
+        - scheme_name: rot_only_20deg_std
+          sampling_prob: 0.3
+          # loss_weight: 1.0
+        - scheme_name: transl_10perc
+          sampling_prob: 0.3
+          # loss_weight: 1.0
+        - scheme_name: depth_1_05
+          sampling_prob: 0.4
+          # loss_weight: 1.0
+          loss_weight: 3.0
+
+
+        # # deepim_perturb_sepdevonly_depth_1_05_gauss
+        # - scheme_name: rot_only_20deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05_gauss
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # # noperturb
+        # - scheme_name: noperturb
+
+
         # # reprojonly-depthonly1_15
         # - scheme_name: default
         #   sampling_prob: 0.2
@@ -153,21 +213,20 @@ data_sampling_scheme_defs:
         #   loss_weight: 3.0
 
 
-
-        # reprojonly-depthonly_1_3
-        - scheme_name: default
-          sampling_prob: 0.2
-          # loss_weight: 1.0
-        - scheme_name: rot_only_90deg_std
-          sampling_prob: 0.3
-          # loss_weight: 1.0
-        - scheme_name: transl_30perc
-          sampling_prob: 0.2
-          # loss_weight: 1.0
-        - scheme_name: depth_1_3
-          sampling_prob: 0.3
-          # loss_weight: 1.0
-          loss_weight: 3.0
+        # # reprojonly-depthonly_1_3
+        # - scheme_name: default
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_30perc
+        #   sampling_prob: 0.2
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_3
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
 
 
 
