@@ -24,6 +24,7 @@ CMD="python"
 # CMD="kernprof -l"
 
 OBJECTS=(duck)
+# OBJECTS=(can)
 # OBJECTS=(duck can cat)
 # OBJECTS=(duck can cat eggbox glue holepuncher)
 # Discard driller (not present in validation sequence):
