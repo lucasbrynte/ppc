@@ -67,12 +67,12 @@ data_sampling_scheme_defs:
         # LINEMOD
         - {scheme_name: real_unoccl_test_keepbg}
 
-        # - {scheme_name: real_occl_test_keepbg_frame30}
+        # - {scheme_name: real_occl_test_keepbg_frame30} # bad anno - y shift
         # - {scheme_name: real_occl_test_keepbg_frame109}
         # - {scheme_name: real_occl_test_keepbg_frame112}
-        # - {scheme_name: real_occl_test_keepbg_frame159}
+        # - {scheme_name: real_occl_test_keepbg_frame159} # good anno
         # - {scheme_name: real_occl_test_keepbg_frame649}
-        # - {scheme_name: real_occl_test_keepbg_frame845}
+        # - {scheme_name: real_occl_test_keepbg_frame845} # bad anno - rot
 
 
         # - {scheme_name: real_unoccl_all_keepbg}
