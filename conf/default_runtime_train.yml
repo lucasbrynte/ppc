@@ -49,23 +49,26 @@ default_schemeset_opts:
       pushopt_prob: None
       min_dist_obj_and_camera: 100. # Minimum 10 cm between object surface and camera center
       max_nbr_resamplings: 100
-      nbr_occluders: 4 # Occluders for synthetic ref images
+      # # LINEMOD
       # nbr_occluders: 0 # Occluders for synthetic ref images
+      # OccludedLINEMOD
+      # nbr_occluders: 4 # Occluders for synthetic ref images
+      nbr_occluders: 6 # Occluders for synthetic ref images
 data_sampling_scheme_defs:
   train:
     train:
       # never_blackbg_ref
       ref_schemeset:
-        # LINEMOD
+        # # synthonly
         # - {scheme_name: synth_voc}
-        - {scheme_name: synth_voc, sampling_prob: 0.34}
-        - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 0.33}
-        - {scheme_name: real_unoccl_train_voc, sampling_prob: 0.33}
+
+        # LINEMOD
+        - {scheme_name: synth_voc, sampling_prob: 0.5}
+        - {scheme_name: real_unoccl_train_keepbg, sampling_prob: 0.5}
 
         # # OccludedLINEMOD
-        # - {scheme_name: synth_voc, sampling_prob: 0.34}
-        # - {scheme_name: real_unoccl_all_keepbg, sampling_prob: 0.33}
-        # - {scheme_name: real_unoccl_all_voc, sampling_prob: 0.33}
+        # - {scheme_name: synth_voc, sampling_prob: 0.5}
+        # - {scheme_name: real_unoccl_all_keepbg, sampling_prob: 0.5}
 
       query_schemeset:
         # - scheme_name: default
