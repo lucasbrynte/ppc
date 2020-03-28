@@ -167,11 +167,11 @@ def get_configs(args):
         )
 
     if args.train_or_eval == 'train':
-        assert tuple(configs['runtime']['data_sampling_scheme_defs'].keys()) == (TRAIN, VAL)
+        assert set(configs['runtime']['data_sampling_scheme_defs'].keys()) == {TRAIN, VAL}
         # Validate config: Only VAL / TEST support multiple runs with different sets of sampling schemes
-        assert tuple(configs['runtime']['data_sampling_scheme_defs'][TRAIN].keys()) == (TRAIN,), 'For training, there may only be a single set of sampling schemes to sample from.'
+        assert set(configs['runtime']['data_sampling_scheme_defs'][TRAIN].keys()) == {TRAIN,}, 'For training, there may only be a single set of sampling schemes to sample from.'
     else:
-        assert tuple(configs['runtime']['data_sampling_scheme_defs'].keys()) == (TEST,)
+        assert set(configs['runtime']['data_sampling_scheme_defs'].keys()) == {TEST,}
 
 
     modes = (TRAIN, VAL) if args.train_or_eval == 'train' else (TEST,)
