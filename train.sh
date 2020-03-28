@@ -1,11 +1,11 @@
 # exit when any command fails
 set -e
 
-EXPERIMENT_PREFIX=$1
+CONFIGNAME=$1
+EXPERIMENT_PREFIX=$2
 
 REPOPATH=/home/lucas/research/ppc
 CONTAINER=ppc
-CONFIGNAME=dummy
 
 # Create tmp dir (needs to exist for automatic cleanup to work)
 mkdir -p /tmp/ppc-ws
