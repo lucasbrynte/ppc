@@ -466,30 +466,3 @@ synth_blackbg:
       specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
       specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
       light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
-synth_whitesilhouette:
-  ref_source: synthetic
-  background: null
-  white_silhouette: true
-  blur_chain:
-    - mode: dilated_silhouette
-      sigma_range: [1.2, 1.2]
-      dilate_nbr_px_margin: 1
-  synth_opts:
-    object_pose:
-      object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}
-      xy_transl:                                                {method: uniform, range: [-500., 500.], shape: [2]} # 1000x1000 mm table size
-    camera_pose:
-      hemisphere_polar_angle:                                   {method: cos_uniform, range: [0., 75.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
-      # hemisphere_polar_angle:                                   {method: uniform, range: [0., 75.]} # 0-90 deg, i.e. from bird's eye to horizontal camera
-      hemisphere_azimuth_angle:                                 {method: uniform, range: [0., 360.]}
-      hemisphere_radius:                                        {method: uniform, range: [700., 1500.]} # 700 - 1500 mm
-      # inplane_rot_angle:                                        {method: uniform, range: [-30., 30.]} # +- 30 deg
-      inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
-      principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
-      inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
-    shading:
-      ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
-      specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
-      specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
-      specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
-      light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
