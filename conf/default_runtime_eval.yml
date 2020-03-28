@@ -22,6 +22,8 @@ default_schemeset_opts:
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
       enabled: true
+      # GT initialization
+      # init_pose_suffix: ""
       # OccludedLINEMOD
       # init_pose_suffix: _pvnet
       # init_pose_suffix: _pvnet_depthfix # 180 degree rotation around camera frame y-axis to ensure positive depth
