@@ -4,6 +4,7 @@ default_schemeset_opts:
       # nbr_batches: 1
       nbr_batches: 32
       nbr_batches_prior: 128
+      # batch_size: 1
       # batch_size: 4
       # batch_size: 6
       # batch_size: 8
@@ -166,6 +167,21 @@ data_sampling_scheme_defs:
         #   # loss_weight: 1.0
         #   loss_weight: 3.0
 
+
+        # # deepim_perturb_sepdevonly_depth_1_05_lognorm_depthreg
+        # - scheme_name: rot_only_20deg_std
+        #   tasks_punished: [avg_reproj_err]
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   tasks_punished: [avg_reproj_err]
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   tasks_punished: [avg_reproj_err, rel_depth_error]
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
 
         # deepim_perturb_sepdevonly_depth_1_05_lognorm
         - scheme_name: rot_only_20deg_std

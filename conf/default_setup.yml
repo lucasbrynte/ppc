@@ -233,7 +233,7 @@ model:
 #     # max_pool: false
 #     # final_ds: null
 #     # avg_pool: true
-# 
+
   head_layer_specs:
     avg_reproj_err:
       tasks: [avg_reproj_err]
