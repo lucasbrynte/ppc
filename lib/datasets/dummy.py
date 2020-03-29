@@ -255,11 +255,15 @@ class DummyDataset(Dataset):
         # - 
         R2, t2 = self._generate_perturbation(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, R1, t1)
 
+        # Compute crop box and everything in order to determine H, which depends on the query pose.
+        xc, yc, width, height = square_bbox_around_projected_object_center_numpy(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
+        H = get_projectivity_for_crop_and_rescale_numpy(xc, yc, width, height, self._configs.data.crop_dims)
 
         sample = self._generate_sample(
             ref_scheme_idx,
             query_scheme_idx,
             sample_index_in_epoch,
+            H,
             R1,
             t1,
             ref_img_path,
@@ -279,6 +283,7 @@ class DummyDataset(Dataset):
                 ref_scheme_idx,
                 query_scheme_idx,
                 sample_index_in_epoch,
+                H,
                 R1,
                 t1,
                 ref_img_path,
@@ -949,10 +954,7 @@ class DummyDataset(Dataset):
 
         return img1, instance_seg1, ref_bg, safe_fg_anno_mask
 
-    def _calc_targets(self, R1, t1, R2, t2):
-        # Compute crop box and everything in order to determine HK, which depends on the query pose.
-        xc, yc, width, height = square_bbox_around_projected_object_center_numpy(t2, self._K, self._metadata['objects'][self._obj_label]['diameter'], crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
-        H = get_projectivity_for_crop_and_rescale_numpy(xc, yc, width, height, self._configs.data.crop_dims)
+    def _calc_targets(self, H, R1, t1, R2, t2):
         HK = H @ self._K
 
         # How to rotate 2nd camera frame, to align it with 1st camera frame
@@ -1051,6 +1053,7 @@ class DummyDataset(Dataset):
             ref_scheme_idx,
             query_scheme_idx,
             sample_index_in_epoch,
+            H,
             R1,
             t1,
             ref_img_path,
@@ -1076,7 +1079,7 @@ class DummyDataset(Dataset):
             safe_fg_anno_mask_full = numpy_to_pt(safe_fg_anno_mask.astype(np.bool), normalize_flag=False),
         )
 
-        targets = self._calc_targets(R1, t1, R2, t2)
+        targets = self._calc_targets(H, R1, t1, R2, t2)
 
         extra_input = ExtraInput(
             real_ref = torch.tensor(self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'real', dtype=torch.bool),
