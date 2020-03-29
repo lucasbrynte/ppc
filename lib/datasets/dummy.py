@@ -798,6 +798,34 @@ class DummyDataset(Dataset):
                         margin = 0.15 * bin_size
                         perturb_dir_angle_range = k*bin_size + np.array([margin, bin_size - margin])
                         T_occluders[obj_label] = T_world2cam @ self._generate_object_pose(self._perturb_object_pose_params_for_occluder(obj_pose_params, obj_label, perturb_dir_angle_range=perturb_dir_angle_range), obj_label=obj_label, occluder=True, z_bias_range=self._ref_sampling_schemes[ref_scheme_idx].synth_opts.occluders.z_bias_range)
+                elif self._ref_sampling_schemes[ref_scheme_idx].synth_opts.occluders.method == 'in_front_of_main_obj':
+                    for k, obj_label in enumerate(np.random.choice(obj_labels_possible_occluders, size=(nbr_occluders,), replace=False)):
+                        t_perturb = np.zeros((3,))
+                        main_diameter = self._metadata['objects'][self._obj_label]['diameter']
+                        this_diameter = self._metadata['objects'][obj_label]['diameter']
+                        avg_diameter = 0.5*(main_diameter + this_diameter)
+                        # z_diff = 0.5*(main_diameter + this_diameter) # Touch but don't collide
+                        z_diff = np.random.uniform(
+                            low = 0.5*(main_diameter + this_diameter), # At least don't collide
+                            high = 0.3, # Max 30 cm
+                        )
+                        main_depth = T1[2,3]
+                        this_depth = main_depth - z_diff
+                        main_diameter_proj = main_diameter / main_depth
+                        this_diameter_proj = this_diameter / this_depth
+                        # xy_diff = np.random.uniform(
+                        #     low = 0.5*(this_diameter_proj-main_diameter_proj) + 0.3*main_diameter_proj, # First align silhouette edges, and then uncover at least 30% of main obj diameter.
+                        #     high = 0.5*(main_diameter_proj + this_diameter_proj), # Until no more occl
+                        # )
+                        xy_diff = np.random.uniform(
+                            # low = 0.0,
+                            low = 0.5*(this_diameter_proj-main_diameter_proj) if this_diameter > main_diameter else 0.0, # First align silhouette edges, and then uncover at least 30% of main obj diameter.
+                            high = 0.5*(main_diameter_proj + this_diameter_proj), # Until no more occl
+                        )
+                        theta = np.random.uniform(low=0., high=2*np.pi)
+                        t_perturb[:2] = xy_diff * this_depth * np.array([np.cos(theta), np.sin(theta)])
+                        t_perturb -= z_diff * T1[:3,3] / np.linalg.norm(T1[:3,3]) # Move along viewing direction
+                        T_occluders[obj_label] = get_translation(t_perturb) @ T1 @ get_rotation_axis_angle(uniform_sampling_on_S2(), np.random.uniform(low=0.0, high=np.pi))
                 else:
                     assert False
 

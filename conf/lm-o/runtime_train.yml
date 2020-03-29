@@ -11,9 +11,12 @@ data_sampling_scheme_defs:
           override:
             synth_opts:
               occluders:
-                nbr_occluders: 6
-                method: surrounding_main_obj
-                z_bias_range: [0., 120.] # 0-12 cm random upwards perturbation, in order to cover also top parts of object.
+                nbr_occluders: 2
+                method: in_front_of_main_obj
+              # occluders:
+              #   nbr_occluders: 6
+              #   method: surrounding_main_obj
+              #   z_bias_range: [0., 120.] # 0-12 cm random upwards perturbation, in order to cover also top parts of object.
         - scheme_name: real_unoccl_all_keepbg
           sampling_prob: 0.5
 
