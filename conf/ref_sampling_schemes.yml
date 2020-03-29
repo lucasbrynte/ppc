@@ -414,12 +414,29 @@ synth_voc:
   ref_source: synthetic
   background: voc
   white_silhouette: false
-  blur_chain:
+
+  # blur_chain: # old
+  #   - mode: on_border_only
+  #     sigma_rescale_based_on_silhouette_extent: false
+  #     sigma_range: [1.0, 1.0]
+  #     # sigma_range: [1.2, 1.2]
+  #   - mode: silhouette
+  #     sigma_rescale_based_on_silhouette_extent: false
+  #     sigma_range: [0.2, 0.8]
+
+  # blur_chain: [] # noblur
+
+  blur_chain: # scaledborderblur
     - mode: on_border_only
+      sigma_rescale_based_on_silhouette_extent: true
+      # sigma_range: [0.6, 0.6]
+      # sigma_range: [0.8, 0.8]
       sigma_range: [1.0, 1.0]
       # sigma_range: [1.2, 1.2]
     - mode: silhouette
-      sigma_range: [0.2, 0.8]
+      sigma_rescale_based_on_silhouette_extent: true
+      sigma_range: [0.2, 0.5]
+
   synth_opts:
     object_pose:
       object_azimuth_angle:                                     {method: uniform, range: [0., 360.]}

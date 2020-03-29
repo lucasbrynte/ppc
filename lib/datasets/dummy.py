@@ -884,11 +884,11 @@ class DummyDataset(Dataset):
         else:
             assert False, 'No proper background image found'
 
-    def _blur_obj(self, img, instance_seg, blur_opts, inplace=False):
+    def _blur_obj(self, img, instance_seg, blur_opts, inplace=False, sigma_rescale_factor=1.0):
         if not inplace:
             img = img.copy()
 
-        sigma = np.random.uniform(low=blur_opts.sigma_range[0], high=blur_opts.sigma_range[1])
+        sigma = np.random.uniform(low=sigma_rescale_factor*blur_opts.sigma_range[0], high=sigma_rescale_factor*blur_opts.sigma_range[1])
         # Compute where to truncate kernel using inverse of OpenCV getGaussianKernel() default behavior
         ksize = 1 + 2 * ( 1 + max(0, math.ceil((sigma-0.8)/0.3)) )
         assert ksize >= 3
@@ -1040,10 +1040,16 @@ class DummyDataset(Dataset):
         # Apply blurring
         for blur_opts in self._ref_sampling_schemes[ref_scheme_idx].blur_chain:
             # NOTE: At least blurring the edges is probably quite important for synthetic images, since they are rendered without any anti-aliasing mechanism.
+            if blur_opts.sigma_rescale_based_on_silhouette_extent:
+                # More or less ensures that potential silhouette dilation after upsampling is invariant to depth and size of object.
+                sigma_rescale_factor = 10. * self._metadata['objects'][self._obj_label]['diameter'] / t1[2,0]
+            else:
+                sigma_rescale_factor = 1.
             img1 = self._blur_obj(
                 img1,
                 instance_seg1,
                 blur_opts,
+                sigma_rescale_factor = sigma_rescale_factor,
             )
 
         return R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_fg_anno_mask
