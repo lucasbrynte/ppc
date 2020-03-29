@@ -46,25 +46,6 @@ default_schemeset_opts:
       # nbr_occluders: 0 # Occluders for synthetic ref images
 data_sampling_scheme_defs:
   test:
-    # real_occl_val_keepbg_frame100_mild_gradual_rot:
-    #   ref_schemeset:
-    #     # - {scheme_name: synth_voc}
-    #     - {scheme_name: real_occl_val_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: mild_gradual_rot
-    # real_occl_val_keepbg_frame100_mild_gradual_transl:
-    #   ref_schemeset:
-    #     # - {scheme_name: synth_voc}
-    #     - {scheme_name: real_occl_val_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: mild_gradual_transl
-    # real_occl_val_keepbg_frame100_mild_gradual_depth:
-    #   ref_schemeset:
-    #     # - {scheme_name: synth_voc}
-    #     - {scheme_name: real_occl_val_keepbg_frame100}
-    #   query_schemeset:
-    #     - scheme_name: mild_gradual_depth
-
     posesearch:
       ref_schemeset:
         # # OccludedLINEMOD
