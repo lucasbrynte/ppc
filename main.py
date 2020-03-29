@@ -142,6 +142,7 @@ class Main():
             self._run_epoch_with_posesearch(
                 TEST,
                 schemeset,
+                self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['poseopt']['mode'],
             )
 
     def _sample_epoch_of_targets(self, mode, schemeset):
@@ -164,7 +165,7 @@ class Main():
         print('Done.')
         return target_samples
 
-    def _run_epoch_with_posesearch(self, mode, schemeset):
+    def _run_epoch_with_posesearch(self, mode, schemeset, poseopt_mode):
         assert mode == TEST
         self._model.eval() # Although gradients are computed - batch norm, dropout etc should be in eval mode.
         numerical_grad = True
@@ -205,18 +206,24 @@ class Main():
                     numerical_grad = numerical_grad,
                 )
 
-                optimize = True
-                # opt_enable_plotting = True
-                # opt_print_iterates = True
-                opt_enable_plotting = False
-                opt_print_iterates = False
-                evaluate_and_plot = False
-
-                # optimize = False
-                # evaluate_and_plot = True
-
-                # break_after_first_batch = True
-                break_after_first_batch = False
+                if poseopt_mode == 'optimize_all':
+                    optimize = True
+                    opt_enable_plotting = False
+                    opt_print_iterates = False
+                    evaluate_and_plot = False
+                    break_after_first_batch = False
+                elif poseopt_mode == 'optimize_one_frame':
+                    optimize = True
+                    opt_enable_plotting = True
+                    opt_print_iterates = True
+                    evaluate_and_plot = False
+                    break_after_first_batch = True
+                elif poseopt_mode == 'evaluate_and_plot_one_frame':
+                    optimize = False
+                    evaluate_and_plot = True
+                    break_after_first_batch = True
+                else:
+                    assert False
 
                 if optimize:
                     pose_optimizer.optimize(

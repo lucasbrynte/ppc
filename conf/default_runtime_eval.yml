@@ -22,6 +22,10 @@ default_schemeset_opts:
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
       enabled: true
+      mode: optimize_all
+      # mode: optimize_one_frame
+      # mode: evaluate_and_plot_one_frame
+
       # GT initialization
       # init_pose_suffix: ""
       # OccludedLINEMOD
