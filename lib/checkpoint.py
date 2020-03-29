@@ -26,9 +26,9 @@ class CheckpointHandler:
             model.load_state_dict(checkpoint)
         return model
 
-    def save(self, model, epoch, score):
+    def save(self, model, epoch, score=None):
         state_dict = model.state_dict()
-        if score > self._best_score:
+        if score is not None and score > self._best_score:
             self._best_score = score
             file_name = 'best_model.pth.tar'
             torch.save(state_dict, os.path.join(self._checkpoint_dir, file_name))

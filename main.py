@@ -111,13 +111,12 @@ class Main():
                 )
                 if self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['use_for_val_score']:
                     val_scores[schemeset] = score
-            assert len(val_scores) > 0
-            val_score = sum(val_scores.values()) / len(val_scores)
+            val_score = sum(val_scores.values()) / len(val_scores) if len(val_scores) > 0 else None
 
             # self._lr_scheduler.step(val_score, epoch=None) # Make sure that the val_score argument is not confused for the epoch.
             self._lr_scheduler.step(epoch=None)
             # self._checkpoint_handler.save(self._model, epoch, train_score)
-            self._checkpoint_handler.save(self._model, epoch, val_score)
+            self._checkpoint_handler.save(self._model, epoch, score=val_score)
 
     def eval(self):
         epoch = 1
