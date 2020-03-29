@@ -1,0 +1,19 @@
+default_schemeset_opts:
+  test:
+    poseopt:
+      # GT initialization
+      # init_pose_suffix: ""
+      # LINEMOD
+      init_pose_suffix: _posecnn
+data_sampling_scheme_defs:
+  test:
+    posesearch:
+      ref_schemeset:
+        # LINEMOD
+        - {scheme_name: real_unoccl_test_keepbg}
+
+        # - {scheme_name: real_unoccl_test_keepbg_frame194}
+        # - {scheme_name: real_unoccl_test_keepbg_frame331}
+        # - {scheme_name: real_unoccl_test_keepbg_frame720}
+
+        # - {scheme_name: synth_voc}
