@@ -963,6 +963,7 @@ class DummyDataset(Dataset):
 
         # Determine at what foreground pixels the annotated segmentation can be relied upon
         safe_fg_anno_mask = self._get_safe_fg_anno_mask(depth_map, depth_map_rendered)
+        safe_fg_anno_mask &= instance_seg1 == instance_idx+1
 
         return img1, instance_seg1, ref_bg, safe_fg_anno_mask, ref_img_path
 
