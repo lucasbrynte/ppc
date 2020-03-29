@@ -433,6 +433,8 @@ synth_voc:
       inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
       principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
       inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
+    occluders:
+      nbr_occluders: 0
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
       specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
@@ -460,6 +462,8 @@ synth_blackbg:
       inplane_rot_angle:                                        {method: uniform, range: [-60., 60.]} # +- 60 deg
       principal_axis_perturb_angle:                             {method: uniform, range: [-30., 30.]} # +- 30 deg
       inplane_angle_for_axis_of_revolution_for_paxis_perturb:   {method: uniform, range: [0., 360.]}
+    occluders:
+      nbr_occluders: 0
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
       specular_weight:                                            {method: uniform, range: [0.0, 3.0]}

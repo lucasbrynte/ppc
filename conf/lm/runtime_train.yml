@@ -1,10 +1,3 @@
-default_schemeset_opts:
-  train:
-    data:
-      nbr_occluders: 0 # Occluders for synthetic ref images
-  val:
-    data:
-      nbr_occluders: 0 # Occluders for synthetic ref images
 data_sampling_scheme_defs:
   train:
     train:

@@ -538,7 +538,7 @@ class DummyDataset(Dataset):
 
         return T2
 
-    def _generate_object_pose(self, obj_pose_params, obj_label=None, occluder=False):
+    def _generate_object_pose(self, obj_pose_params, obj_label=None, occluder=False, z_bias_range=None):
         if occluder:
             assert obj_label is not None
         elif obj_label is None:
@@ -547,7 +547,7 @@ class DummyDataset(Dataset):
         zmin = self._metadata['objects'][obj_label]['bbox3d'][2,0]
         bottom_center = np.array([0., 0., zmin])
 
-        T_model2world = calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center)
+        T_model2world = calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center, z_bias_range=z_bias_range)
 
         return T_model2world
 
@@ -785,12 +785,16 @@ class DummyDataset(Dataset):
 
             obj_labels_possible_occluders = [model_spec['readable_label'] for obj_id, model_spec in self._models_info.items() if obj_id != self._obj_id]
             T_occluders = {}
-            nbr_occluders = self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['data']['nbr_occluders']
-            for k, obj_label in enumerate(np.random.choice(obj_labels_possible_occluders, size=(nbr_occluders,), replace=False)):
-                bin_size = 2*np.pi/nbr_occluders
-                margin = 0.15 * bin_size
-                perturb_dir_angle_range = k*bin_size + np.array([margin, bin_size - margin])
-                T_occluders[obj_label] = T_world2cam @ self._generate_object_pose(self._perturb_object_pose_params_for_occluder(obj_pose_params, obj_label, perturb_dir_angle_range=perturb_dir_angle_range), obj_label=obj_label, occluder=True)
+            nbr_occluders = self._ref_sampling_schemes[ref_scheme_idx].synth_opts.occluders.nbr_occluders
+            if nbr_occluders > 0:
+                if self._ref_sampling_schemes[ref_scheme_idx].synth_opts.occluders.method == 'surrounding_main_obj':
+                    for k, obj_label in enumerate(np.random.choice(obj_labels_possible_occluders, size=(nbr_occluders,), replace=False)):
+                        bin_size = 2*np.pi/nbr_occluders
+                        margin = 0.15 * bin_size
+                        perturb_dir_angle_range = k*bin_size + np.array([margin, bin_size - margin])
+                        T_occluders[obj_label] = T_world2cam @ self._generate_object_pose(self._perturb_object_pose_params_for_occluder(obj_pose_params, obj_label, perturb_dir_angle_range=perturb_dir_angle_range), obj_label=obj_label, occluder=True, z_bias_range=self._ref_sampling_schemes[ref_scheme_idx].synth_opts.occluders.z_bias_range)
+                else:
+                    assert False
 
             break
         else:

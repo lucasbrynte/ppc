@@ -3,7 +3,7 @@ import numpy as np
 
 from lib.utils import get_rotation_axis_angle, get_translation
 
-def calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center):
+def calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center, z_bias_range=None):
     """
     Given a set of sampled object pose parameters, returns the corresponding
     transformation from model frame to world frame.
@@ -12,6 +12,7 @@ def calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center):
         obj_pose_params  - Size of table on which object position is sampled
         up_dir           - Upwards direction in object reference frame
         bottom_center    - Bottom center location in object reference frame
+        z_bias_range     - Range of uniformly sampled bias in object z direction (optional)
     """
     # Translate bottom center to origin
     T_bottom2origin = get_translation(-bottom_center)
@@ -31,6 +32,8 @@ def calc_object_pose_on_xy_plane(obj_pose_params, up_dir, bottom_center):
     # Random xy-translation (on table)
     t = np.zeros((3,))
     t[0:2] = -obj_pose_params['xy_transl']
+    if z_bias_range is not None:
+        t[2] += np.random.uniform(low=z_bias_range[0], high=z_bias_range[1])
     T_transl_on_table = get_translation(t)
 
     T_model2world = T_transl_on_table @ T_azimuth @ T_align_up_dir @ T_bottom2origin
