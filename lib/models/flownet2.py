@@ -49,7 +49,7 @@ class FlowNetS_wrapper(FlowNetS):
         out_conv5 = self.conv5_1(self.conv5(out_conv4))
         out_conv6 = self.conv6_1(self.conv6(out_conv5))
 
-        with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask):
+        with torch.set_grad_enabled(self._configs.aux_tasks.fg_mask.enabled):
             flow6       = self.predict_flow6(out_conv6)
             flow6_up    = self.upsampled_flow6_to_5(flow6)
             out_deconv5 = self.deconv5(out_conv6)

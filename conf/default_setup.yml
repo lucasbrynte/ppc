@@ -121,8 +121,12 @@ tasks:
   #   #   # - {method: smoothstep, target: rel_depth_error, x1: -0.176, x2: -0.079, y1: 0.0, y2: 1.0} # log(1.2)=0.079, log(1.5)=0.176
   #   #   # - {method: smoothstep, target: rel_depth_error, x1: 0.079, x2: 0.176, y1: 1.0, y2: 0.0} # log(1.2)=0.079, log(1.5)=0.176
 aux_tasks:
-  fg_mask: true
-  # fg_mask: false
+  fg_mask:
+    enabled: true
+    # enabled: false
+    anno_trust_mode: everywhere
+    # anno_trust_mode: matching_depth
+    # anno_trust_mode: bg_or_matching_depth
 logging:
   avg_window_size: 25
 model:

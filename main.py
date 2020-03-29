@@ -443,14 +443,23 @@ class Main():
             task_loss_decays, loss_notapplied = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features, tasks_punished=batch.meta_data.tasks_punished, ref_scheme_loss_weight=extra_input.ref_scheme_loss_weight, query_scheme_loss_weight=extra_input.query_scheme_loss_weight)
             if mode in (TRAIN, VAL):
                 task_losses = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decays)
-                if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask:
+                if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask.enabled:
                     fg_mask_loss = bce_loss(nn_out['fg_mask'], (instance_seg1 == 1).float())
 
-                    # Trust segmentation everywhere
-                    fg_mask_loss = fg_mask_loss.mean()
+                    if self._configs.aux_tasks.fg_mask.anno_trust_mode == 'everywhere':
+                        # Trust segmentation everywhere
+                        fg_mask_loss = fg_mask_loss.mean()
+                    elif self._configs.aux_tasks.fg_mask.anno_trust_mode == 'matching_depth':
+                        # # Only trust segmentation at matching depths. Effectively disregards all BG though, since rendered depth is zero...
+                        fg_mask_loss = fg_mask_loss[safe_fg_anno_mask].mean()
+                    elif self._configs.aux_tasks.fg_mask.anno_trust_mode == 'bg_or_matching_depth':
+                        # # Always trust BG anno, but only trust FG anno, if depth also matches.
+                        fg_mask_loss = fg_mask_loss[(instance_seg1 != 1) | safe_fg_anno_mask].mean()
+                    else:
+                        assert False
 
                     # print(loss, fg_mask_loss)
-                    task_losses['seg'] = 0.3 * fg_mask_loss
+                    task_losses['fg_mask'] = 0.3 * fg_mask_loss
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
                     task_losses['prior'] = sum(prior_loss_signal_vals.values())
