@@ -443,7 +443,6 @@ class Main():
             task_loss_decays, loss_notapplied = self._loss_handler.calc_loss_decay(target_features, pertarget_target_features, tasks_punished=batch.meta_data.tasks_punished, ref_scheme_loss_weight=extra_input.ref_scheme_loss_weight, query_scheme_loss_weight=extra_input.query_scheme_loss_weight)
             if mode in (TRAIN, VAL):
                 task_losses = self._loss_handler.calc_loss(pred_features, target_features, task_loss_decays)
-                loss = sum(task_losses.values())
                 if 'fg_mask' in nn_out and self._configs.aux_tasks.fg_mask:
                     fg_mask_loss = bce_loss(nn_out['fg_mask'], (instance_seg1 == 1).float())
 
@@ -451,10 +450,11 @@ class Main():
                     fg_mask_loss = fg_mask_loss.mean()
 
                     # print(loss, fg_mask_loss)
-                    loss += 0.3 * fg_mask_loss
+                    task_losses['seg'] = 0.3 * fg_mask_loss
                 if any([task_spec['prior_loss'] is not None for task_name, task_spec in self._configs.tasks.items()]):
                     prior_loss_signal_vals = self._loss_handler.calc_prior_loss(pred_features_raw, self._target_prior_samples)
-                    loss += sum(prior_loss_signal_vals.values())
+                    task_losses['prior'] = sum(prior_loss_signal_vals.values())
+                loss = sum(task_losses.values())
 
             if self._configs.training.clamp_predictions:
                 # Clamp features after loss computation (for all features)
