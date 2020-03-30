@@ -454,7 +454,11 @@ synth_voc:
       nbr_occluders: 0
     shading:
       ambient_weight:                                             {method: uniform, range: [0.5, 1.0]}
-      specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+      # Old - a bit more aggressive specular effects
+      # specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+      # specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
+      # Less aggressive. Comparable performance, but maybe a bit more sensible.
+      specular_weight:                                            {method: uniform, range: [0.0, 1.0]}
+      specular_whiteness:                                         {method: uniform, range: [0.0, 0.5]}
       specular_shininess:                                         {method: uniform, range: [1.0, 32.0]}
-      specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
       light_pos_worldframe:                                       {method: uniform, deterministic_quantile_range: false, range: [[-2000., -2000., 1000.], [2000., 2000., 3000.]], shape: [3]}
