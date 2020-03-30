@@ -38,6 +38,9 @@ for OBJ in ${OBJECTS[@]}; do
 done
 
 xhost + # allow connections to X server
+
+# Temporarily disable exit-on-error, in order to manually handle errors, and force cleanup.
+set +e
 for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
         $CONTAINER $CMD main.py \
@@ -45,6 +48,15 @@ for OBJ in ${OBJECTS[@]}; do
         --config-name $CONFIGNAME \
         --experiment-name $EXPERIMENT_PREFIX/$OBJ \
         --obj-label $OBJ
+    if [ $? -ne 0 ]; then
+        echo "Breaking..."
+        break
+    fi
 done
+set -e
+
 popd
+
+echo "Cleanup..."
 rm -rf $WS
+echo "Done."

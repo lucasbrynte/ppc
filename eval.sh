@@ -1,5 +1,5 @@
-# exit when any command fails
-set -e
+# # exit when any command fails
+# set -e
 
 # # EVALMODE=eval
 # EVALMODE=eval_poseopt
@@ -45,6 +45,9 @@ for OBJ in ${OBJECTS[@]}; do
 done
 
 xhost + # allow connections to X server
+
+# Temporarily disable exit-on-error, in order to manually handle errors, and force cleanup.
+set +e
 for OBJ in ${OBJECTS[@]}; do
     ./rundocker.sh \
         $CONTAINER $CMD main.py \
@@ -54,6 +57,13 @@ for OBJ in ${OBJECTS[@]}; do
         --old-experiment-name $OLD_EXPERIMENT_PREFIX/$OBJ \
         --checkpoint-load-fname $CHECKPOINT_FNAME \
         --obj-label $OBJ
+    if [ $? -ne 0 ]; then
+        echo "Breaking..."
+        break
+    fi
 done
 popd
+
+echo "Cleanup..."
 rm -rf $WS
+echo "Done."
