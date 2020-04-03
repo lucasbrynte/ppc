@@ -2,9 +2,6 @@ data_sampling_scheme_defs:
   train:
     train:
       ref_schemeset:
-        # # synthonly
-        # - {scheme_name: synth_voc}
-
         # OccludedLINEMOD
         - scheme_name: synth_voc
         - scheme_name: synth_voc
