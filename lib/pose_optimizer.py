@@ -2,6 +2,7 @@ import os
 import json
 import numpy as np
 # np.random.seed(314159)
+from scipy import spatial
 import torch
 from torch import nn
 from torch.autograd import grad
@@ -407,6 +408,42 @@ class PoseOptimizer():
         grad = grad.detach()
         return grad
 
+    def calc_adds_metric(self, allpts_objframe, object_diameter, R_est, t_est, R_gt, t_gt):
+        batch_size = R_est.shape[0]
+        N = R_est.shape[1]
+        nbr_pts = allpts_objframe.shape[3]
+
+        assert allpts_objframe.shape == (batch_size, 1, 3, nbr_pts)
+        assert R_est.shape == (batch_size, N, 3, 3)
+        assert t_est.shape == (batch_size, N, 3, 1)
+        assert R_gt.shape == (batch_size, 1, 3, 3)
+        assert t_gt.shape == (batch_size, 1, 3, 1)
+
+        # Check whether object is constant throughout batch
+        constant_obj = torch.all(allpts_objframe == allpts_objframe[[0],:,:,:])
+
+        allpts_camframe_est = (torch.matmul(R_est, allpts_objframe) + t_est).detach().cpu().numpy()
+        allpts_camframe_gt = (torch.matmul(R_gt, allpts_objframe) + t_gt).detach().cpu().numpy()
+
+        assert allpts_camframe_est.shape == (batch_size, N, 3, nbr_pts)
+        assert allpts_camframe_gt.shape == (batch_size, 1, 3, nbr_pts)
+
+        add_metric_unnorm = np.empty((batch_size, N))
+        for sample_idx in range(batch_size):
+            if sample_idx == 0 or not constant_obj:
+                currpts_camframe_gt = allpts_camframe_gt[sample_idx,0,:,:]
+                mean_dist_index = spatial.cKDTree(currpts_camframe_gt.T)
+            for k in range(N):
+                currpts_camframe_est = allpts_camframe_est[sample_idx,k,:,:]
+                closest_dists, _ = mean_dist_index.query(currpts_camframe_est.T, k=1)
+                add_metric_unnorm[sample_idx, k] = np.mean(closest_dists)
+
+        add_metric = add_metric_unnorm / object_diameter
+        return np.stack([
+            add_metric,
+            add_metric_unnorm,
+        ], axis=2)
+
     def calc_add_metric(self, pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt):
         # NOTE: ADD can be computed more efficiently by considering relative euclidean transformations, rather than transforming to camera frame twice. Impossible to exploit this for reprojection error however.
         # # pts_camframe_gt: R_gt @ pts_objframe + t_gt
@@ -480,9 +517,25 @@ class PoseOptimizer():
 
         HK = torch.matmul(H, self._K[:,None,:,:])
 
-        add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        if self._pipeline._neural_rendering_wrapper._models_info[obj_id]['readable_label'] in ('eggbox', 'glue'):
+            # Assuming symmetry of 180 deg rotation around z axis (assumed in modified reprojection error calculation)
+            symmetric = True
+        else:
+            symmetric = False
+
+        if symmetric:
+            add_metrics = self.calc_adds_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        else:
+            add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
         avg_reproj_HK_metrics = self.calc_avg_reproj_metric(HK, pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+        if symmetric:
+            # Run for 180deg z rot as well, and take minimum reproj error of the two.
+            zrot = torch.diag(torch.tensor([-1., -1., 1.], dtype=R_est.dtype, device=R_est.device))[None,None,:,:]
+            zrot180deg_avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, torch.matmul(zrot, R_est), t_est, torch.matmul(zrot, R_gt), t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+            symm_avg_reproj_metrics = np.minimum(avg_reproj_metrics, zrot180deg_avg_reproj_metrics)
+        else:
+            symm_avg_reproj_metrics = avg_reproj_metrics
         deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
         R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
@@ -499,6 +552,7 @@ class PoseOptimizer():
                 'add_metric': add_metric.tolist(),
                 'avg_reproj_metric': avg_reproj_metric.tolist(),
                 'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
+                'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
                 'deg_cm_err': deg_cm_err.tolist(),
                 'err_est': curr_err_est.tolist(),
             },
@@ -507,6 +561,7 @@ class PoseOptimizer():
             add_metric,
             avg_reproj_metric,
             avg_reproj_HK_metric,
+            symm_avg_reproj_metric,
             deg_cm_err,
             curr_err_est,
             curr_R_est,
@@ -517,6 +572,7 @@ class PoseOptimizer():
             add_metrics,
             avg_reproj_metrics,
             avg_reproj_HK_metrics,
+            symm_avg_reproj_metrics,
             deg_cm_errors,
             err_est_numpy,
             R_est_numpy,
