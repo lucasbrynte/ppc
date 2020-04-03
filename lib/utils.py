@@ -94,9 +94,7 @@ def get_module_parameters(module):
     return w_params, b_params
 
 def pflat(x):
-    a, n = x.shape
-    alpha = x[np.newaxis,-1,:]
-    return x / alpha
+    return x / x[None,-1,:]
 
 def pextend(x):
     sx, sy = x.shape
