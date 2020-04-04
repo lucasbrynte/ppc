@@ -419,9 +419,6 @@ class PoseOptimizer():
         assert R_gt.shape == (batch_size, 1, 3, 3)
         assert t_gt.shape == (batch_size, 1, 3, 1)
 
-        # Check whether object is constant throughout batch
-        constant_obj = torch.all(allpts_objframe == allpts_objframe[[0],:,:,:])
-
         allpts_camframe_est = (torch.matmul(R_est, allpts_objframe) + t_est).detach().cpu().numpy()
         allpts_camframe_gt = (torch.matmul(R_gt, allpts_objframe) + t_gt).detach().cpu().numpy()
 
@@ -430,9 +427,9 @@ class PoseOptimizer():
 
         add_metric_unnorm = np.empty((batch_size, N))
         for sample_idx in range(batch_size):
-            if sample_idx == 0 or not constant_obj:
-                currpts_camframe_gt = allpts_camframe_gt[sample_idx,0,:,:]
-                mean_dist_index = spatial.cKDTree(currpts_camframe_gt.T)
+            # Note: if calculating residuals in object frame instead of global frame, and if object can be assumed constant throughout batch, then creating index once would be enough.
+            currpts_camframe_gt = allpts_camframe_gt[sample_idx,0,:,:]
+            mean_dist_index = spatial.cKDTree(currpts_camframe_gt.T)
             for k in range(N):
                 currpts_camframe_est = allpts_camframe_est[sample_idx,k,:,:]
                 closest_dists, _ = mean_dist_index.query(currpts_camframe_est.T, k=1)
