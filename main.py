@@ -102,13 +102,14 @@ class Main():
 
             val_scores = {}
             for schemeset in self._configs.runtime.data_sampling_scheme_defs[VAL].keys():
-                score = -self._run_epoch(epoch,
-                    VAL,
-                    schemeset,
-                    save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] == 0,
-                    plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] == 0,
-                    plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] == 0,
-                )
+                with torch.no_grad():
+                    score = -self._run_epoch(epoch,
+                        VAL,
+                        schemeset,
+                        save_imgs_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['save_imgs_interval'] == 0,
+                        plot_signals_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signals_interval'] == 0,
+                        plot_signal_stats_flag = self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] is not None and epoch % self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['opts']['visualization']['plot_signal_stats_interval'] == 0,
+                    )
                 if self._configs.runtime.data_sampling_scheme_defs[VAL][schemeset]['use_for_val_score']:
                     val_scores[schemeset] = score
             val_score = sum(val_scores.values()) / len(val_scores) if len(val_scores) > 0 else None
