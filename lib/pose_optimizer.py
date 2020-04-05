@@ -715,6 +715,9 @@ class PoseOptimizer():
             print_iterates = False,
             store_eval = False,
         ):
+        # First iteration corresponds to evaluating initialization
+        N += 1
+
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
         self._num_ddims = num_ddims
@@ -829,51 +832,57 @@ class PoseOptimizer():
             nbr_iter_translonly = 0
 
 
-        self._wx_scheduler = self._init_cos_transitions_scheduler(
-            self._wx_optimizer,
-            [
-                nbr_iter_translonly - 1,
-                nbr_iter_translonly,
-                nbr_iter_translonly + 50,
-            ],
-            [
-                0.0,
-                1.0,
-                # 1.0,
-                3e-2,
-            ],
-        )
-
-
-        self._tx_scheduler = self._init_cos_transitions_scheduler(
-            self._tx_optimizer,
-            [
-                nbr_iter_translonly - 1,
-                nbr_iter_translonly,
-                nbr_iter_translonly + 50,
-            ],
-            [
-                0.0 if tx_leap_flag else 1.0,
-                1.0,
-                1.0,
-                # 1e+1,
-            ],
-        )
-        self._d_scheduler = self._init_cos_transitions_scheduler(
-            self._d_optimizer,
-            [
-                nbr_iter_translonly + 10,
-                nbr_iter_translonly + 50,
-                N,
-            ],
-            [
-                # 0.0,
-                5e-1,
-                5e-1,
-                # 1.0,
-                1e-2,
-            ],
-        )
+        if not N > 1:
+            self._wx_scheduler = torch.optim.lr_scheduler.LambdaLR(self._wx_optimizer, lr_lambda=lambda x: 1.0)
+            self._tx_scheduler = torch.optim.lr_scheduler.LambdaLR(self._tx_optimizer, lr_lambda=lambda x: 1.0)
+            self._d_scheduler = torch.optim.lr_scheduler.LambdaLR(self._d_optimizer, lr_lambda=lambda x: 1.0)
+        else:
+            # "Hack" - if N = 1, there is no need to define schedulers. Which is nice since they have hard-coded iteration break points.
+            self._wx_scheduler = self._init_cos_transitions_scheduler(
+                self._wx_optimizer,
+                [
+                    nbr_iter_translonly - 1,
+                    nbr_iter_translonly,
+                    nbr_iter_translonly + 50,
+                ],
+                [
+                    0.0,
+                    1.0,
+                    # 1.0,
+                    3e-2,
+                ],
+            )
+            
+            
+            self._tx_scheduler = self._init_cos_transitions_scheduler(
+                self._tx_optimizer,
+                [
+                    nbr_iter_translonly - 1,
+                    nbr_iter_translonly,
+                    nbr_iter_translonly + 50,
+                ],
+                [
+                    0.0 if tx_leap_flag else 1.0,
+                    1.0,
+                    1.0,
+                    # 1e+1,
+                ],
+            )
+            self._d_scheduler = self._init_cos_transitions_scheduler(
+                self._d_optimizer,
+                [
+                    nbr_iter_translonly + 10,
+                    nbr_iter_translonly + 50,
+                    N,
+                ],
+                [
+                    # 0.0,
+                    5e-1,
+                    5e-1,
+                    # 1.0,
+                    1e-2,
+                ],
+            )
 
 
 
@@ -1130,6 +1139,24 @@ class PoseOptimizer():
                 print('real_rel_depth_error: {}'.format(real_rel_depth_error.cpu().numpy()))
                 print('t_errmag: {}'.format(t_errmag.cpu().numpy()))
                 print('w_errmag: {}'.format(w_errmag.cpu().numpy()))
+
+            # Store iterations
+            # NOTE: Store already, since variables might be updated if tx_leap_flag==True.
+            all_H[:,j,:,:] = H.detach().clone()
+            all_wx[:,j,:] = wx.detach().clone()
+            all_tx[:,j,:] = tx.detach().clone()
+            all_d[:,j,:] = d.detach().clone()
+
+            # Store iterations
+            all_err_est[:,j] = err_est.detach()
+            all_real_rel_depth_error[:,j] = real_rel_depth_error.detach()
+            all_t_errmag[:,j] = t_errmag.detach()
+            all_w_errmag[:,j] = w_errmag.detach()
+
+            if j == N-1:
+                # Skip taking gradient step at last iteration. This way optimizer & scheduler do not need to be defined as well, which makes it easier to run the whole thing with N = 1.
+                break
+
             if self._num_wxdims > 0:
                 wx.grad = curr_wx_grad
             if self._num_txdims > 0:
@@ -1142,6 +1169,11 @@ class PoseOptimizer():
                 d.grad = curr_d_grad
                 # d.grad = torch.log(rel_depth_est[:,:])
 
+            # Store iterations
+            all_wx_grads[:,j,:] = curr_wx_grad.detach().clone()
+            all_tx_grads[:,j,:] = curr_tx_grad.detach().clone()
+            all_d_grads[:,j,:] = curr_d_grad.detach().clone()
+
             if j > 0:
                 exp_avg_wx = self._wx_optimizer.state[wx]['exp_avg'] if 'exp_avg' in self._wx_optimizer.state[wx] else torch.zeros_like(wx)
                 exp_avg_sq_wx = self._wx_optimizer.state[wx]['exp_avg_sq'] if 'exp_avg_sq' in self._wx_optimizer.state[wx] else torch.zeros_like(wx)
@@ -1152,15 +1184,7 @@ class PoseOptimizer():
                 exp_avg = torch.cat((exp_avg_wx, exp_avg_tx, exp_avg_d), dim=1)
                 exp_avg_sq = torch.cat((exp_avg_sq_wx, exp_avg_tx, exp_avg_d), dim=1)
 
-            # Store iterations
-            all_H[:,j,:,:] = H.detach().clone()
-            all_wx[:,j,:] = wx.detach().clone()
-            all_tx[:,j,:] = tx.detach().clone()
-            all_d[:,j,:] = d.detach().clone()
-            all_wx_grads[:,j,:] = curr_wx_grad.detach().clone()
-            all_tx_grads[:,j,:] = curr_tx_grad.detach().clone()
-            all_d_grads[:,j,:] = curr_d_grad.detach().clone()
-            if j > 0:
+                # Store iterations
                 all_exp_avgs[:,j,:] = exp_avg.detach().clone()
                 all_exp_avg_sqs[:,j,:] = exp_avg_sq.detach().clone()
 
@@ -1170,12 +1194,6 @@ class PoseOptimizer():
             self._wx_scheduler.step()
             self._tx_scheduler.step()
             self._d_scheduler.step()
-
-            # Store iterations
-            all_err_est[:,j] = err_est.detach()
-            all_real_rel_depth_error[:,j] = real_rel_depth_error.detach()
-            all_t_errmag[:,j] = t_errmag.detach()
-            all_w_errmag[:,j] = w_errmag.detach()
 
         if store_eval:
             all_metrics = self.eval_pose(all_H, all_wx, all_tx, all_d, all_err_est)

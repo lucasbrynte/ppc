@@ -212,12 +212,21 @@ class Main():
                     opt_print_iterates = False
                     evaluate_and_plot = False
                     break_after_first_batch = False
+                    N = 100
                 elif poseopt_mode == 'optimize_one_frame':
                     optimize = True
                     opt_enable_plotting = True
                     opt_print_iterates = True
                     evaluate_and_plot = False
                     break_after_first_batch = True
+                    N = 100
+                elif poseopt_mode == 'eval_init':
+                    optimize = True
+                    opt_enable_plotting = False
+                    opt_print_iterates = False
+                    evaluate_and_plot = False
+                    break_after_first_batch = False
+                    N = 0
                 elif poseopt_mode == 'evaluate_and_plot_one_frame':
                     optimize = False
                     evaluate_and_plot = True
@@ -231,13 +240,7 @@ class Main():
                         extra_input.t2_init, # t0_before_perturb
                         # extra_input.R1, # R0_before_perturb
                         # extra_input.t1, # t0_before_perturb
-                        # N = 1,
-                        # N = 4,
-                        # N = 10,
-                        # N = 40,
-                        N = 100,
-                        # N = 150,
-                        # N = 300,
+                        N = N,
                     
                         # optim_runs = {
                         #     'init_gt': {'deg_perturb': 0., 'axis_perturb': [1., 0., 0.], 't_perturb': [0., 0., 0.], 'u_perturb': [0., 0.], 'd_perturb': 1.},
