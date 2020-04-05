@@ -61,6 +61,13 @@ rot_only_20deg_std:
     angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 20.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
+rot_only_45deg_std:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: uniform_S2, deterministic_quantile_range: false, shape: [3]}
+    angle:                                                      {method: normal, deterministic_quantile_range: false, loc: 0.0, scale: 45.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: fixed, deterministic_quantile_range: false, value: 1.0}
 rot_only_90deg_std:
   white_silhouette: false
   perturbation:
@@ -117,6 +124,13 @@ depth_1_05_gauss:
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: normal, deterministic_quantile_range: false, loc: 1.0, scale: 0.05}
+depth_1_1:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 0.1}
 depth_1_15:
   white_silhouette: false
   perturbation:
@@ -131,6 +145,13 @@ depth_1_3:
     angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
     object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
     depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 0.3}
+depth_2_05:
+  white_silhouette: false
+  perturbation:
+    axis_of_revolution:                                         {method: fixed, deterministic_quantile_range: false, value: [1., 1., 1.], shape: [3]}
+    angle:                                                      {method: fixed, deterministic_quantile_range: false, value: 0.}
+    object_bias_over_extent:                                    {method: fixed, deterministic_quantile_range: false, value: [0.0, 0.0, 0.0], shape: [3]}
+    depth_rescale_factor:                                       {method: lognormal, deterministic_quantile_range: false, loc: 1.0, scale: 1.05}
 mild_gradual_rot:
   white_silhouette: false
   perturbation:

@@ -12,7 +12,20 @@ data_sampling_scheme_defs:
       ref_schemeset:
         # OccludedLINEMOD
         - {scheme_name: real_occl_test_keepbg}
+        # - {scheme_name: real_occl_val_keepbg}
 
+        # driller frames
+        # - {scheme_name: real_occl_test_keepbg_frame30}
+        # - {scheme_name: real_occl_test_keepbg_frame112}
+
+        # eggbox frames
+        # - {scheme_name: real_occl_test_keepbg_frame30}
+
+        # glue frames
+        # - {scheme_name: real_occl_test_keepbg_frame30}
+        # - {scheme_name: real_occl_test_keepbg_frame112}
+
+        # duck frames
         # - {scheme_name: real_occl_test_keepbg_frame30} # bad anno - y shift
         # - {scheme_name: real_occl_test_keepbg_frame109}
         # - {scheme_name: real_occl_test_keepbg_frame112}

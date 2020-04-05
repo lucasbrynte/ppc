@@ -166,17 +166,69 @@ data_sampling_scheme_defs:
         #   # loss_weight: 1.0
         #   loss_weight: 3.0
 
-        # deepim_perturb_sepdevonly_depth_1_05_lognorm
-        - scheme_name: rot_only_20deg_std
+        # # deepim_perturb_sepdevonly_depth_1_05_lognorm
+        # - scheme_name: rot_only_20deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # deepim_perturb_sepdevonly_depth_1_1_lognorm_rot45
+        - scheme_name: rot_only_45deg_std
           sampling_prob: 0.3
           # loss_weight: 1.0
         - scheme_name: transl_10perc
           sampling_prob: 0.3
           # loss_weight: 1.0
-        - scheme_name: depth_1_05
+        - scheme_name: depth_1_1
           sampling_prob: 0.4
           # loss_weight: 1.0
           loss_weight: 3.0
+
+
+        # # deepim_perturb_sepdevonly_depth_1_05_lognorm_rot90
+        # - scheme_name: rot_only_90deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_05
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # # deepim_perturb_sepdevonly_depth_1_3_lognorm
+        # - scheme_name: rot_only_20deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_1_3
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
+
+
+        # # deepim_perturb_sepdevonly_depth_2_05_lognorm
+        # - scheme_name: rot_only_20deg_std
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: transl_10perc
+        #   sampling_prob: 0.3
+        #   # loss_weight: 1.0
+        # - scheme_name: depth_2_05
+        #   sampling_prob: 0.4
+        #   # loss_weight: 1.0
+        #   loss_weight: 3.0
 
 
         # # deepim_perturb_sepdevonly_depth_1_05_gauss
