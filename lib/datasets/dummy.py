@@ -100,13 +100,10 @@ class DummyDataset(Dataset):
         self._renderer = self._init_renderer()
         self._nyud_img_paths = self._init_nyud_img_paths()
         self._voc_img_paths = self._init_voc_img_paths()
-        self._aug_transform = None
-        if self._mode == TRAIN and self._configs.data.ref_colorjitter_during_train:
+        if self._mode == TRAIN and not self._configs.data.ref_colorjitter_during_train is False:
             # self._aug_transform = ColorJitter(brightness=0.3*0.4, contrast=0.3*0.4, saturation=0.3*0.4, hue=0.3*0.03)
             self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
             # self._aug_transform = ColorJitter(brightness=(0.7, 1.5), contrast=(0.7, 1.5), saturation=(0.7, 1.5), hue=(-0.03, 0.03))
-        else:
-            self._aug_transform = None
         self.Targets = self._get_target_def()
 
         self._data_sampling_scheme_defs = getattr(getattr(self._configs.runtime.data_sampling_scheme_defs, self._mode), schemeset_name)
@@ -243,7 +240,7 @@ class DummyDataset(Dataset):
             query_scheme_idx = np.random.choice(len(self._data_sampling_scheme_defs.query_schemeset), p=[scheme_def.sampling_prob for scheme_def in self._data_sampling_scheme_defs.query_schemeset])
         R1, t1, R2_init, t2_init, ref_img_path, img1, instance_seg1, safe_fg_anno_mask = self._generate_ref_img_and_anno(ref_scheme_idx, query_scheme_idx, sample_index_in_epoch, fixed_frame_idx=fixed_frame_idx)
         # Augmentation + numpy -> pytorch conversion
-        if self._aug_transform is not None:
+        if self._configs.data.ref_colorjitter_during_train is True or (self._configs.data.ref_colorjitter_during_train == 'synthonly' and self._ref_sampling_schemes[ref_scheme_idx].ref_source == 'synthetic'):
             img1 = np.array(self._aug_transform(Image.fromarray(img1, mode='RGB')))
 
 

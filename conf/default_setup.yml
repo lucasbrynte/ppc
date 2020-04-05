@@ -300,5 +300,6 @@ data:
     lowres_render_size: [128, 128] # for efficiency - render at (128,128), but upsample to crop_size
   crop_box_resize_factor: 1.2
   synth_ref_min_nbr_unoccluded_pixels: 200
+  # ref_colorjitter_during_train: synthonly
   # ref_colorjitter_during_train: true
   ref_colorjitter_during_train: false
