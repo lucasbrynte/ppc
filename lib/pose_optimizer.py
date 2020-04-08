@@ -96,7 +96,7 @@ class FullPosePipeline(nn.Module):
         self,
         configs,
         model,
-        neural_rendering_wrapper,
+        rendering_wrapper,
         ref_img_full,
         K,
         obj_diameter,
@@ -106,7 +106,7 @@ class FullPosePipeline(nn.Module):
         super().__init__()
         self._configs = configs
         self._model = model
-        self._neural_rendering_wrapper = neural_rendering_wrapper
+        self._rendering_wrapper = rendering_wrapper
         self._ref_img_full = ref_img_full
         self._K = K
         self._obj_diameter = obj_diameter
@@ -138,7 +138,7 @@ class FullPosePipeline(nn.Module):
 
         if R_refpt is not None:
             R = torch.bmm(R, R_refpt)
-        query_img = self._neural_rendering_wrapper.render(
+        query_img = self._rendering_wrapper.render(
             HK,
             R,
             t,
@@ -520,17 +520,17 @@ class PoseOptimizer():
             R_est = torch.matmul(R_est, self._R_refpt[:,None,:,:])
 
         # Define batch of model points
-        pts_objframe = self._pipeline._neural_rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
+        pts_objframe = self._pipeline._rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
         pts_objframe = pts_objframe[:,None,:,:] # Extra dimension for iterations
         pts_objframe = pts_objframe.expand(self._batch_size,-1,-1,-1)
 
         # Determine object diameter
-        object_diameter = self._pipeline._neural_rendering_wrapper._models_info[obj_id]['diameter']
+        object_diameter = self._pipeline._rendering_wrapper._models_info[obj_id]['diameter']
 
         HK = torch.matmul(H, self._K[:,None,:,:])
 
         # if False:
-        if self._pipeline._neural_rendering_wrapper._models_info[obj_id]['readable_label'] in ('eggbox', 'glue'):
+        if self._pipeline._rendering_wrapper._models_info[obj_id]['readable_label'] in ('eggbox', 'glue'):
             # Assuming symmetry of 180 deg rotation around z axis (assumed in modified reprojection error calculation)
             symmetric = True
         else:

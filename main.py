@@ -8,9 +8,9 @@ import lib.setup
 from lib.checkpoint import CheckpointHandler
 from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
-from lib.rendering.neural_rendering_wrapper import NeuralRenderingWrapper
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
+from lib.rendering.renderer_interface import get_renderer
 from lib.utils import crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -65,8 +65,7 @@ class Main():
             self._lr_scheduler = torch.optim.lr_scheduler.StepLR(self._optimizer, 10, gamma=0.3) # Multiply by 0.3 every 10 epochs.
         self._visualizer = Visualizer(configs)
 
-        if self._configs.data.query_rendering_method == 'neural':
-            self._neural_rendering_wrapper = NeuralRenderingWrapper(configs)
+        self._rendering_wrapper = get_renderer(configs)
 
         self._target_prior_samples_numpy = None
         self._target_prior_samples = None
@@ -183,7 +182,7 @@ class Main():
                 pose_pipeline = FullPosePipeline(
                     self._configs,
                     self._model,
-                    self._neural_rendering_wrapper,
+                    self._rendering_wrapper,
                     maps.ref_img_full,
                     extra_input.K,
                     extra_input.obj_diameter,
@@ -415,11 +414,10 @@ class Main():
         for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['nbr_batches'] * self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'])):
             maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
 
-            assert self._configs.data.query_rendering_method == 'neural'
             pose_pipeline = FullPosePipeline(
                 self._configs,
                 self._model,
-                self._neural_rendering_wrapper,
+                self._rendering_wrapper,
                 maps.ref_img_full,
                 extra_input.K,
                 extra_input.obj_diameter,
