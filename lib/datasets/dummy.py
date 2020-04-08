@@ -317,6 +317,7 @@ class DummyDataset(Dataset):
     def _apply_bg(self, rgb, instance_seg, bg, inplace=False):
         if not inplace:
             rgb = rgb.copy()
+        # if False:
         if np.random.random() < 0.5:
             # On BG & occluders:
             rgb[instance_seg != 1] = bg[instance_seg != 1, :]

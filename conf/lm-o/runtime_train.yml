@@ -14,6 +14,13 @@ data_sampling_scheme_defs:
               #   nbr_occluders: 6
               #   method: surrounding_main_obj
               #   z_bias_range: [0., 120.] # 0-12 cm random upwards perturbation, in order to cover also top parts of object.
+              # occluders:
+              #   nbr_occluders: 4
+              #   method: surrounding_main_obj
+              #   z_bias_range: [0., 0.] # No z bias
+              # shading: # Old - a bit more aggressive specular effects
+              #   specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
+              #   specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
         - scheme_name: real_unoccl_all_keepbg
 
   val: {}

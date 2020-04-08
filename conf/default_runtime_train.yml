@@ -3,6 +3,7 @@ default_schemeset_opts:
     loading:
       # nbr_batches: 1
       nbr_batches: 32
+      # nbr_batches: 128
       nbr_batches_prior: 128
       # batch_size: 1
       # batch_size: 4

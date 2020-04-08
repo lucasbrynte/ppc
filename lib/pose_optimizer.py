@@ -358,7 +358,7 @@ class PoseOptimizer():
         for x_idx in x_indices:
             wx2 = wx1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
-            wx2[:,x_idx] += forward_diff*step_size
+            wx2[:,x_idx] += forward_diff * step_size #* 110. / self._pipeline._obj_diameter
             H, pred_features = self.eval_func(wx2, tx, d, R_refpt=self._R_refpt, fname_dict={})
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
@@ -433,9 +433,24 @@ class PoseOptimizer():
             for k in range(N):
                 currpts_camframe_est = allpts_camframe_est[sample_idx,k,:,:]
                 closest_dists, _ = mean_dist_index.query(currpts_camframe_est.T, k=1)
+                # mapped_distances = np.linalg.norm(currpts_camframe_gt - currpts_camframe_est, axis=0)
+                # print(closest_dists.shape)
+                # print(mapped_distances.shape)
+                # print(currpts_camframe_gt.shape)
+                # print(currpts_camframe_est.shape)
+                # print(closest_dists.mean(), closest_dists.min(), closest_dists.max())
+                # print(mapped_distances.mean(), mapped_distances.min(), mapped_distances.max())
+                # add_metric_unnorm[sample_idx, k] = np.mean(mapped_distances)
                 add_metric_unnorm[sample_idx, k] = np.mean(closest_dists)
 
         add_metric = add_metric_unnorm / object_diameter
+        # print(add_metric.shape)
+        # print(add_metric_unnorm.shape)
+        # print(np.stack([
+        #     add_metric,
+        #     add_metric_unnorm,
+        # ], axis=2).shape)
+        # assert False
         return np.stack([
             add_metric,
             add_metric_unnorm,
@@ -514,12 +529,21 @@ class PoseOptimizer():
 
         HK = torch.matmul(H, self._K[:,None,:,:])
 
+        # if False:
         if self._pipeline._neural_rendering_wrapper._models_info[obj_id]['readable_label'] in ('eggbox', 'glue'):
             # Assuming symmetry of 180 deg rotation around z axis (assumed in modified reprojection error calculation)
             symmetric = True
         else:
             symmetric = False
 
+        # add_metrics1 = self.calc_adds_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        # add_metrics2 = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+        # print(add_metrics1[:,:,0,1].shape)
+        # print(add_metrics2[:,:,0,1].shape)
+        # print(add_metrics1[:,:,0,1].mean(), add_metrics1[:,:,0,1].min(), add_metrics1[:,:,0,1].max())
+        # print(add_metrics2[:,:,0,1].mean(), add_metrics2[:,:,0,1].min(), add_metrics2[:,:,0,1].max())
+        # absdiff = np.abs(add_metrics1[:,:,0,1] - add_metrics2[:,:,0,1])
+        # print(absdiff.mean(), absdiff.min(), absdiff.max())
         if symmetric:
             add_metrics = self.calc_adds_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         else:
@@ -1158,7 +1182,7 @@ class PoseOptimizer():
                 break
 
             if self._num_wxdims > 0:
-                wx.grad = curr_wx_grad
+                wx.grad = curr_wx_grad #* 110. / self._pipeline._obj_diameter[:,None]
             if self._num_txdims > 0:
                 if tx_leap_flag and j < nbr_iter_translonly:
                     # Take a leap
@@ -1495,4 +1519,4 @@ class PoseOptimizer():
         # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-109.png'))
         # fig.savefig(os.path.join(self._out_path, '00_func-default_and_90deg-nomax50-112.png'))
 
-        assert False
+        # assert False
