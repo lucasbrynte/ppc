@@ -101,8 +101,8 @@ class DummyDataset(Dataset):
         self._nyud_img_paths = self._init_nyud_img_paths()
         self._voc_img_paths = self._init_voc_img_paths()
         if self._mode == TRAIN and not self._configs.data.ref_colorjitter_during_train is False:
-            # self._aug_transform = ColorJitter(brightness=0.3*0.4, contrast=0.3*0.4, saturation=0.3*0.4, hue=0.3*0.03)
-            self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
+            self._aug_transform = ColorJitter(brightness=0.3*0.4, contrast=0.3*0.4, saturation=0.3*0.4, hue=0.3*0.03)
+            # self._aug_transform = ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.03)
             # self._aug_transform = ColorJitter(brightness=(0.7, 1.5), contrast=(0.7, 1.5), saturation=(0.7, 1.5), hue=(-0.03, 0.03))
         self.Targets = self._get_target_def()
 
