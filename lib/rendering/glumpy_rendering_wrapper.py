@@ -127,7 +127,7 @@ class GlumpyRenderingWrapper():
         img = torch.empty((batch_size, 3, height, width))
         instance_seg = torch.empty((batch_size, 1, height, width))
         for sample_idx in range(batch_size):
-            curr_rgb, curr_depth, curr_seg, curr_instance_seg, curr_normal_map, curr_corr_map = self._renderer.render(
+            buffers = self._renderer.render(
                 HK[sample_idx,:,:],
                 [R[sample_idx,:,:]] + R_occluders_list,
                 [t[sample_idx,:,:]] + t_occluders_list,
@@ -140,14 +140,15 @@ class GlumpyRenderingWrapper():
                 specular_whiteness = specular_whiteness,
                 clip_near = self._clip_near, # mm
                 clip_far = self._clip_far, # mm
+                desired_buffers = ['rgb', 'instance_seg'],
             )
 
-            curr_rgb = curr_rgb[:height, :width, :]
-            # curr_depth = curr_depth[:height, :width]
-            # curr_seg = curr_seg[:height, :width]
-            curr_instance_seg = curr_instance_seg[:height, :width]
-            # curr_normal_map = curr_normal_map[:height, :width, :]
-            # curr_corr_map = curr_corr_map[:height, :width, :]
+            curr_rgb = buffers['rgb'][:height, :width, :]
+            # curr_depth = buffers['depth'][:height, :width]
+            # curr_seg = buffers['seg'][:height, :width]
+            curr_instance_seg = buffers['instance_seg'][:height, :width]
+            # curr_normal_map = buffers['normal_map'][:height, :width, :]
+            # curr_corr_map = buffers['corr_map'][:height, :width, :]
 
             img[sample_idx,:,:,:] = torch.tensor(curr_rgb.astype(np.float32)).permute(2,0,1)
             instance_seg[sample_idx,0,:,:] = torch.tensor(curr_instance_seg.astype(np.int64))
