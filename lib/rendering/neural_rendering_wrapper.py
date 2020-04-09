@@ -25,16 +25,8 @@ class NeuralRenderingWrapper():
 
     def _init_render_opts(self):
         self._texture_size = 2
-        if self._configs.data.query_rendering_opts.lowres_render_size is not None:
-            assert self._configs.data.crop_dims[0] % self._configs.data.query_rendering_opts.lowres_render_size[0] == 0
-            self._lowres_render_factor = self._configs.data.crop_dims[0] // self._configs.data.query_rendering_opts.lowres_render_size[0]
-            assert self._configs.data.crop_dims[1] % self._configs.data.query_rendering_opts.lowres_render_size[1] == 0
-            assert self._lowres_render_factor == self._configs.data.crop_dims[1] // self._configs.data.query_rendering_opts.lowres_render_size[1]
-        else:
-            self._lowres_render_factor = 1
-        assert self._configs.data.crop_dims[0] == self._configs.data.crop_dims[1]
-        self._render_size = self._configs.data.crop_dims[0] // self._lowres_render_factor
-        self._light_dir_camframe = [0,0,1]
+        self._clip_near = 10 # mm
+        self._clip_far = 10000 # mm
 
     def _init_models_info(self):
         return read_yaml_and_pickle(os.path.join(self._configs.data.path, 'models', 'models_info.yml'))
@@ -94,7 +86,7 @@ class NeuralRenderingWrapper():
 
     def _init_renderer(self):
         return nr.Renderer(
-            image_size=self._render_size,
+            # image_size=self._render_size,
             anti_aliasing=True,
             background_color=[0,0,0],
             fill_back=True,
@@ -103,12 +95,12 @@ class NeuralRenderingWrapper():
             # R=None, # set at rendering
             # t=None, # set at rendering
             dist_coeffs=None, # Default. Radial distorsion?
-            orig_size=self._render_size,
+            # orig_size=self._render_size,
             # perspective=True,
             # viewing_angle=30,
             # camera_direction=[0,0,1],
-            near=100, # mm
-            far=10000, # mm
+            near=self._clip_near, # mm
+            far=self._clip_far, # mm
             # light_intensity_ambient=0.5, # set at rendering
             # light_intensity_directional=0.5, # set at rendering
             light_color_ambient=[1,1,1],
@@ -116,10 +108,33 @@ class NeuralRenderingWrapper():
             # light_direction=[0,1,0], # set at rendering
         )
 
-    def render(self, HK, R, t, obj_id, ambient_weight):
-        if self._lowres_render_factor != 1:
+    def render(
+        self,
+        HK,
+        R,
+        t,
+        obj_id,
+        ambient_weight,
+        render_dims,
+        lowres_render_dims = None,
+        light_dir_camframe = [0,0,1],
+    ):
+        if lowres_render_dims is not None:
+            assert render_dims[0] % lowres_render_dims[0] == 0
+            lowres_render_factor = render_dims[0] // lowres_render_dims[0]
+            assert render_dims[1] % lowres_render_dims[1] == 0
+            assert lowres_render_factor == render_dims[1] // lowres_render_dims[1]
+        else:
+            lowres_render_factor = 1
+            lowres_render_dims = render_dims
+        assert render_dims[0] == render_dims[1]
+        assert lowres_render_dims[0] == lowres_render_dims[1]
+        self._renderer.image_size = lowres_render_dims[0]
+        self._renderer.orig_size = lowres_render_dims[0]
+
+        if lowres_render_factor != 1:
             HK = HK.clone()
-            HK[:,:2,:] /= self._lowres_render_factor
+            HK[:,:2,:] /= lowres_render_factor
 
         # Configure ambient / diffuse components weighting
         assert len(set(ambient_weight)) == 1
@@ -128,7 +143,7 @@ class NeuralRenderingWrapper():
         self._renderer.light_intensity_directional = 1.0 - ambient_weight
 
         # Map lighting direction from camera to object frame
-        light_dir_objframe = torch.matmul(R.permute(0, 2, 1), torch.tensor(self._light_dir_camframe, dtype=torch.float32).reshape((1, 3, 1)).cuda()).squeeze(2)
+        light_dir_objframe = torch.matmul(R.permute(0, 2, 1), torch.tensor(light_dir_camframe, dtype=torch.float32).reshape((1, 3, 1)).cuda()).squeeze(2)
         self._renderer.light_direction = light_dir_objframe
 
         # Find desired model
@@ -146,11 +161,13 @@ class NeuralRenderingWrapper():
 
         # images, _, _ = self._renderer(vertices, faces, textures)  # [batch_size, RGB, image_size, image_size]
         img = self._renderer(vertices, faces, textures, mode='rgb', K=HK, R=R, t=t.permute((0,2,1)))  # [batch_size, RGB, image_size, image_size]
-        img = (255.*img - TV_MEAN[None,:,None,None].cuda()) / TV_STD[None,:,None,None].cuda()
+        img *= 255.
 
-        if self._lowres_render_factor != 1:
+        if lowres_render_dims != render_dims:
             # Not entirely sure whether align_corners should be True or False. It should relate to renderer discretization & image coordinate frame convention. Might be that OpenGL has origin at center of top-left pixel, while neural renderer has it at top-left corner of top-left pixel, but not entirely sure.
             # From experiments with heavy upsampling, it seems like if align_corners=True, discretization should also have an effect on the factor by which HK is rescaled, otherwise object will be too enlarged.
-            img = nn.functional.upsample(img, self._configs.data.crop_dims, mode='bilinear', align_corners=False)
+            img = nn.functional.upsample(img, render_dims, mode='bilinear', align_corners=False)
 
-        return img
+        return {
+            'img': img,
+        }

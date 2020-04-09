@@ -223,8 +223,4 @@ def get_configs(args):
 
     configs += vars(args)
 
-    # Pipeline was modified such that rendering is done in the pipeline itself, rather than in dataset module.
-    # For convenience, glumpy is not yet supported. Multiple glumpy renderer instances seem to interfere, i.e. allowing for this would require a central renderer module, taking requests from either pipelin or dataset module.
-    assert configs.data.query_rendering_method == 'neural'
-
     return configs

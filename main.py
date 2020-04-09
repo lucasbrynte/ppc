@@ -10,7 +10,7 @@ from lib.constants import TRAIN, VAL, TEST, CONFIG_ROOT
 from lib.loss import LossHandler
 from lib.pose_optimizer import FullPosePipeline, PoseOptimizer
 from lib.utils import get_device, get_module_parameters
-from lib.rendering.renderer_interface import get_renderer
+from lib.rendering.renderer_interface import get_query_renderer
 from lib.utils import crop_and_rescale_pt_batched
 from lib.visualize import Visualizer
 from lib.loader import Loader
@@ -65,7 +65,7 @@ class Main():
             self._lr_scheduler = torch.optim.lr_scheduler.StepLR(self._optimizer, 10, gamma=0.3) # Multiply by 0.3 every 10 epochs.
         self._visualizer = Visualizer(configs)
 
-        self._rendering_wrapper = get_renderer(configs)
+        self._query_renderer = get_query_renderer(configs)
 
         self._target_prior_samples_numpy = None
         self._target_prior_samples = None
@@ -182,7 +182,7 @@ class Main():
                 pose_pipeline = FullPosePipeline(
                     self._configs,
                     self._model,
-                    self._rendering_wrapper,
+                    self._query_renderer,
                     maps.ref_img_full,
                     extra_input.K,
                     extra_input.obj_diameter,
@@ -417,7 +417,7 @@ class Main():
             pose_pipeline = FullPosePipeline(
                 self._configs,
                 self._model,
-                self._rendering_wrapper,
+                self._query_renderer,
                 maps.ref_img_full,
                 extra_input.K,
                 extra_input.obj_diameter,

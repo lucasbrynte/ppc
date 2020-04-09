@@ -138,13 +138,17 @@ class FullPosePipeline(nn.Module):
 
         if R_refpt is not None:
             R = torch.bmm(R, R_refpt)
-        query_img = self._rendering_wrapper.render(
+        rendering_out = self._rendering_wrapper.render(
             HK,
             R,
             t,
             obj_id_list,
             self._ambient_weight,
+            self._configs.data.crop_dims,
+            lowres_render_dims = self._configs.data.query_rendering_opts.lowres_render_size,
         )
+        query_img = rendering_out['img']
+        query_img = (query_img - TV_MEAN[None,:,None,None].cuda()) / TV_STD[None,:,None,None].cuda()
 
         for sample_idx, fname in fname_dict.items():
             # img1 = _retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu())

@@ -23,7 +23,7 @@ from lib.utils import get_projectivity_for_crop_and_rescale_numpy, square_bbox_a
 from lib.constants import TRAIN, VAL, TEST
 from lib.loader import Sample
 from lib.sixd_toolkit.pysixd import inout
-from lib.rendering.glumpy_renderer import Renderer
+from lib.rendering.renderer_interface import get_ref_renderer
 from lib.rendering.pose_generation import calc_object_pose_on_xy_plane, calc_camera_pose
 
 Maps = namedtuple('Maps', [
@@ -80,8 +80,7 @@ def get_dataset(configs, mode, schemeset_name):
     return DummyDataset(configs, mode, schemeset_name)
 
 
-global global_renderer, global_nyud_img_paths, global_voc_img_paths
-global_renderer = None
+global global_nyud_img_paths, global_voc_img_paths
 global_nyud_img_paths = None
 global_voc_img_paths = None
 
@@ -97,7 +96,8 @@ class DummyDataset(Dataset):
         self._obj_id = self._determine_obj_id(self._obj_label)
         self._models = self._init_models()
         self._object_max_horizontal_extents = self._calc_object_max_horizontal_extents()
-        self._renderer = self._init_renderer()
+        # self._renderer = self._init_renderer()
+        self._renderer = get_ref_renderer(self._configs)
         self._nyud_img_paths = self._init_nyud_img_paths()
         self._voc_img_paths = self._init_voc_img_paths()
 
@@ -151,20 +151,6 @@ class DummyDataset(Dataset):
             models[obj_id] = inout.load_ply(os.path.join(self._configs.data.path, 'models', 'obj_{:02}.ply'.format(obj_id)))
         print("Done.")
         return models
-
-    def _init_renderer(self):
-        global global_renderer
-        if global_renderer is not None:
-            print('Reusing renderer')
-            return global_renderer
-        renderer = Renderer(
-            self._configs.data.img_dims,
-        )
-        for obj_id, model in self._models.items():
-            renderer._preprocess_object_model(obj_id, model)
-        print('Not reusing renderer')
-        global_renderer = renderer
-        return renderer
 
     def configure_sequences_and_lengths(self):
         def check_obj_in_frame(gts_in_frame):
@@ -342,29 +328,31 @@ class DummyDataset(Dataset):
             # Default: camera origin
             light_pos_camframe = np.zeros((3,))
         assert light_pos_camframe.shape == (3,)
-        rgb, depth, seg, instance_seg, normal_map, corr_map = self._renderer.render(
+
+        render_dims = trunc_dims if trunc_dims is not None else self._configs.data.img_dims
+
+        rendering_out = self._renderer.render(
             K,
-            [R] + R_occluders_list,
-            [t] + t_occluders_list,
-            [obj_id] + obj_id_occluders,
-            light_pos = light_pos_camframe,
-            ambient_weight = shading_params['ambient_weight'],
+            R,
+            t,
+            obj_id,
+            shading_params['ambient_weight'],
+            render_dims,
+            R_occluders_list = R_occluders_list,
+            t_occluders_list = t_occluders_list,
+            obj_id_occluders = obj_id_occluders,
+            light_pos_camframe = light_pos_camframe,
             diffuse_weight = shading_params['diffuse_weight'] if 'diffuse_weight' in shading_params else (1.0 - shading_params['ambient_weight']),
             specular_weight = shading_params['specular_weight'] if 'specular_weight' in shading_params else 0.0,
             specular_shininess = shading_params['specular_shininess'] if 'specular_shininess' in shading_params else 3.0,
             specular_whiteness = shading_params['specular_whiteness'] if 'specular_whiteness' in shading_params else 0.3,
-            clip_near = 100, # mm
-            clip_far = 10000, # mm
+            lowres_render_dims = None,
+            numpy_mode = True,
+            batched = False,
         )
 
-        if trunc_dims is not None:
-            height, width = trunc_dims
-            rgb = rgb[:height, :width, :]
-            depth = depth[:height, :width]
-            seg = seg[:height, :width]
-            instance_seg = instance_seg[:height, :width]
-            normal_map = normal_map[:height, :width, :]
-            corr_map = corr_map[:height, :width, :]
+        rgb = rendering_out['img']
+        instance_seg = rendering_out['instance_seg'].squeeze(2)
 
         # instance_seg is 0 on BG, 1 on object of interest, and 2 on occluders
 
