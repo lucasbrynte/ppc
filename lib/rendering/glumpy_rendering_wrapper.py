@@ -132,6 +132,7 @@ class GlumpyRenderingWrapper():
                 [R[sample_idx,:,:]] + R_occluders_list,
                 [t[sample_idx,:,:]] + t_occluders_list,
                 [obj_id[sample_idx]] + obj_id_occluders,
+                render_dims = render_dims,
                 light_pos = light_pos_camframe,
                 ambient_weight = ambient_weight[sample_idx],
                 diffuse_weight = diffuse_weight,

@@ -211,13 +211,13 @@ class Renderer():
 
         return fbo
 
-    def _prepare_rendering(self):
+    def _prepare_rendering(self, render_dims):
 
         # OpenGL setup
         gl.glEnable(gl.GL_DEPTH_TEST)
         gl.glClearColor(0.0, 0.0, 0.0, 0.0)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glViewport(0, 0, self._shape[1], self._shape[0])
+        gl.glViewport(0, 0, render_dims[1], render_dims[0])
 
         # gl.glEnable(gl.GL_BLEND)
         # gl.glBlendFunc(gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
@@ -300,6 +300,7 @@ class Renderer():
 
     def _read_fbo(
         self,
+        render_dims,
         desired_buffers=['rgb', 'depth', 'seg', 'instance_seg', 'normal_map', 'corr_map'],
     ):
         def scale2uint8(array):
@@ -315,47 +316,47 @@ class Renderer():
         buffers = {}
 
         if 'rgb' in desired_buffers:
-            rgb = np.zeros((self._shape[0], self._shape[1], 4), dtype=np.float32)
+            rgb = np.zeros((render_dims[0], render_dims[1], 4), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT0)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RGBA, gl.GL_FLOAT, rgb)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RGBA, gl.GL_FLOAT, rgb)
             rgb = np.flipud(rgb[:, :, :3])
             rgb = scale2uint8(rgb)
             buffers['rgb'] = rgb
 
         if 'depth' in desired_buffers:
-            depth = np.zeros((self._shape[0], self._shape[1]), dtype=np.float32)
+            depth = np.zeros((render_dims[0], render_dims[1]), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT1)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RED, gl.GL_FLOAT, depth)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RED, gl.GL_FLOAT, depth)
             depth = np.flipud(depth)
             depth = discretize_and_convert_to_uint16(depth)
             buffers['depth'] = depth
 
         if 'seg' in desired_buffers:
-            seg = np.zeros((self._shape[0], self._shape[1]), dtype=np.float32)
+            seg = np.zeros((render_dims[0], render_dims[1]), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT2)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RED, gl.GL_FLOAT, seg)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RED, gl.GL_FLOAT, seg)
             seg = np.flipud(seg).astype(np.uint8)
             buffers['seg'] = seg
 
         if 'instance_seg' in desired_buffers:
-            instance_seg = np.zeros((self._shape[0], self._shape[1]), dtype=np.float32)
+            instance_seg = np.zeros((render_dims[0], render_dims[1]), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT3)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RED, gl.GL_FLOAT, instance_seg)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RED, gl.GL_FLOAT, instance_seg)
             instance_seg = np.flipud(instance_seg).astype(np.uint8)
             buffers['instance_seg'] = instance_seg
 
         if 'normal_map' in desired_buffers:
-            normal_map = np.zeros((self._shape[0], self._shape[1], 4), dtype=np.float32)
+            normal_map = np.zeros((render_dims[0], render_dims[1], 4), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT4)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RGBA, gl.GL_FLOAT, normal_map)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RGBA, gl.GL_FLOAT, normal_map)
             normal_map = np.flipud(normal_map[:, :, :3])
             normal_map = discretize_and_convert_to_uint16(normal_map)
             buffers['normal_map'] = normal_map
 
         if 'corr_map' in desired_buffers:
-            corr_map = np.zeros((self._shape[0], self._shape[1], 4), dtype=np.float32)
+            corr_map = np.zeros((render_dims[0], render_dims[1], 4), dtype=np.float32)
             gl.glReadBuffer(gl.GL_COLOR_ATTACHMENT5)
-            gl.glReadPixels(0, 0, self._shape[1], self._shape[0], gl.GL_RGBA, gl.GL_FLOAT, corr_map)
+            gl.glReadPixels(0, self._shape[0]-render_dims[0], render_dims[1], render_dims[0], gl.GL_RGBA, gl.GL_FLOAT, corr_map)
             corr_map = np.flipud(corr_map[:, :, :3])
             corr_map = discretize_and_convert_to_uint16(corr_map)
             buffers['corr_map'] = corr_map
@@ -369,6 +370,7 @@ class Renderer():
         R_list,
         t_list,
         obj_id_list,
+        render_dims = None,
         light_pos = [0, 0, 0], # Camera origin
         ambient_weight = 0.5,
         diffuse_weight = 0.5,
@@ -383,6 +385,9 @@ class Renderer():
         assert specular_shininess >= 0.0
         nbr_instances = len(R_list)
 
+        if render_dims is None:
+            render_dims = self._shape
+
         mat_proj = self._compute_calib_proj(K, 0, 0, self._shape[1], self._shape[0], clip_near, clip_far)
 
         light_pos = np.concatenate([np.array(light_pos).squeeze(), [1.]])
@@ -396,7 +401,7 @@ class Renderer():
         self._program['u_specular_whiteness'] = specular_whiteness
 
         self._fbo.activate()
-        self._prepare_rendering() # Could alternatively be done in on_draw()
+        self._prepare_rendering(render_dims) # Could alternatively be done in on_draw()
 
         @self._window.event
         def on_draw(dt):
@@ -408,7 +413,7 @@ class Renderer():
 
         app.run(framecount=0) # The on_draw function is called framecount+1 times
 
-        buffers = self._read_fbo(desired_buffers = desired_buffers)
+        buffers = self._read_fbo(render_dims, desired_buffers = desired_buffers)
         self._fbo.deactivate()
 
         return buffers
