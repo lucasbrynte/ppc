@@ -42,6 +42,15 @@ class GlumpyRenderingWrapper():
         print("Done.")
         return models
 
+    def get_model_info(self, obj_id):
+        return self._models_info[obj_id]
+
+    def get_model_pts(self, obj_id, numpy_mode=False):
+        model_pts = self._models[obj_id]['pts']
+        if not numpy_mode:
+            model_pts = torch.tensor(model_pts).float().cuda()
+        return model_pts
+
     def _init_renderer(self):
         renderer = Renderer(
             self._max_render_dims,

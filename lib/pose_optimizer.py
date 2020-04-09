@@ -524,17 +524,17 @@ class PoseOptimizer():
             R_est = torch.matmul(R_est, self._R_refpt[:,None,:,:])
 
         # Define batch of model points
-        pts_objframe = self._pipeline._rendering_wrapper._models[obj_id]['vertices'].permute(0,2,1)
-        pts_objframe = pts_objframe[:,None,:,:] # Extra dimension for iterations
+        pts_objframe = self._pipeline._rendering_wrapper.get_model_pts(obj_id, numpy_mode=False).T
+        pts_objframe = pts_objframe[None,None,:,:] # Extra dimensions for batch & iterations
         pts_objframe = pts_objframe.expand(self._batch_size,-1,-1,-1)
 
         # Determine object diameter
-        object_diameter = self._pipeline._rendering_wrapper._models_info[obj_id]['diameter']
+        object_diameter = self._pipeline._rendering_wrapper.get_model_info(obj_id)['diameter']
 
         HK = torch.matmul(H, self._K[:,None,:,:])
 
         # if False:
-        if self._pipeline._rendering_wrapper._models_info[obj_id]['readable_label'] in ('eggbox', 'glue'):
+        if self._pipeline._rendering_wrapper.get_model_info(obj_id)['readable_label'] in ('eggbox', 'glue'):
             # Assuming symmetry of 180 deg rotation around z axis (assumed in modified reprojection error calculation)
             symmetric = True
         else:

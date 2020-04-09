@@ -84,6 +84,15 @@ class NeuralRenderingWrapper():
         print("Done.")
         return models
 
+    def get_model_info(self, obj_id):
+        return self._models_info[obj_id]
+
+    def get_model_pts(self, obj_id, numpy_mode=False):
+        if numpy_mode:
+            assert False # Not supported at the moment. If needed, model_bp_dict should be stored as well.
+        else:
+            return self._models[obj_id]['vertices'].squeeze(0)
+
     def _init_renderer(self):
         return nr.Renderer(
             # image_size=self._render_size,
