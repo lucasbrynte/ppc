@@ -5,7 +5,7 @@ default_schemeset_opts:
       # init_pose_suffix: ""
       # OccludedLINEMOD
       # init_pose_suffix: _pvnet
-      init_pose_suffix: _pvnet_depthfix # 180 degree rotation around camera frame y-axis to ensure positive depth
+      init_pose_suffix: _pvnet_depthfix # 180 degree rotation around camera frame z-axis + depth sign switch if needed to ensure positive depth
 data_sampling_scheme_defs:
   test:
     posesearch:
