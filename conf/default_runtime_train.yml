@@ -2,15 +2,16 @@ default_schemeset_opts:
   train:
     loading:
       # nbr_batches: 1
-      nbr_batches: 32
+      # nbr_batches: 32
+      nbr_batches: 42
       # nbr_batches: 128
       nbr_batches_prior: 128
       # batch_size: 1
       # batch_size: 4
       # batch_size: 6
       # batch_size: 8
-      # batch_size: 12
-      batch_size: 16
+      batch_size: 12
+      # batch_size: 16
       # batch_size: 32
       shuffle: true
       coupled_ref_and_query_scheme_sampling: false
