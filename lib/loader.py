@@ -4,6 +4,7 @@ from attrdict import AttrDict
 from importlib import import_module
 import torch
 from torch.utils.data import DataLoader, SequentialSampler, RandomSampler
+from lib.constants import TEST
 
 Sample = namedtuple('Sample', ['targets', 'maps', 'extra_input', 'meta_data'])
 Batch = namedtuple('Batch', ['targets', 'maps', 'extra_input', 'meta_data'])
@@ -96,11 +97,16 @@ class Loader:
 
         loader_config = {}
         loader_config['dataset'] = self._datasets[mode][schemeset_name]
-        loader_config['collate_fn'] = collate_batch
         loader_config['pin_memory'] = True
         loader_config['batch_size'] = batch_size
         # loader_config['num_workers'] = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['loading']['num_workers']
-        loader_config['drop_last'] = True
+        if mode == TEST and self._configs.runtime.data_sampling_scheme_defs[mode][schemeset_name]['opts']['poseopt']['enabled']:
+            # In this case, incomplete batches are accepted. Pipeline will make sure to duplicate samples to fill batch, but should not be a problem in this case.
+            loader_config['drop_last'] = False
+            loader_config['collate_fn'] = get_collate_fn(clone_and_fill_batch_size = batch_size)
+        else:
+            loader_config['drop_last'] = True
+            loader_config['collate_fn'] = get_collate_fn()
 
         sampler_args = [self._datasets[mode][schemeset_name]]
         sampler_kwargs = {}
@@ -134,19 +140,26 @@ class Loader:
             yield batch
 
 
-def collate_batch(batch_list):
-    """Collates for PT data loader."""
-    # Expect "sub-mini-batches" returned as lists / tuples from dataset.__getitem__.
-    assert all([isinstance(sub_mini_batch, (list, tuple)) for sub_mini_batch in batch_list])
-    # Create list out of list of lists.
-    batch_list = [sample for sub_mini_batch in batch_list for sample in sub_mini_batch]
+def get_collate_fn(clone_and_fill_batch_size = None):
+    def collate_batch(batch_list):
+        """Collates for PT data loader."""
+        # Expect "sub-mini-batches" returned as lists / tuples from dataset.__getitem__.
+        assert all([isinstance(sub_mini_batch, (list, tuple)) for sub_mini_batch in batch_list])
+        # Create list out of list of lists.
+        batch_list = [sample for sub_mini_batch in batch_list for sample in sub_mini_batch]
 
-    targets, maps, extra_input, meta_data = zip(*batch_list)
+        if clone_and_fill_batch_size is not None:
+            # Make sure batch is full size by repeating last sample.
+            while len(batch_list) < clone_and_fill_batch_size:
+                batch_list.append(batch_list[-1])
 
-    # Map list hierarchy from sample/property to property/sample
-    targets = tuple(map(torch.stack, zip(*targets)))
-    maps = tuple(map(torch.stack, zip(*maps)))
-    extra_input = tuple(map(torch.stack, zip(*extra_input)))
-    meta_data = list(zip(*meta_data))
+        targets, maps, extra_input, meta_data = zip(*batch_list)
 
-    return (targets, maps, extra_input, meta_data)
+        # Map list hierarchy from sample/property to property/sample
+        targets = tuple(map(torch.stack, zip(*targets)))
+        maps = tuple(map(torch.stack, zip(*maps)))
+        extra_input = tuple(map(torch.stack, zip(*extra_input)))
+        meta_data = list(zip(*meta_data))
+
+        return (targets, maps, extra_input, meta_data)
+    return collate_batch
