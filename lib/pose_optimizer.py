@@ -730,8 +730,7 @@ class PoseOptimizer():
 
     def optimize(
             self,
-            R0_before_perturb,
-            t0_before_perturb,
+            init_pose_before_perturb,
             num_wxdims = 3,
             num_txdims = 2,
             num_ddims = 1,
@@ -745,6 +744,10 @@ class PoseOptimizer():
         ):
         # First iteration corresponds to evaluating initialization
         N += 1
+
+        # Multiple init not yet implemented...
+        assert tuple(init_pose_before_perturb.keys()) == ('init',)
+        R0_before_perturb, t0_before_perturb = init_pose_before_perturb['init']
 
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims

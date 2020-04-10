@@ -235,11 +235,10 @@ class Main():
                     assert False
 
                 if optimize:
+                    init_pose = {'init': (extra_input.R2_init, extra_input.t2_init)}
+                    # init_pose = {'init': (extra_input.R1, extra_input.t1)}
                     pose_optimizer.optimize(
-                        extra_input.R2_init, # R0_before_perturb
-                        extra_input.t2_init, # t0_before_perturb
-                        # extra_input.R1, # R0_before_perturb
-                        # extra_input.t1, # t0_before_perturb
+                        init_pose,
                         N = N,
                     
                         # optim_runs = {
