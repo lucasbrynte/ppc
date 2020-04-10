@@ -739,7 +739,9 @@ class DummyDataset(Dataset):
             R1 = closest_rotmat(np.array(gt['cam_R_m2c']).reshape((3, 3)))
             t1 = np.array(gt['cam_t_m2c']).reshape((3,1))
 
-            if self._mode == TEST and 'init_pose_suffix' in self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']:
+            if self._mode == TEST and \
+                    'init_pose_suffix' in self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt'] and \
+                    self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'] is not None:
                 R2_init = closest_rotmat(np.array(gt['cam_R_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3, 3)))
                 t2_init = np.array(gt['cam_t_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3,1))
             else:
