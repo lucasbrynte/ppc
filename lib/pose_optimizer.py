@@ -559,7 +559,7 @@ class PoseOptimizer():
         if symmetric:
             # Run for 180deg z rot as well, and take minimum reproj error of the two.
             zrot = torch.diag(torch.tensor([-1., -1., 1.], dtype=R_est.dtype, device=R_est.device))[None,None,:,:]
-            zrot180deg_avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, torch.matmul(R_est, zrot), t_est, torch.matmul(R_gt, zrot), t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+            zrot180deg_avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, torch.matmul(R_est, zrot), t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
             symm_avg_reproj_metrics = np.minimum(avg_reproj_metrics, zrot180deg_avg_reproj_metrics)
         else:
             symm_avg_reproj_metrics = avg_reproj_metrics
