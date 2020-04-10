@@ -1,5 +1,6 @@
 import os
 import json
+from collections import OrderedDict
 import numpy as np
 # np.random.seed(314159)
 from scipy import spatial
@@ -746,9 +747,10 @@ class PoseOptimizer():
         # First iteration corresponds to evaluating initialization
         N += 1
 
-        # Multiple init not yet implemented...
-        assert tuple(init_pose_before_perturb.keys()) == ('init',)
-        R0_before_perturb, t0_before_perturb = init_pose_before_perturb['init']
+        init_names = sorted(init_pose_before_perturb.keys())
+        # Add new dimension for different initializations
+        R0_before_perturb = torch.stack([init_pose_before_perturb[init_name][0] for init_name in init_names], dim=1)
+        t0_before_perturb = torch.stack([init_pose_before_perturb[init_name][1] for init_name in init_names], dim=1)
 
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
@@ -775,13 +777,20 @@ class PoseOptimizer():
         get_d_perturb = lambda d_perturb: torch.tensor(d_perturb, dtype=self._dtype, device=self._device).reshape((1,))
         d_perturb = torch.stack([ get_d_perturb(curr_d) for curr_d in d_perturb_spec ], dim=0)
 
+        # Collapse the dimension corresponding to different initializations.
+        R0_before_perturb = R0_before_perturb.reshape((len(init_names)*self._orig_batch_size, 3, 3))
+        t0_before_perturb = t0_before_perturb.reshape((len(init_names)*self._orig_batch_size, 3, 1))
+
         # NOTE: interleave=True along optim runs, and False along batch, since this allows for reshaping to (batch_size, num_optim_runs, ..., ...) in the end
         R0_before_perturb = self._repeat_onedim(R0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
         t0_before_perturb = self._repeat_onedim(t0_before_perturb, self._num_optim_runs, dim=0, interleave=True)
-        R_perturb = self._repeat_onedim(R_perturb, self._orig_batch_size, dim=0, interleave=False)
-        t_perturb = self._repeat_onedim(t_perturb, self._orig_batch_size, dim=0, interleave=False)
-        u_perturb = self._repeat_onedim(u_perturb, self._orig_batch_size, dim=0, interleave=False)
-        d_perturb = self._repeat_onedim(d_perturb, self._orig_batch_size, dim=0, interleave=False)
+        R_perturb = self._repeat_onedim(R_perturb, len(init_names)*self._orig_batch_size, dim=0, interleave=False)
+        t_perturb = self._repeat_onedim(t_perturb, len(init_names)*self._orig_batch_size, dim=0, interleave=False)
+        u_perturb = self._repeat_onedim(u_perturb, len(init_names)*self._orig_batch_size, dim=0, interleave=False)
+        d_perturb = self._repeat_onedim(d_perturb, len(init_names)*self._orig_batch_size, dim=0, interleave=False)
+
+        # Each pose init is subject to all perturbations, i.e. results in more optim runs.
+        self._optim_runs = OrderedDict([('{}_{}'.format(init_name, optim_run_name), val) for init_name in init_names for optim_run_name, val in self._optim_runs.items()])
 
         R0 = torch.matmul(R_perturb, R0_before_perturb)
         t0_before_u_perturb = (t0_before_perturb + t_perturb).detach()

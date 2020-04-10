@@ -22,6 +22,8 @@ default_schemeset_opts:
       coupled_ref_and_query_scheme_sampling: false
     poseopt:
       enabled: true
+      # aug_init_pose_zrot_objects: []
+      aug_init_pose_zrot_objects: [eggbox, glue]
       mode: optimize_all
       # mode: optimize_one_frame
       # mode: eval_init

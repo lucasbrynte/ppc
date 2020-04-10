@@ -237,6 +237,12 @@ class Main():
                 if optimize:
                     init_pose = {'init': (extra_input.R2_init, extra_input.t2_init)}
                     # init_pose = {'init': (extra_input.R1, extra_input.t1)}
+                    if len(self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['poseopt']['aug_init_pose_zrot_objects']) > 0:
+                        if self._configs.obj_label in self._configs.runtime.data_sampling_scheme_defs[TEST][schemeset]['opts']['poseopt']['aug_init_pose_zrot_objects']:
+                            R0, t0 = init_pose['init']
+                            R0 = R0.clone()
+                            R0[:,:,:2] *= -1. # Change sign of first two columns - corresponding to 180 degree rotaiton around z-axis in object frame.
+                            init_pose['zrot180'] = R0, t0
                     pose_optimizer.optimize(
                         init_pose,
                         N = N,
