@@ -128,6 +128,7 @@ class FullPosePipeline(nn.Module):
         ref_img_full = self._ref_img_full.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
         K = self._K.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
         obj_diameter = self._obj_diameter.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
+        ambient_weight_list = [ ambient_weight for ambient_weight in self._ambient_weight for _ in range(batch_interleaved_repeat_factor) ]
         obj_id_list = [ obj_id for obj_id in self._obj_id_list for _ in range(batch_interleaved_repeat_factor) ]
 
         # Define crop box in order to center object in query image
@@ -143,7 +144,7 @@ class FullPosePipeline(nn.Module):
             R,
             t,
             obj_id_list,
-            self._ambient_weight,
+            ambient_weight_list,
             self._configs.data.crop_dims,
             lowres_render_dims = self._configs.data.query_rendering_opts.lowres_render_size,
         )
