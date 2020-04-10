@@ -291,15 +291,16 @@ data:
   # crop_dims: [768, 768] # highres
   # Pipeline was modified such that rendering is done in the pipeline itself, rather than in dataset module.
   # For convenience, glumpy is not yet supported. Multiple glumpy renderer instances seem to interfere, i.e. allowing for this would require a central renderer module, taking requests from either pipelin or dataset module.
-  # query_rendering_method: glumpy
-  query_rendering_method: neural
+  query_rendering_method: glumpy
+  # query_rendering_method: neural
   query_rendering_opts:
     ambient_weight: 0.8
     # lowres_render_size: null
     # lowres_render_size: [8, 8]
     # lowres_render_size: [16, 16]
     # lowres_render_size: [32, 32]
-    lowres_render_size: [128, 128] # for efficiency - render at (128,128), but upsample to crop_size
+    # lowres_render_size: [128, 128] # for efficiency - render at (128,128), but upsample to crop_size
+    lowres_render_size: [256, 256] # for efficiency - render at (256,256), but upsample to crop_size
     # lowres_render_size: [384, 384] # highres
   crop_box_resize_factor: 1.2
   synth_ref_min_nbr_unoccluded_pixels: 200
