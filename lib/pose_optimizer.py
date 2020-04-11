@@ -1141,19 +1141,6 @@ class PoseOptimizer():
         # # )
         # 
         # 
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: opt over transl only initially, even if not taking "leaps".
-        # # TODO: slightly higher rot warmup lR
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
-        # # TODO: Decrease depth LR in final phase enough to converge. Then consider always choosing last iter, rather than selecting best reproj err among iterates, in order to get better depth estimate.
         # # NOTE: below seemed to work out actually, but took a while to converge.
         # final_finetune_iter = nbr_iter_translonly + 60
         # self._wx_scheduler = self._init_cos_transitions_scheduler(
