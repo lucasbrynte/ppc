@@ -175,9 +175,11 @@ class Main():
             nbr_batches = None
             # nbr_batches = 100 # hack for being able to evaluate on synth
             for batch_id, batch in enumerate(self._data_loader.gen_batches(mode, schemeset, nbr_batches)):
-                # if batch_id < 50:
+                batch_size = self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size']
+                # if self._configs.obj_label == 'cat' and batch_size*batch_id < 67:
+                #     print('Skipping batch {}'.format(batch_size * batch_id))
                 #     continue
-                print('{} samples done...'.format(self._configs.runtime.data_sampling_scheme_defs[mode][schemeset]['opts']['loading']['batch_size'] * batch_id))
+                print('{} samples done...'.format(batch_size * batch_id))
                 maps, extra_input = self._batch_to_gpu(batch.maps, batch.extra_input)
                 pose_pipeline = FullPosePipeline(
                     self._configs,
