@@ -20,6 +20,19 @@ data_sampling_scheme_defs:
 
         # eggbox frames
         # - {scheme_name: real_occl_test_keepbg_frame30}
+        # - {scheme_name: real_occl_test_keepbg_frame1188}
+        # - scheme_name: real_occl_test_keepbg
+        #   override:
+        #     real_opts:
+        #       static_frame_idx: 1188
+        # - scheme_name: real_occl_val_keepbg
+        #   override:
+        #     real_opts:
+        #       static_frame_idx: 100
+        # - scheme_name: real_unoccl_train_keepbg
+        #   override:
+        #     real_opts:
+        #       static_frame_idx: 100
 
         # glue frames
         # - {scheme_name: real_occl_test_keepbg_frame30}

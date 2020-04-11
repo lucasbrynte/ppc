@@ -446,6 +446,19 @@ real_occl_test_keepbg_frame845:
     linemod_seq: test_occl/benchviseblue
     static_frame_idx: 845
 
+# ==============================================================================
+# real_occl_test FRAME 1188
+# ==============================================================================
+real_occl_test_keepbg_frame1188:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  colorjitter_during_train: false
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_occl/benchviseblue
+    static_frame_idx: 1188
+
 
 
 
