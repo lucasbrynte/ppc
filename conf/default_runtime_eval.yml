@@ -27,6 +27,7 @@ default_schemeset_opts:
       mode: optimize_all
       # mode: optimize_one_frame
       # mode: eval_init
+      # mode: eval_init_and_render_one_frame
       # mode: evaluate_and_plot_one_frame
     visualization:
       save_imgs: true

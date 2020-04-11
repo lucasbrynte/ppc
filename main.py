@@ -229,6 +229,13 @@ class Main():
                     evaluate_and_plot = False
                     break_after_first_batch = False
                     N = 0
+                elif poseopt_mode == 'eval_init_and_render_one_frame':
+                    optimize = True
+                    opt_enable_plotting = True
+                    opt_print_iterates = False
+                    evaluate_and_plot = False
+                    break_after_first_batch = True
+                    N = 0
                 elif poseopt_mode == 'evaluate_and_plot_one_frame':
                     optimize = False
                     evaluate_and_plot = True
