@@ -111,12 +111,15 @@ class FullPosePipeline(nn.Module):
         self._ref_img_full = ref_img_full
         self._K = K
         self._obj_diameter = obj_diameter
-        self._obj_id_list = obj_id_list
-        self._ambient_weight = ambient_weight
+        self._obj_id_list = np.array(obj_id_list)
+        self._ambient_weight = np.array(ambient_weight)
 
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
     def forward(self, R, t, R_refpt=None, selected_samples=None, fname_dict={}):
+        """
+        selected_samples argument controls which samples to pick from variables defined in constructor. The tensors passed to this function are expected to be filtered already.
+        """
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -129,8 +132,8 @@ class FullPosePipeline(nn.Module):
         ref_img_full = self._ref_img_full
         K = self._K
         obj_diameter = self._obj_diameter
-        ambient_weight_list = np.array(self._ambient_weight)
-        obj_id_list = np.array(self._obj_id_list)
+        ambient_weight_list = self._ambient_weight
+        obj_id_list = self._obj_id_list
 
         if selected_samples is not None:
             ref_img_full = ref_img_full[selected_samples,:,:,:]
@@ -220,16 +223,18 @@ class PoseOptimizer():
         self._configs = configs
         self._pipeline = pipeline
         self._nn_out2interp_pred_features = nn_out2interp_pred_features
-        self._orig_K = K
-        self._ref_img_path = ref_img_path
         self._numerical_grad = numerical_grad
 
-        self._orig_batch_size = R_gt.shape[0]
+        # self._orig_batch_size = R_gt.shape[0]
         self._dtype = R_gt.dtype
         self._device = R_gt.device
 
-        self._orig_R_gt = R_gt
-        self._orig_t_gt = t_gt
+        self._orig_R_gt_all_samples = R_gt
+        self._orig_t_gt_all_samples = t_gt
+        self._orig_K_all_samples = K
+        self._ref_img_path_all_samples = np.array(ref_img_path)
+        self._orig_batch_size_all_samples = R_gt.shape[0]
+        self._samples_with_init_pose = list(range(self._orig_batch_size_all_samples))
 
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
@@ -245,6 +250,34 @@ class PoseOptimizer():
     @property
     def _num_optim_runs(self):
         return len(self._optim_runs)
+
+    @property
+    def _obj_diameter(self):
+        return self._pipeline._obj_diameter[self._samples_with_init_pose]
+
+    @property
+    def _obj_id_list(self):
+        return self._pipeline._obj_id_list[self._samples_with_init_pose]
+
+    @property
+    def _orig_R_gt(self):
+        return self._orig_R_gt_all_samples[self._samples_with_init_pose,:,:]
+
+    @property
+    def _orig_t_gt(self):
+        return self._orig_t_gt_all_samples[self._samples_with_init_pose,:,:]
+
+    @property
+    def _orig_K(self):
+        return self._orig_K_all_samples[self._samples_with_init_pose,:,:]
+
+    @property
+    def _ref_img_path(self):
+        return self._ref_img_path_all_samples[self._samples_with_init_pose]
+
+    @property
+    def _orig_batch_size(self):
+        return len(self._samples_with_init_pose)
 
     @property
     def _batch_size(self):
@@ -342,7 +375,7 @@ class PoseOptimizer():
         t = self._x2t(tx, d)
         w = self._x2w(wx)
         R = w_to_R(w)
-        H, ref_img, query_img, nn_out = self._pipeline(R, t, selected_samples=[ sample_idx for sample_idx in range(self._orig_batch_size) for run_idx in range(self._num_optim_runs) ], R_refpt=R_refpt, fname_dict=fname_dict)
+        H, ref_img, query_img, nn_out = self._pipeline(R, t, selected_samples=[ sample_idx for sample_idx in self._samples_with_init_pose for run_idx in range(self._num_optim_runs) ], R_refpt=R_refpt, fname_dict=fname_dict)
         return H, self._nn_out2interp_pred_features(nn_out)
 
     def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):
@@ -371,7 +404,7 @@ class PoseOptimizer():
         for x_idx in x_indices:
             wx2 = wx1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
-            wx2[:,x_idx] += forward_diff * step_size #* 110. / self._pipeline._obj_diameter
+            wx2[:,x_idx] += forward_diff * step_size #* 110. / self._obj_diameter
             H, pred_features = self.eval_func(wx2, tx, d, R_refpt=self._R_refpt, fname_dict={})
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
@@ -579,6 +612,7 @@ class PoseOptimizer():
             'ref_img_path': ref_img_path,
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
+            'detection_missing': False,
             'R_est': curr_R_est.tolist(),
             't_est': curr_t_est.tolist(),
             'HK': curr_HK.tolist(),
@@ -615,10 +649,55 @@ class PoseOptimizer():
         ) ]
         return metrics
 
+    def eval_pose_noinit(self, ref_img_paths):
+        # bs = len(ref_img_paths)
+        N = 1
+
+        add_metric = np.empty((len(self._optim_runs), N, 2))
+        add_metric.fill(np.inf)
+
+        avg_reproj_metric = np.empty((len(self._optim_runs), N))
+        avg_reproj_metric.fill(np.inf)
+
+        avg_reproj_HK_metric = np.empty((len(self._optim_runs), N))
+        avg_reproj_HK_metric.fill(np.inf)
+
+        symm_avg_reproj_metric = avg_reproj_metric
+        deg_cm_err = np.empty((len(self._optim_runs), N, 2))
+        deg_cm_err.fill(np.inf)
+
+        R_est = np.empty((len(self._optim_runs), N, 3, 3))
+        R_est.fill(np.nan)
+        t_est = np.empty((len(self._optim_runs), N, 3, 1))
+        t_est.fill(np.nan)
+        HK = np.empty((len(self._optim_runs), N, 3, 3))
+        HK.fill(np.nan)
+        err_est = np.empty((len(self._optim_runs), N))
+        err_est.fill(np.nan)
+
+        metrics = [ {
+            'ref_img_path': ref_img_path,
+            'optim_runs': self._optim_runs,
+            'optim_run_names_sorted': list(self._optim_runs.keys()),
+            'detection_missing': True,
+            'R_est': R_est.tolist(),
+            't_est': t_est.tolist(),
+            'HK': HK.tolist(),
+            'metrics': {
+                'add_metric': add_metric.tolist(),
+                'avg_reproj_metric': avg_reproj_metric.tolist(),
+                'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
+                'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
+                'deg_cm_err': deg_cm_err.tolist(),
+                'err_est': err_est.tolist(),
+            },
+        } for ref_img_path in ref_img_paths ]
+        return metrics
+
     def eval_pose(self, all_H, all_wx, all_tx, all_d, all_err_est):
         # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
-        assert len(set(self._pipeline._obj_id_list)) == 1
-        obj_id = self._pipeline._obj_id_list[0]
+        assert len(set(self._obj_id_list)) == 1
+        obj_id = self._obj_id_list[0]
         all_metrics = self.eval_pose_single_object(obj_id, all_H, all_wx, all_tx, all_d, all_err_est, self._R_gt, self._t_gt)
         return all_metrics
 
@@ -759,12 +838,42 @@ class PoseOptimizer():
         R0_before_perturb = torch.stack([init_pose_before_perturb[init_name][0] for init_name in init_names], dim=1)
         t0_before_perturb = torch.stack([init_pose_before_perturb[init_name][1] for init_name in init_names], dim=1)
 
+        # ======================================================================
+        # Determine for which samples there are pose proposals available.
+        assert t0_before_perturb.shape == (self._orig_batch_size_all_samples, len(init_names), 3, 1)
+        # Exploit that NaN == NaN is not true:
+        samples_with_init_pose = (t0_before_perturb == t0_before_perturb).squeeze(3).any(dim=2) # (bs, len(init_names))
+        assert torch.all(samples_with_init_pose.any(dim=1) == samples_with_init_pose.all(dim=1)) # For convenience, either none or all pose proposals are assumed to be available for each sample.
+        samples_with_init_pose = samples_with_init_pose.any(dim=1)
+        self._samples_with_init_pose = np.nonzero(samples_with_init_pose.cpu().numpy())[0]
+
+        # All input arguments have to be filtered accordingly, in order to effectively disregard outher samples.
+        R0_before_perturb = R0_before_perturb[self._samples_with_init_pose,:,:,:]
+        t0_before_perturb = t0_before_perturb[self._samples_with_init_pose,:,:,:]
+        # ======================================================================
+
+        # Define before storing samples without init
+        self._optim_runs = order_dict(optim_runs)
+
+        # ======================================================================
+        # Store results for samples without initialization.
+        if store_eval:
+            all_metrics = self.eval_pose_noinit([ ref_img_path for sample_idx, ref_img_path in enumerate(self._ref_img_path_all_samples) if not sample_idx in self._samples_with_init_pose ])
+            for metrics in all_metrics:
+                # print(json.dumps(metrics, indent=4))
+                self.store_eval(metrics)
+
+        if not len(self._samples_with_init_pose) > 0:
+            # Workaround: no need to do anything of the below if all samples lacked initialization (and hence no need to support this case).
+            print('All samples in batch lacked pose proposal, aborting pose optimization.')
+            return
+        # ======================================================================
+
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
         self._num_ddims = num_ddims
         self._num_params = self._num_wxdims + self._num_txdims + self._num_ddims
 
-        self._optim_runs = order_dict(optim_runs)
         deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
         axis_perturb = np.array([ run_spec['axis_perturb'] for run_spec in self._optim_runs.values() ])
         t_perturb_spec = np.array([ run_spec['t_perturb'] for run_spec in self._optim_runs.values() ])
@@ -803,7 +912,7 @@ class PoseOptimizer():
         t0_before_u_perturb = (t0_before_perturb + t_perturb).detach()
         self._R_refpt = R0.clone()
 
-        obj_diameter = self._pipeline._obj_diameter.repeat_interleave(self._num_optim_runs, dim=0)
+        obj_diameter = self._obj_diameter.repeat_interleave(self._num_optim_runs, dim=0)
         H0 = self._get_H0(t0_before_u_perturb, self._K, obj_diameter)
         self._H0K = torch.matmul(H0, self._K)
         self._H0K_inv = torch.inverse(self._H0K)
@@ -1206,7 +1315,7 @@ class PoseOptimizer():
                 break
 
             if self._num_wxdims > 0:
-                wx.grad = curr_wx_grad #* 110. / self._pipeline._obj_diameter[:,None]
+                wx.grad = curr_wx_grad #* 110. / self._obj_diameter[:,None]
             if self._num_txdims > 0:
                 if tx_leap_flag and j < nbr_iter_translonly:
                     # Take a leap
@@ -1305,7 +1414,7 @@ class PoseOptimizer():
 
         t0 = self._t_gt.detach()
 
-        H0 = self._get_H0(t0, self._K, self._pipeline._obj_diameter)
+        H0 = self._get_H0(t0, self._K, self._obj_diameter)
         self._H0K = torch.matmul(H0, self._K)
         self._H0K_inv = torch.inverse(self._H0K)
 

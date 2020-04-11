@@ -742,8 +742,21 @@ class DummyDataset(Dataset):
             if self._mode == TEST and \
                     'init_pose_suffix' in self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt'] and \
                     self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'] is not None:
-                R2_init = closest_rotmat(np.array(gt['cam_R_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3, 3)))
-                t2_init = np.array(gt['cam_t_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]).reshape((3,1))
+                R_m2c = gt['cam_R_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]
+                t_m2c = gt['cam_t_m2c{}'.format(self._configs.runtime.data_sampling_scheme_defs[self._mode][self._schemeset_name]['opts']['poseopt']['init_pose_suffix'])]
+                if R_m2c is None:
+                    assert t_m2c is None
+                    # R2_init = np.eye(3)
+                    # t2_init = np.zeros((3,1))
+
+                    # No detection from proposal method. Annotate lack of detection by NaN.
+                    R2_init = np.empty((3,3))
+                    R2_init.fill(np.nan)
+                    t2_init = np.empty((3,1))
+                    t2_init.fill(np.nan)
+                else:
+                    R2_init = closest_rotmat(np.array(R_m2c).reshape((3, 3)))
+                    t2_init = np.array(t_m2c).reshape((3,1))
             else:
                 R2_init = R1
                 t2_init = t1
