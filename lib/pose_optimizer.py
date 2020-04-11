@@ -116,7 +116,7 @@ class FullPosePipeline(nn.Module):
 
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
-    def forward(self, R, t, R_refpt=None, batch_interleaved_repeat_factor=1, fname_dict={}):
+    def forward(self, R, t, R_refpt=None, selected_samples=None, fname_dict={}):
         # # Punish w
         # return torch.norm(w, dim=1)
 
@@ -126,11 +126,18 @@ class FullPosePipeline(nn.Module):
         # theta = torch.acos(0.5*(trace-1.0))
         # return theta
 
-        ref_img_full = self._ref_img_full.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
-        K = self._K.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
-        obj_diameter = self._obj_diameter.repeat_interleave(batch_interleaved_repeat_factor, dim=0)
-        ambient_weight_list = [ ambient_weight for ambient_weight in self._ambient_weight for _ in range(batch_interleaved_repeat_factor) ]
-        obj_id_list = [ obj_id for obj_id in self._obj_id_list for _ in range(batch_interleaved_repeat_factor) ]
+        ref_img_full = self._ref_img_full
+        K = self._K
+        obj_diameter = self._obj_diameter
+        ambient_weight_list = np.array(self._ambient_weight)
+        obj_id_list = np.array(self._obj_id_list)
+
+        if selected_samples is not None:
+            ref_img_full = ref_img_full[selected_samples,:,:,:]
+            K = K[selected_samples,:,:]
+            obj_diameter = obj_diameter[selected_samples]
+            ambient_weight_list = ambient_weight_list[selected_samples]
+            obj_id_list = obj_id_list[selected_samples]
 
         # Define crop box in order to center object in query image
         xc, yc, width, height = square_bbox_around_projected_object_center_pt_batched(t, K, obj_diameter, crop_box_resize_factor = self._configs.data.crop_box_resize_factor)
@@ -335,7 +342,7 @@ class PoseOptimizer():
         t = self._x2t(tx, d)
         w = self._x2w(wx)
         R = w_to_R(w)
-        H, ref_img, query_img, nn_out = self._pipeline(R, t, batch_interleaved_repeat_factor=self._num_optim_runs, R_refpt=R_refpt, fname_dict=fname_dict)
+        H, ref_img, query_img, nn_out = self._pipeline(R, t, selected_samples=[ sample_idx for sample_idx in range(self._orig_batch_size) for run_idx in range(self._num_optim_runs) ], R_refpt=R_refpt, fname_dict=fname_dict)
         return H, self._nn_out2interp_pred_features(nn_out)
 
     def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):
