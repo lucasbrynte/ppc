@@ -852,28 +852,12 @@ class PoseOptimizer():
         t0_before_perturb = t0_before_perturb[self._samples_with_init_pose,:,:,:]
         # ======================================================================
 
-        # Define before storing samples without init
-        self._optim_runs = order_dict(optim_runs)
-
-        # ======================================================================
-        # Store results for samples without initialization.
-        if store_eval:
-            all_metrics = self.eval_pose_noinit([ ref_img_path for sample_idx, ref_img_path in enumerate(self._ref_img_path_all_samples) if not sample_idx in self._samples_with_init_pose ])
-            for metrics in all_metrics:
-                # print(json.dumps(metrics, indent=4))
-                self.store_eval(metrics)
-
-        if not len(self._samples_with_init_pose) > 0:
-            # Workaround: no need to do anything of the below if all samples lacked initialization (and hence no need to support this case).
-            print('All samples in batch lacked pose proposal, aborting pose optimization.')
-            return
-        # ======================================================================
-
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
         self._num_ddims = num_ddims
         self._num_params = self._num_wxdims + self._num_txdims + self._num_ddims
 
+        self._optim_runs = order_dict(optim_runs)
         deg_perturb = np.array([ run_spec['deg_perturb'] for run_spec in self._optim_runs.values() ])
         axis_perturb = np.array([ run_spec['axis_perturb'] for run_spec in self._optim_runs.values() ])
         t_perturb_spec = np.array([ run_spec['t_perturb'] for run_spec in self._optim_runs.values() ])
@@ -907,6 +891,21 @@ class PoseOptimizer():
 
         # Each pose init is subject to all perturbations, i.e. results in more optim runs.
         self._optim_runs = OrderedDict([('{}_{}'.format(init_name, optim_run_name), val) for init_name in init_names for optim_run_name, val in self._optim_runs.items()])
+
+        # ======================================================================
+        # Store results for samples without initialization.
+        if store_eval:
+            all_metrics = self.eval_pose_noinit([ ref_img_path for sample_idx, ref_img_path in enumerate(self._ref_img_path_all_samples) if not sample_idx in self._samples_with_init_pose ])
+            for metrics in all_metrics:
+                # print(json.dumps(metrics, indent=4))
+                self.store_eval(metrics)
+
+        if not len(self._samples_with_init_pose) > 0:
+            # Workaround: no need to do anything of the below if all samples lacked initialization (and hence no need to support this case).
+            # NOTE: Plenty of the stuff above was unnecessary, but at least optim runs have to be defined in order to be properly stored.
+            print('All samples in batch lacked pose proposal, aborting pose optimization.')
+            return
+        # ======================================================================
 
         R0 = torch.matmul(R_perturb, R0_before_perturb)
         t0_before_u_perturb = (t0_before_perturb + t_perturb).detach()
