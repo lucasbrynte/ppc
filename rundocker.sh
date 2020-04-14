@@ -4,6 +4,7 @@ set -e
 # DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented5_split_unoccl_train_test
 # DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented6_decimated_models
 DATAPATH=/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented5b_posecnn_anno
+LM_LMO_BOP_PATH=/home/lucas/datasets/pose-data/sixd/lm-lmo-from-bop/v1
 DEEPIMPATH=/home/lucas/datasets/pose-data/deepim-resources
 FLOWNETPATH=/home/lucas/datasets/flownet2/pth_models
 NYUDPATH=/home/lucas/datasets/nyud
@@ -25,6 +26,7 @@ docker run \
     -v $PWD:/workspace \
     -v /hdd/lucas/out/ppc-experiments:/workspace/experiments \
     -v $DATAPATH:/datasets/occluded-linemod-augmented \
+    -v $LM_LMO_BOP_PATH:/datasets/lm-lmo-from-bop \
     -v $DEEPIMPATH:/datasets/deepim-resources \
     -v $FLOWNETPATH:/flownet2_models \
     -v $NYUDPATH:/datasets/nyud \
