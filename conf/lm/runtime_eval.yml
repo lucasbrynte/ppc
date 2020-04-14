@@ -4,12 +4,17 @@ default_schemeset_opts:
       # GT initialization
       # init_pose_suffix: ""
       # LINEMOD
+      # init_pose_suffix: _dpod_synth
+      # init_pose_suffix: _dpod_real
       init_pose_suffix: _posecnn
 data_sampling_scheme_defs:
   test:
     posesearch:
       ref_schemeset:
-        # LINEMOD
+        # # Synth eval, on all frames
+        # - {scheme_name: real_unoccl_all_keepbg}
+
+        # LINEMOD, DeepIM test split
         - {scheme_name: real_unoccl_test_keepbg}
 
         # - {scheme_name: real_unoccl_test_keepbg_frame, override: {real_opts: {static_frame_idx: 194}}}

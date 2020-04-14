@@ -4,6 +4,8 @@ default_schemeset_opts:
       # GT initialization
       # init_pose_suffix: ""
       # OccludedLINEMOD
+      # init_pose_suffix: _dpod_synth
+      # init_pose_suffix: _dpod_real
       # init_pose_suffix: _pvnet
       init_pose_suffix: _pvnet_depthfix # 180 degree rotation around camera frame z-axis + depth sign switch if needed to ensure positive depth
 data_sampling_scheme_defs:
