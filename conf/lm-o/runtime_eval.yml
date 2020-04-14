@@ -17,24 +17,24 @@ data_sampling_scheme_defs:
         # - {scheme_name: real_occl_val}
 
         # driller frames
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 30}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 30}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
 
         # eggbox frames
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 30}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 1188}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 30}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 1188}}}
 
         # glue frames
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 30}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 30}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
 
         # duck frames
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 30}}} # bad anno - y shift
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 109}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 159}}} # good anno
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 649}}}
-        # - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 845}}} # bad anno - rot
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 30}}} # bad anno - y shift
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 109}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 159}}} # good anno
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 649}}}
+        # - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 845}}} # bad anno - rot
 
 
         # - {scheme_name: real_unoccl_all}
@@ -169,17 +169,17 @@ data_sampling_scheme_defs:
 # # ==============================================================================
 #     real_occl_test_frame109_mild_gradual_rot:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 109}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 109}}}
 #       query_schemeset:
 #         - scheme_name: mild_gradual_rot
 #     real_occl_test_frame109_gradual_transl:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 109}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 109}}}
 #       query_schemeset:
 #         - scheme_name: gradual_transl
 #     real_occl_test_frame109_gradual_depth:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 109}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 109}}}
 #       query_schemeset:
 #         - scheme_name: gradual_depth
 # 
@@ -189,17 +189,17 @@ data_sampling_scheme_defs:
 # # ==============================================================================
 #     real_occl_test_frame112_mild_gradual_rot:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
 #       query_schemeset:
 #         - scheme_name: mild_gradual_rot
 #     real_occl_test_frame112_gradual_transl:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
 #       query_schemeset:
 #         - scheme_name: gradual_transl
 #     real_occl_test_frame112_gradual_depth:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 112}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 112}}}
 #       query_schemeset:
 #         - scheme_name: gradual_depth
 # 
@@ -209,16 +209,16 @@ data_sampling_scheme_defs:
 # # ==============================================================================
 #     real_occl_test_frame159_mild_gradual_rot:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 159}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 159}}}
 #       query_schemeset:
 #         - scheme_name: mild_gradual_rot
 #     real_occl_test_frame159_gradual_transl:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 159}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 159}}}
 #       query_schemeset:
 #         - scheme_name: gradual_transl
 #     real_occl_test_frame159_gradual_depth:
 #       ref_schemeset:
-#         - {scheme_name: real_occl_test_frame, override: {real_opts: {static_frame_idx: 159}}}
+#         - {scheme_name: real_occl_test, override: {real_opts: {static_frame_idx: 159}}}
 #       query_schemeset:
 #         - scheme_name: gradual_depth
