@@ -1,7 +1,7 @@
 # ==============================================================================
 # real_unoccl_train
 # ==============================================================================
-real_unoccl_train_keepbg:
+real_unoccl_train:
   ref_source: real
   background: null
   white_silhouette: false
@@ -32,7 +32,7 @@ real_unoccl_train_whitesilhouette:
 # ==============================================================================
 # real_unoccl_all
 # ==============================================================================
-real_unoccl_all_keepbg:
+real_unoccl_all:
   ref_source: real
   background: null
   white_silhouette: false
@@ -68,7 +68,7 @@ real_unoccl_all_whitesilhouette:
 # ==============================================================================
 # real_unoccl_test
 # ==============================================================================
-real_unoccl_test_keepbg:
+real_unoccl_test:
   ref_source: real
   background: null
   white_silhouette: false
@@ -104,7 +104,7 @@ real_unoccl_test_whitesilhouette:
 # ==============================================================================
 # real_occl_val
 # ==============================================================================
-real_occl_val_keepbg:
+real_occl_val:
   ref_source: real
   background: null
   white_silhouette: false
@@ -141,7 +141,7 @@ real_occl_val_whitesilhouette:
 # ==============================================================================
 # real_occl_test
 # ==============================================================================
-real_occl_test_keepbg:
+real_occl_test:
   ref_source: real
   background: null
   white_silhouette: false

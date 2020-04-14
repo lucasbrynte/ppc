@@ -44,20 +44,20 @@ data_sampling_scheme_defs:
               # shading: # Old - a bit more aggressive specular effects
               #   specular_weight:                                            {method: uniform, range: [0.0, 3.0]}
               #   specular_whiteness:                                         {method: uniform, range: [0.0, 1.0]}
-        - scheme_name: real_unoccl_all_keepbg
+        - scheme_name: real_unoccl_all
 
   val: {}
 
   # val:
   #   # real_unoccl_all_rot_only_5deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_5deg_std
   #   #   use_for_val_score: false
   #   # real_occl_val_rot_only_5deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_occl_val_keepbg
+  #   #     - scheme_name: real_occl_val
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_5deg_std
   #   #   use_for_val_score: true
@@ -70,13 +70,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_rot_only_20deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_20deg_std
   #   #   use_for_val_score: false
   #   # real_occl_val_rot_only_20deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_occl_val_keepbg
+  #   #     - scheme_name: real_occl_val
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_20deg_std
   #   #   use_for_val_score: true
@@ -89,13 +89,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_rot_only_90deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_90deg_std
   #   #   use_for_val_score: false
   #   real_occl_val_rot_only_90deg_std:
   #     ref_schemeset:
-  #       - scheme_name: real_occl_val_keepbg
+  #       - scheme_name: real_occl_val
   #     query_schemeset:
   #       - scheme_name: rot_only_90deg_std
   #     use_for_val_score: true
@@ -108,13 +108,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_transl_10perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: transl_10perc
   #   #   use_for_val_score: false
   #   # real_occl_val_transl_10perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_occl_val_keepbg
+  #   #     - scheme_name: real_occl_val
   #   #   query_schemeset:
   #   #     - scheme_name: transl_10perc
   #   #   use_for_val_score: true
@@ -127,13 +127,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_transl_30perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: transl_30perc
   #   #   use_for_val_score: false
   #   real_occl_val_transl_30perc:
   #     ref_schemeset:
-  #       - scheme_name: real_occl_val_keepbg
+  #       - scheme_name: real_occl_val
   #     query_schemeset:
   #       - scheme_name: transl_30perc
   #     use_for_val_score: true
@@ -146,13 +146,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_depth_1_05:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_05
   #   #   use_for_val_score: false
   #   real_occl_val_depth_1_05:
   #     ref_schemeset:
-  #       - scheme_name: real_occl_val_keepbg
+  #       - scheme_name: real_occl_val
   #     query_schemeset:
   #       - scheme_name: depth_1_05
   #     use_for_val_score: true
@@ -165,13 +165,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_depth_1_1:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_1
   #   #   use_for_val_score: false
   #   # real_occl_val_depth_1_1:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_occl_val_keepbg
+  #   #     - scheme_name: real_occl_val
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_1
   #   #   use_for_val_score: true
@@ -184,13 +184,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_all_depth_1_3:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_all_keepbg
+  #   #     - scheme_name: real_unoccl_all
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_3
   #   #   use_for_val_score: false
   #   # real_occl_val_depth_1_3:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_occl_val_keepbg
+  #   #     - scheme_name: real_occl_val
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_3
   #   #   use_for_val_score: true

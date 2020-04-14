@@ -9,20 +9,20 @@ data_sampling_scheme_defs:
 
         # LINEMOD - real
         - scheme_name: synth_voc
-        - scheme_name: real_unoccl_train_keepbg
+        - scheme_name: real_unoccl_train
 
   val: {}
 
   # val:
   #   # real_unoccl_train_rot_only_5deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_5deg_std
   #   #   use_for_val_score: false
   #   # real_unoccl_test_rot_only_5deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_test_keepbg
+  #   #     - scheme_name: real_unoccl_test
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_5deg_std
   #   #   use_for_val_score: true
@@ -35,13 +35,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_rot_only_20deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_20deg_std
   #   #   use_for_val_score: false
   #   # real_unoccl_test_rot_only_20deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_test_keepbg
+  #   #     - scheme_name: real_unoccl_test
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_20deg_std
   #   #   use_for_val_score: true
@@ -54,13 +54,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_rot_only_90deg_std:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: rot_only_90deg_std
   #   #   use_for_val_score: false
   #   real_unoccl_test_rot_only_90deg_std:
   #     ref_schemeset:
-  #       - scheme_name: real_unoccl_test_keepbg
+  #       - scheme_name: real_unoccl_test
   #     query_schemeset:
   #       - scheme_name: rot_only_90deg_std
   #     use_for_val_score: true
@@ -73,13 +73,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_transl_10perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: transl_10perc
   #   #   use_for_val_score: false
   #   # real_unoccl_test_transl_10perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_test_keepbg
+  #   #     - scheme_name: real_unoccl_test
   #   #   query_schemeset:
   #   #     - scheme_name: transl_10perc
   #   #   use_for_val_score: true
@@ -92,13 +92,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_transl_30perc:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: transl_30perc
   #   #   use_for_val_score: false
   #   real_unoccl_test_transl_30perc:
   #     ref_schemeset:
-  #       - scheme_name: real_unoccl_test_keepbg
+  #       - scheme_name: real_unoccl_test
   #     query_schemeset:
   #       - scheme_name: transl_30perc
   #     use_for_val_score: true
@@ -111,13 +111,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_depth_1_05:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_05
   #   #   use_for_val_score: false
   #   real_unoccl_test_depth_1_05:
   #     ref_schemeset:
-  #       - scheme_name: real_unoccl_test_keepbg
+  #       - scheme_name: real_unoccl_test
   #     query_schemeset:
   #       - scheme_name: depth_1_05
   #     use_for_val_score: true
@@ -130,13 +130,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_depth_1_1:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_1
   #   #   use_for_val_score: false
   #   # real_unoccl_test_depth_1_1:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_test_keepbg
+  #   #     - scheme_name: real_unoccl_test
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_1
   #   #   use_for_val_score: true
@@ -149,13 +149,13 @@ data_sampling_scheme_defs:
   # 
   #   # real_unoccl_train_depth_1_3:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_train_keepbg
+  #   #     - scheme_name: real_unoccl_train
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_3
   #   #   use_for_val_score: false
   #   # real_unoccl_test_depth_1_3:
   #   #   ref_schemeset:
-  #   #     - scheme_name: real_unoccl_test_keepbg
+  #   #     - scheme_name: real_unoccl_test
   #   #   query_schemeset:
   #   #     - scheme_name: depth_1_3
   #   #   use_for_val_score: true
