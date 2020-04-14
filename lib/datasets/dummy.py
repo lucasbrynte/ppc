@@ -71,8 +71,8 @@ def get_metadata(configs):
             'bbox3d': get_bbox3d(rows2array(obj_anno, 'min'), rows2array(obj_anno, 'size')),
             'diameter': obj_anno['diameter'],
             'up_dir': np.array([0., 0., 1.]),
-            'keypoints': rows2array(obj_anno, 'kp'),
-            'kp_normals': rows2array(obj_anno, 'kp_normals'),
+            # 'keypoints': rows2array(obj_anno, 'kp'),
+            # 'kp_normals': rows2array(obj_anno, 'kp_normals'),
         } for obj_label, obj_anno in models_info.items()},
     }
 
