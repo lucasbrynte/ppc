@@ -1,32 +1,32 @@
 # ==============================================================================
-# real_unoccl_train
+# real_unoccl_deepim_train
 # ==============================================================================
-real_unoccl_train:
+real_unoccl_deepim_train:
   ref_source: real
   background: null
   white_silhouette: false
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_train_voc:
+real_unoccl_deepim_train_voc:
   ref_source: real
   background: voc
   white_silhouette: false
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_train_whitesilhouette:
+real_unoccl_deepim_train_whitesilhouette:
   ref_source: real
   background: black
   white_silhouette: true
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: train_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_train_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 
 # ==============================================================================
@@ -66,34 +66,34 @@ real_unoccl_all_whitesilhouette:
 
 
 # ==============================================================================
-# real_unoccl_test
+# real_unoccl_deepim_test
 # ==============================================================================
-real_unoccl_test:
+real_unoccl_deepim_test:
   ref_source: real
   background: null
   white_silhouette: false
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: test_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_test_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_test_voc:
+real_unoccl_deepim_test_voc:
   ref_source: real
   background: voc
   white_silhouette: false
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: test_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_test_unoccl/<OBJ_LABEL>
     static_frame_idx: null
-real_unoccl_test_whitesilhouette:
+real_unoccl_deepim_test_whitesilhouette:
   ref_source: real
   background: black
   white_silhouette: true
   colorjitter_during_train: false
   blur_chain: []
   real_opts:
-    linemod_seq: test_unoccl/<OBJ_LABEL>
+    linemod_seq: deepim_test_unoccl/<OBJ_LABEL>
     static_frame_idx: null
 
 

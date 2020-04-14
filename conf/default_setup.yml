@@ -281,7 +281,8 @@ model:
     #     # - {dropout_factor: null, bias: false, relu_flag: false}
 data:
   dataformat: dummy
-  path: /datasets/occluded-linemod-augmented
+  # path: /datasets/occluded-linemod-augmented
+  path: /datasets/lm-lmo-from-bop
   nyud_path: /datasets/nyud
   voc_path: /datasets/voc
   img_dims: [480, 640]

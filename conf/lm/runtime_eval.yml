@@ -15,10 +15,10 @@ data_sampling_scheme_defs:
         # - {scheme_name: real_unoccl_all}
 
         # LINEMOD, DeepIM test split
-        - {scheme_name: real_unoccl_test}
+        - {scheme_name: real_unoccl_deepim_test}
 
-        # - {scheme_name: real_unoccl_test, override: {real_opts: {static_frame_idx: 194}}}
-        # - {scheme_name: real_unoccl_test, override: {real_opts: {static_frame_idx: 331}}}
-        # - {scheme_name: real_unoccl_test, override: {real_opts: {static_frame_idx: 720}}}
+        # - {scheme_name: real_unoccl_deepim_test, override: {real_opts: {static_frame_idx: 194}}}
+        # - {scheme_name: real_unoccl_deepim_test, override: {real_opts: {static_frame_idx: 331}}}
+        # - {scheme_name: real_unoccl_deepim_test, override: {real_opts: {static_frame_idx: 720}}}
 
         # - {scheme_name: synth_voc}
