@@ -1,0 +1,212 @@
+{
+    "camera_calibration": {
+        "f_x": 572.41140,
+        "f_y": 573.57043,
+        "p_x": 325.26110,
+        "p_y": 242.04899
+    },
+    "objects": {
+        "ape": {
+            "mesh_id": 1,
+            "dresden_name": "Ape",
+            "bounds": {
+                "x": [-0.038845000000000, 0.038828000000000],
+                "y": [-0.045892000000000, 0.045908000000000],
+                "z": [-0.037978000000000, 0.037950000000000]
+            },
+            "color": [147, 56, 56]
+        },
+        "benchviseblue": {
+            "mesh_id": 2,
+            "dresden_name": "Benchvise",
+            "bounds": {
+                "x": [-0.060928000000000, 0.060928000000000],
+                "y": [-0.109705000000000, 0.109705000000000],
+                "z": [-0.107834000000000, 0.107834000000000]
+            },
+            "color": [153, 153, 153]
+        },
+        "bowl": {
+            "mesh_id": null,
+            "dresden_name": null,
+            "color": null
+        },
+        "cam": {
+            "mesh_id": 3,
+            "dresden_name": "Cam",
+            "bounds": {
+                "x": [-0.071395000000000, 0.071395000000000],
+                "y": [-0.050490000000000, 0.050490000000000],
+                "z": [-0.068595000000000, 0.068595000000000]
+            },
+            "color": [103, 89, 86]
+        },
+        "can": {
+            "mesh_id": 4,
+            "dresden_name": "Can",
+            "bounds": {
+                "x": [-0.090898000000000, 0.090898000000000],
+                "y": [-0.096867000000000, 0.096867000000000],
+                "z": [-0.050396000000000, 0.050396000000000]
+            },
+            "color": [195, 186, 184]
+        },
+        "cat": {
+            "mesh_id": 5,
+            "dresden_name": "Cat",
+            "bounds": {
+                "x": [-0.063817000000000, 0.063817000000000],
+                "y": [-0.058728000000000, 0.058728000000000],
+                "z": [-0.033505000000000, 0.033505000000000]
+            },
+            "color": [184, 114, 124]
+        },
+        "cup": {
+            "mesh_id": null,
+            "dresden_name": null,
+            "color": null
+        },
+        "driller": {
+            "mesh_id": 6,
+            "dresden_name": "Driller",
+            "bounds": {
+                "x": [-0.037736000000000, 0.037736000000000],
+                "y": [-0.104001000000000, 0.104001000000000],
+                "z": [-0.114738000000000, 0.114738000000000]
+            },
+            "color": [40, 47, 45]
+        },
+        "duck": {
+            "mesh_id": 7,
+            "dresden_name": "Duck",
+            "bounds": {
+                "x": [-0.038704000000000, 0.038704000000000],
+                "y": [-0.042848000000000, 0.042848000000000],
+                "z": [-0.052215000000000, 0.052215000000000]
+            },
+            "color": [223, 186, 33]
+        },
+        "eggbox": {
+            "mesh_id": 8,
+            "dresden_name": "Eggbox",
+            "bounds": {
+                "x": [-0.053723000000000, 0.053723000000000],
+                "y": [-0.034715000000000, 0.034715000000000],
+                "z": [-0.075141000000000, 0.075141000000000]
+            },
+            "color": [202, 195, 195]
+        },
+        "glue": {
+            "mesh_id": 9,
+            "dresden_name": "Glue",
+            "bounds": {
+                "x": [-0.038933000000000, 0.038933000000000],
+                "y": [-0.086408000000000, 0.086408000000000],
+                "z": [-0.018361000000000, 0.018361000000000]
+            },
+            "color": [137, 133, 140]
+        },
+        "holepuncher": {
+            "mesh_id": 10,
+            "dresden_name": "Holepuncher",
+            "bounds": {
+                "x": [-0.064722000000000, 0.064722000000000],
+                "y": [-0.049142000000000, 0.049142000000000],
+                "z": [-0.054829000000000, 0.054829000000000]
+            },
+            "color": [42, 42, 47]
+        },
+        "iron": {
+            "mesh_id": 11,
+            "dresden_name": "Iron",
+            "bounds": {
+                "x": [-0.059241000000000, 0.059241000000000],
+                "y": [-0.070566000000000, 0.070566000000000],
+                "z": [-0.129113000000000, 0.129113000000000]
+            },
+            "color": [66, 98, 156]
+        },
+        "lamp": {
+            "mesh_id": 12,
+            "dresden_name": "Lamp",
+            "bounds": {
+                "x": [-0.058876000000000, 0.058876000000000],
+                "y": [-0.106558000000000, 0.106558000000000],
+                "z": [-0.101573000000000, 0.101573000000000]
+            },
+            "color": [191, 191, 195]
+        },
+        "phone": {
+            "mesh_id": 13,
+            "dresden_name": "Phone",
+            "bounds": {
+                "x": [-0.073717000000000, 0.073717000000000],
+                "y": [-0.092374000000000, 0.092374000000000],
+                "z": [-0.046959000000000, 0.046959000000000]
+            },
+            "color": [40, 40, 45]
+        }
+    },
+    "sequences": {
+        "ape": {
+            "sequence_length": 1235,
+            "objects_annotated_in_sequence": ["ape", "can", "cat", "duck", "eggbox", "glue", "holepuncher"]
+        },
+        "benchviseblue": {
+            "sequence_length": 1214,
+            "objects_annotated_in_sequence": ["ape", "benchviseblue", "can", "cat", "driller", "duck", "eggbox", "glue", "holepuncher"]
+        },
+        "bowl": {
+            "sequence_length": 1233,
+            "objects_annotated_in_sequence": []
+        },
+        "cam": {
+            "sequence_length": 1200,
+            "objects_annotated_in_sequence": ["cam"]
+        },
+        "can": {
+            "sequence_length": 1195,
+            "objects_annotated_in_sequence": ["can"]
+        },
+        "cat": {
+            "sequence_length": 1178,
+            "objects_annotated_in_sequence": ["cat"]
+        },
+        "cup": {
+            "sequence_length": 1240,
+            "objects_annotated_in_sequence": []
+        },
+        "driller": {
+            "sequence_length": 1187,
+            "objects_annotated_in_sequence": ["driller"]
+        },
+        "duck": {
+            "sequence_length": 1253,
+            "objects_annotated_in_sequence": ["duck"]
+        },
+        "eggbox": {
+            "sequence_length": 1252,
+            "objects_annotated_in_sequence": ["eggbox"]
+        },
+        "glue": {
+            "sequence_length": 1219,
+            "objects_annotated_in_sequence": ["glue"]
+        },
+        "holepuncher": {
+            "sequence_length": 1236,
+            "objects_annotated_in_sequence": ["holepuncher"]
+        },
+        "iron": {
+            "sequence_length": 1151,
+            "objects_annotated_in_sequence": ["iron"]
+        },
+        "lamp": {
+            "sequence_length": 1226,
+            "objects_annotated_in_sequence": ["lamp"]
+        },
+        "phone": {
+            "sequence_length": 1242,
+            "objects_annotated_in_sequence": ["phone"]
+        }
+    }
+}

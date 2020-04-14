@@ -1,0 +1,12 @@
+{
+    "linemod_path": "/home/lucas/datasets/pose-data/linemod/original",
+    "linemod_on_nyud_path": "/home/lucas/datasets/pose-data/linemod-on-nyud",
+    "object_centric_data_aug_path": "/home/lucas/datasets/pose-data/object-centric-data-aug",
+    "pose_annos_path": "/home/lucas/datasets/pose-data/Infos",
+    "synthetic_path": "/home/lucas/datasets/pose-data/synthetic",
+    "rendered_path": "/home/lucas/datasets/pose-data/linemod/rendered-gt",
+    "linemod_depth_path": "/home/lucas/datasets/pose-data/linemod/png-depth",
+    "obj_models_path": "/home/lucas/datasets/pose-data/models",
+    "ply_models_path": "/home/lucas/datasets/pose-data/ply-models",
+    "xyz_models_path": "/home/lucas/datasets/pose-data/xyz-models"
+}

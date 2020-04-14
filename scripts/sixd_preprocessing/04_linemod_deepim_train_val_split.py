@@ -1,6 +1,5 @@
 """
-Rename train_unoccl -> all_unoccl
-Split train / test sets according to DeepIM split, and create new directories train_unoccl & test_unoccl
+Split train / test sets according to DeepIM split, and create new directories deepim_train_unoccl & deepim_test_unoccl
 """
 
 import os
@@ -9,24 +8,63 @@ import ruamel.yaml as yaml
 
 # LM_PATH = '/home/lucas/datasets/pose-data/sixd/occluded-linemod-augmented5_split_unoccl_train_test'
 # DEEPIM_IMAGE_SET_PATH = '/home/lucas/datasets/pose-data/deepim-resources/data/LINEMOD_6D/LM6d_converted/LM6d_refine/image_set'
-LM_PATH = '/linemod'
-DEEPIM_IMAGE_SET_PATH = '/deepim_image_set'
+# LM_PATH = '/linemod'
+# DEEPIM_IMAGE_SET_PATH = '/deepim_image_set'
+LM_PATH = '/datasets/lm-lmo-from-bop'
+DEEPIM_IMAGE_SET_PATH = '/datasets/deepim-resources/data/LINEMOD_6D/LM6d_converted/LM6d_refine/image_set'
 
-DRY_RUN = False
+DRY_RUN = True
+# DRY_RUN = False
 EXIST_OK = False
 
+KEEP_FRAME_INDICES = True
+# KEEP_FRAME_INDICES = False
+
 # objects = ['ape']
-objects = ['ape', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holepuncher']
+# objects = ['ape', 'can', 'cat', 'driller', 'duck', 'eggbox', 'glue', 'holepuncher']
+objects = [
+    'ape',
+    'benchviseblue',
+    # 'bowl',
+    'cam',
+    'can',
+    'cat',
+    # 'cup',
+    'driller',
+    'duck',
+    'eggbox',
+    'glue',
+    'holepuncher',
+    'iron',
+    'lamp',
+    'phone',
+]
+deepim_obj_label_lookup = {
+    'ape': 'ape',
+    'benchviseblue': 'benchvise',
+    'cam': 'camera',
+    'can': 'can',
+    'cat': 'cat',
+    'driller': 'driller',
+    'duck': 'duck',
+    'eggbox': 'eggbox',
+    'glue': 'glue',
+    'holepuncher': 'holepuncher',
+    'iron': 'iron',
+    'lamp': 'lamp',
+    'phone': 'phone',
+}
 
 all_path = os.path.join(LM_PATH, 'all_unoccl')
-train_path = os.path.join(LM_PATH, 'train_unoccl')
-test_path = os.path.join(LM_PATH, 'test_unoccl')
+train_path = os.path.join(LM_PATH, 'deepim_train_unoccl')
+test_path = os.path.join(LM_PATH, 'deepim_test_unoccl')
 
-# Rename train_unoccl -> all_unoccl
-if not os.path.exists(all_path):
-    print("Renaming train_unoccl -> all_unoccl...")
-    if not DRY_RUN:
-        shutil.move(train_path, all_path)
+# # Rename train_unoccl -> all_unoccl
+# old_train_path = os.path.join(LM_PATH, 'deepim_train_unoccl')
+# if not os.path.exists(all_path):
+#     print("Renaming train_unoccl -> all_unoccl...")
+#     if not DRY_RUN:
+#         shutil.move(old_train_path, all_path)
 
 def parse_frame_idx(line):
     rel_path = line.split(' ')[0] # Extract path for ref img
@@ -48,7 +86,7 @@ def filter_dict(old_dict, old_indices, new_indices):
 
 for obj in objects:
     print("{}...".format(obj))
-    with open(os.path.join(DEEPIM_IMAGE_SET_PATH, 'train_{}.txt'.format(obj)), 'r') as f:
+    with open(os.path.join(DEEPIM_IMAGE_SET_PATH, 'train_{}.txt'.format(deepim_obj_label_lookup[obj])), 'r') as f:
         all_train_frames = { parse_frame_idx(line) for line in f }
     with open(os.path.join(all_path, obj, 'gt.yml'), 'r') as f:
         all_gts = yaml.load(f, Loader=yaml.CLoader)
@@ -56,12 +94,17 @@ for obj in objects:
         all_infos = yaml.load(f, Loader=yaml.CLoader)
     all_frames_sorted = sorted(all_gts.keys())
     # NOTE: since only frame indices already in all_gts.keys() are considered, the very last frame will remain lost (it got lost in some previous pre-preprocessing step).
+    # UPDATE: Should not be a problem anymore.
     train_idx_old = [ frame_idx for frame_idx in all_frames_sorted if frame_idx in all_train_frames ]
-    train_idx_new = list(range(len(train_idx_old)))
     test_idx_old = [ frame_idx for frame_idx in all_frames_sorted if frame_idx not in all_train_frames ]
-    test_idx_new = list(range(len(test_idx_old)))
+    if KEEP_FRAME_INDICES:
+        train_idx_new = train_idx_old
+        test_idx_new = test_idx_old
+    else:
+        train_idx_new = list(range(len(train_idx_old)))
+        test_idx_new = list(range(len(test_idx_old)))
 
-    # Filter all data in all_unoccl based on train/test split, and move to train_unoccl or test_occl
+    # Filter all data in all_unoccl based on train/test split, and move to deepim_train_unoccl or test_occl
     if not DRY_RUN:
         os.makedirs(os.path.join(train_path, obj), exist_ok=EXIST_OK)
         os.makedirs(os.path.join(test_path, obj), exist_ok=EXIST_OK)
