@@ -596,14 +596,18 @@ class PoseOptimizer():
             add_metrics = self.calc_add_metric(pts_objframe, object_diameter, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
         avg_reproj_HK_metrics = self.calc_avg_reproj_metric(HK, pts_objframe, R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
+        deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
         if symmetric:
             # Run for 180deg z rot as well, and take minimum reproj error of the two.
             zrot = torch.diag(torch.tensor([-1., -1., 1.], dtype=R_est.dtype, device=R_est.device))[None,None,:,:]
             zrot180deg_avg_reproj_metrics = self.calc_avg_reproj_metric(self._K[:,None,:,:], pts_objframe, torch.matmul(R_est, zrot), t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N)
             symm_avg_reproj_metrics = np.minimum(avg_reproj_metrics, zrot180deg_avg_reproj_metrics)
+
+            zrot180deg_deg_cm_errors = self.calc_deg_cm_err(torch.matmul(R_est, zrot), t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+            symm_deg_cm_errors = np.minimum(deg_cm_errors, zrot180deg_deg_cm_errors)
         else:
             symm_avg_reproj_metrics = avg_reproj_metrics
-        deg_cm_errors = self.calc_deg_cm_err(R_est, t_est, R_gt, t_gt).reshape(self._orig_batch_size, len(self._optim_runs), N, 2)
+            symm_deg_cm_errors = deg_cm_errors
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
         R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
         t_est_numpy = t_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 1)
@@ -622,6 +626,7 @@ class PoseOptimizer():
                 'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
                 'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
                 'deg_cm_err': deg_cm_err.tolist(),
+                'symm_deg_cm_err': symm_deg_cm_err.tolist(),
                 'err_est': curr_err_est.tolist(),
             },
         } for (
@@ -631,6 +636,7 @@ class PoseOptimizer():
             avg_reproj_HK_metric,
             symm_avg_reproj_metric,
             deg_cm_err,
+            symm_deg_cm_err,
             curr_err_est,
             curr_R_est,
             curr_t_est,
@@ -642,6 +648,7 @@ class PoseOptimizer():
             avg_reproj_HK_metrics,
             symm_avg_reproj_metrics,
             deg_cm_errors,
+            symm_deg_cm_errors,
             err_est_numpy,
             R_est_numpy,
             t_est_numpy,
@@ -665,6 +672,7 @@ class PoseOptimizer():
         symm_avg_reproj_metric = avg_reproj_metric
         deg_cm_err = np.empty((len(self._optim_runs), N, 2))
         deg_cm_err.fill(np.inf)
+        symm_deg_cm_err = deg_cm_err
 
         R_est = np.empty((len(self._optim_runs), N, 3, 3))
         R_est.fill(np.nan)
@@ -689,6 +697,7 @@ class PoseOptimizer():
                 'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
                 'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
                 'deg_cm_err': deg_cm_err.tolist(),
+                'symm_deg_cm_err': symm_deg_cm_err.tolist(),
                 'err_est': err_est.tolist(),
             },
         } for ref_img_path in ref_img_paths ]
