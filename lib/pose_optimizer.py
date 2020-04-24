@@ -927,9 +927,27 @@ class PoseOptimizer():
 
         w_gt = R_to_w(torch.matmul(self._R_gt, self._R_refpt.permute((0,2,1)))).detach()
 
+        # ======================================================================
+        # NOTE on how to interpret w / u / d parameters.
+        # These comments disregard the case when there are perturbations put on w / u / d.
+        # 
+        # R is parameterized as R = delta_R(w0+W*delta_w) * R_refpt = delta_R(w0+delta_w) * R0
+        # w0 (=_w_basis_origin) is chosen so as to let R = R0 for delta_w=0 (where we initialize the optimization).
+        # Furthermore, unless _num_wxdims < 3, W is simply chosen as W=I.
+        # 
+        # t is parameterized by u and d together, and the mapping t <-> (u,d) goes both ways.
+        # 
+        # u is parameterized as u = u0 + U*delta_u, and represents pixels in HK space.
+        # u0 represents the projection of t0 (the center of the initial pose).
+        # For now, U is simply chsoen as U=I, which would be problematic if _num_txdims < 2, as u_gt could not be reached.
+        # 
+        # d is parameterized as d0 * exp(delta_d), where d0 is the depth of t0, and delta_d is initialized to 0.
+        # ======================================================================
+
         # Set the origin of the w basis to the R0 point, expressed in relation to the R_refpt.
         self._w_basis_origin = R_to_w(torch.matmul(R0, self._R_refpt.permute((0,2,1)))).detach()
         if self._num_wxdims < 3:
+            # If not all dimensions are free, at least make it possible to reach w_gt from _w_basis_origin, by setting this direction to the primary basis vector.
             self._w_basis = self._get_w_basis(primary_w_dir = w_gt-self._w_basis_origin)
         else:
             self._w_basis = self._get_w_basis(primary_w_dir = None)
@@ -1423,6 +1441,25 @@ class PoseOptimizer():
         self._u_basis_origin = self._u_basis_origin[:,:2,:] / self._u_basis_origin[:,[2],:]
         self._u_basis = self._get_u_basis()
         self._d_origin = t0.squeeze(2)[:,[2]]
+
+        # ======================================================================
+        # NOTE on how to interpret w / u / d parameters.
+        # These comments disregard the case when there are perturbations put on w / u / d.
+        # 
+        # Note that R0 = R_gt and t0 = t_gt.
+        # 
+        # R is parameterized as R = delta_R(w0+W*delta_w) * R_refpt = delta_R(w0+delta_w) * R0
+        # w0 (=_w_basis_origin) is chosen so as to let R = R0 for delta_w=0 (where we initialize the optimization).
+        # W is simply chosen as W=I.
+        # 
+        # t is parameterized by u and d together, and the mapping t <-> (u,d) goes both ways.
+        # 
+        # u is parameterized as u = u0 + U*delta_u, and represents pixels in HK space.
+        # u0 represents the projection of t0 (the center of the initial pose).
+        # For now, U is simply chsoen as U=I, which would be problematic if _num_txdims < 2, as u_gt could not be reached.
+        # 
+        # d is parameterized as d0 * exp(delta_d), where d0 is the depth of t0, and delta_d is initialized to 0.
+        # ======================================================================
 
         def vec(T, N_each):
             N = np.prod(N_each)
