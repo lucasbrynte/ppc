@@ -617,17 +617,17 @@ class PoseOptimizer():
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
             'detection_missing': False,
-            'R_est': curr_R_est.tolist(),
-            't_est': curr_t_est.tolist(),
-            'HK': curr_HK.tolist(),
+            'R_est': curr_R_est,
+            't_est': curr_t_est,
+            'HK': curr_HK,
             'metrics': {
-                'add_metric': add_metric.tolist(),
-                'avg_reproj_metric': avg_reproj_metric.tolist(),
-                'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
-                'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
-                'deg_cm_err': deg_cm_err.tolist(),
-                'symm_deg_cm_err': symm_deg_cm_err.tolist(),
-                'err_est': curr_err_est.tolist(),
+                'add_metric': add_metric,
+                'avg_reproj_metric': avg_reproj_metric,
+                'avg_reproj_HK_metric': avg_reproj_HK_metric,
+                'symm_avg_reproj_metric': symm_avg_reproj_metric,
+                'deg_cm_err': deg_cm_err,
+                'symm_deg_cm_err': symm_deg_cm_err,
+                'err_est': curr_err_est,
             },
         } for (
             ref_img_path,
@@ -688,17 +688,17 @@ class PoseOptimizer():
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
             'detection_missing': True,
-            'R_est': R_est.tolist(),
-            't_est': t_est.tolist(),
-            'HK': HK.tolist(),
+            'R_est': R_est,
+            't_est': t_est,
+            'HK': HK,
             'metrics': {
-                'add_metric': add_metric.tolist(),
-                'avg_reproj_metric': avg_reproj_metric.tolist(),
-                'avg_reproj_HK_metric': avg_reproj_HK_metric.tolist(),
-                'symm_avg_reproj_metric': symm_avg_reproj_metric.tolist(),
-                'deg_cm_err': deg_cm_err.tolist(),
-                'symm_deg_cm_err': symm_deg_cm_err.tolist(),
-                'err_est': err_est.tolist(),
+                'add_metric': add_metric,
+                'avg_reproj_metric': avg_reproj_metric,
+                'avg_reproj_HK_metric': avg_reproj_HK_metric,
+                'symm_avg_reproj_metric': symm_avg_reproj_metric,
+                'deg_cm_err': deg_cm_err,
+                'symm_deg_cm_err': symm_deg_cm_err,
+                'err_est': err_est,
             },
         } for ref_img_path in ref_img_paths ]
         return metrics
@@ -710,13 +710,40 @@ class PoseOptimizer():
         all_metrics = self.eval_pose_single_object(obj_id, all_H, all_wx, all_tx, all_d, all_err_est, self._R_gt, self._t_gt)
         return all_metrics
 
-    def store_eval(self, metrics):
-        img_dir, img_fname = os.path.split(metrics['ref_img_path'])
-        seq, rgb_dir = os.path.split(img_dir)
-        assert rgb_dir == 'rgb'
-        json_fname = '.'.join([img_fname.split('.')[0], 'json'])
-        os.makedirs(os.path.join(self._out_path, 'evaluation', seq), exist_ok=True)
-        with open(os.path.join(self._out_path, 'evaluation', seq, json_fname), 'w') as f:
+    def apply_op_on_metrics(self, metrics, op):
+        return {
+            'ref_img_path': metrics['ref_img_path'],
+            'optim_runs': metrics['optim_runs'],
+            'optim_run_names_sorted': metrics['optim_run_names_sorted'],
+            'detection_missing': metrics['detection_missing'],
+            'R_est': op(metrics['R_est']),
+            't_est': op(metrics['t_est']),
+            'HK': op(metrics['HK']),
+            'metrics': {
+                'add_metric': op(metrics['metrics']['add_metric']),
+                'avg_reproj_metric': op(metrics['metrics']['avg_reproj_metric']),
+                'avg_reproj_HK_metric': op(metrics['metrics']['avg_reproj_HK_metric']),
+                'symm_avg_reproj_metric': op(metrics['metrics']['symm_avg_reproj_metric']),
+                'deg_cm_err': op(metrics['metrics']['deg_cm_err']),
+                'symm_deg_cm_err': op(metrics['metrics']['symm_deg_cm_err']),
+                'err_est': op(metrics['metrics']['err_est']),
+            }
+        }
+
+    def store_eval(self, metrics, out_path = None):
+        metrics = self.apply_op_on_metrics(metrics, lambda x: x.tolist())
+        if out_path is None:
+            if metrics['ref_img_path'] is None:
+                out_path = 'random_path.json'
+            else:
+                img_dir, img_fname = os.path.split(metrics['ref_img_path'])
+                seq, rgb_dir = os.path.split(img_dir)
+                assert rgb_dir == 'rgb'
+                json_fname = '.'.join([img_fname.split('.')[0], 'json'])
+                out_path = os.path.join(seq, json_fname)
+        out_path = os.path.join(self._out_path, 'evaluation', out_path)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, 'w') as f:
             json.dump(metrics, f)
 
     def _init_cos_transitions_scheduler(
@@ -1416,6 +1443,7 @@ class PoseOptimizer():
         N_each = [20, 20],
         primary_w_dir = None,
         calc_grad=False,
+        store_eval = True,
     ):
         self._num_wxdims = num_wxdims
         self._num_txdims = num_txdims
@@ -1513,10 +1541,11 @@ class PoseOptimizer():
         # param_delta = 0.01
         # param_delta = 0.02
         # param_delta = 0.05
-        param_delta = 0.15
-        # param_delta = 0.25
+        # param_delta = 0.15
+        param_delta = 0.25
         # param_delta = 0.5
         # param_delta = 1.5
+        # param_delta = 3.14159*2
         # param_delta = 50.
 
         param_range_limits = [ (-param_delta, param_delta) for x_idx in range(self._num_params) ]
@@ -1539,6 +1568,10 @@ class PoseOptimizer():
         # has_rel_depth_error_flag = True
         has_rel_depth_error_flag = False
 
+        all_H = torch.empty([self._batch_size, 3, 3]+N_each, dtype=self._dtype, device=self._device)
+        all_wx = torch.empty([self._batch_size, self._num_wxdims]+N_each, dtype=self._dtype, device=self._device)
+        all_tx = torch.empty([self._batch_size, self._num_txdims]+N_each, dtype=self._dtype, device=self._device)
+        all_d = torch.empty([self._batch_size, self._num_ddims]+N_each, dtype=self._dtype, device=self._device)
         all_err_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
         if has_pixel_offset_flag:
             all_pixel_offset_est = torch.empty([self._batch_size]+N_each, dtype=self._dtype, device=self._device)
@@ -1608,6 +1641,10 @@ class PoseOptimizer():
                 vec(all_d_grads, N_each)[:,:,j] = curr_d_grad
 
             # Store iterations
+            vec(all_H, N_each)[:,:,:,j] = H.detach().clone()
+            vec(all_wx, N_each)[:,:,j] = wx.detach().clone()
+            vec(all_tx, N_each)[:,:,j] = tx.detach().clone()
+            vec(all_d, N_each)[:,:,j] = d.detach().clone()
             vec(all_err_est, N_each)[:,j] = err_est.detach()
             if has_pixel_offset_flag:
                 vec(all_pixel_offset_est, N_each)[:,j] = pixel_offset_est.norm(dim=1).detach()
@@ -1647,6 +1684,30 @@ class PoseOptimizer():
         all_params_interp = all_params.clone()
         all_params_interp[:,self._num_wxdims+self._num_txdims:] = torch.exp(all_params_interp[:,self._num_wxdims+self._num_txdims:])
 
+        def movedim(x, old_dim, new_dim):
+            """
+            Mimick np.moveaxis, but only for the case of moving a single dimension.
+            """
+            dims = list(range(len(x.shape)))
+            del dims[old_dim]
+            dims.insert(new_dim, old_dim)
+            return x.permute(*dims)
+        all_metrics = self.eval_pose(
+            movedim(vec(all_H, N_each), -1, 1),
+            movedim(vec(all_wx, N_each), -1, 1),
+            movedim(vec(all_tx, N_each), -1, 1),
+            movedim(vec(all_d, N_each), -1, 1),
+            vec(all_err_est, N_each),
+        )
+        all_metrics = [ self.apply_op_on_metrics(metrics, lambda x: unvec(np.moveaxis(x, 1, -1), N_each)) for metrics in all_metrics ]
+        # Squeeze the singleton dimension for "dummy" optim run:
+        all_metrics = [ self.apply_op_on_metrics(metrics, lambda x: x.squeeze(axis=0)) for metrics in all_metrics ]
+        # From now on, order of dimensions is first all feature dimensions, followed by all param dimensions along which evaluation is done.
+        if store_eval:
+            for metrics in all_metrics:
+                # print(json.dumps(metrics, indent=4))
+                self.store_eval(metrics)
+
         sample_idx = 0
         # Scalar parameter x.
         if self._num_params == 1:
@@ -1661,6 +1722,7 @@ class PoseOptimizer():
             fig, axes_array = plt.subplots(nrows=nrows, ncols=ncols, figsize=(ncols*5, nrows*2), squeeze=False)
             row_idx = 0
             axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_err_est[sample_idx,:].detach().cpu().numpy())
+            axes_array[row_idx,0].plot(all_params_interp[sample_idx,:,:].detach().cpu().numpy().T, all_metrics[sample_idx]['metrics']['avg_reproj_HK_metric'], color='red')
             axes_array[row_idx,0].set_title('all_err_est')
             row_idx += 1
             if has_rel_depth_error_flag:

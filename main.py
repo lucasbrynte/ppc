@@ -401,6 +401,7 @@ class Main():
                         primary_w_dir = [1.0, 1.0, 1.0],
                         calc_grad=False,
                         # calc_grad=True,
+                        store_eval = True,
                     )
                 if break_after_first_batch:
                     break
