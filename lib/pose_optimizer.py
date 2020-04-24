@@ -1414,6 +1414,7 @@ class PoseOptimizer():
         num_txdims = 2,
         num_ddims = 0,
         N_each = [20, 20],
+        primary_w_dir = None,
         calc_grad=False,
     ):
         self._num_wxdims = num_wxdims
@@ -1434,7 +1435,13 @@ class PoseOptimizer():
         w_gt = R_to_w(torch.matmul(self._R_gt, self._R_refpt.permute((0,2,1)))).detach()
 
         self._w_basis_origin = torch.zeros((self._batch_size, 3), dtype=self._dtype, device=self._device)
-        self._w_basis = self._get_w_basis(primary_w_dir = None)
+        if primary_w_dir is not None:
+            primary_w_dir = torch.tensor(primary_w_dir, dtype=self._dtype, device=self._device)
+            if len(primary_w_dir.shape) == 1:
+                primary_w_dir = primary_w_dir[None,:].repeat(self._batch_size, 1)
+            assert primary_w_dir.shape == (self._batch_size, 3)
+            # primary_w_dir /= primary_w_dir.norm(dim=1, keepdim=True)
+        self._w_basis = self._get_w_basis(primary_w_dir = primary_w_dir)
         self._ref_depth = self._t_gt[:,2,:].squeeze(1)
 
         self._u_basis_origin = torch.bmm(self._H0K, t0)

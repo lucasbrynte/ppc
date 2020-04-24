@@ -386,7 +386,7 @@ class Main():
                     )
                 if evaluate_and_plot:
                     pose_optimizer.evaluate(
-                        num_wxdims = 0,
+                        num_wxdims = 1,
                         # num_txdims = 2,
                         # num_ddims = 0,
                         # N_each = [2, 10],
@@ -394,8 +394,11 @@ class Main():
                         # num_ddims = 0,
                         # N_each = [20, 20],
                         num_txdims = 0,
-                        num_ddims = 1,
-                        N_each = [100],
+                        num_ddims = 0,
+                        N_each = [101],
+                        # N_each = [11],
+                        # primary_w_dir = None,
+                        primary_w_dir = [1.0, 1.0, 1.0],
                         calc_grad=False,
                         # calc_grad=True,
                     )
