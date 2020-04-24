@@ -1469,17 +1469,41 @@ class PoseOptimizer():
         # ======================================================================
 
         def vec(T, N_each):
+            """
+            Vectorize tensor, while sharing memory. Accepts pytorch tensors or numpy arrays.
+            """
+            pytorch_mode = torch.is_tensor(T)
+            if not pytorch_mode:
+                assert isinstance(T, np.ndarray)
             N = np.prod(N_each)
             old_shape = list(T.shape)
             assert np.all(np.array(old_shape[-self._num_params:]) == np.array(N_each))
             new_shape = old_shape[:-self._num_params] + [N]
-            return T.view(new_shape)
+            if pytorch_mode:
+                return T.view(new_shape)
+            else:
+                T = T.view()
+                # Setting the shape like this will fail if not possible. Equivalent to when torch view() is not possible.
+                T.shape = new_shape
+                return T
         def unvec(T, N_each):
+            """
+            Unvectorize tensor, while sharing memory. Accepts pytorch tensors or numpy arrays.
+            """
+            pytorch_mode = torch.is_tensor(T)
+            if not pytorch_mode:
+                assert isinstance(T, np.ndarray)
             N = np.prod(N_each)
             old_shape = list(T.shape)
             assert old_shape[-1] == N
             new_shape = old_shape[:-1] + list(N_each)
-            return T.view(new_shape)
+            if pytorch_mode:
+                return T.view(new_shape)
+            else:
+                T = T.view()
+                # Setting the shape like this will fail if not possible. Equivalent to when torch view() is not possible.
+                T.shape = new_shape
+                return T
         assert len(N_each) == self._num_params
         N = np.prod(N_each)
 
