@@ -620,6 +620,9 @@ class PoseOptimizer():
             symm_avg_reproj_metrics = avg_reproj_metrics
             symm_deg_cm_errors = deg_cm_errors
         err_est_numpy = err_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N)
+        wx_est_numpy = wx_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, self._num_wxdims)
+        tx_est_numpy = tx_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, self._num_txdims)
+        d_est_numpy = d_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, self._num_ddims)
         R_est_numpy = R_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
         t_est_numpy = t_est.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 1)
         HK_numpy = HK.detach().cpu().numpy().reshape(self._orig_batch_size, len(self._optim_runs), N, 3, 3)
@@ -628,6 +631,9 @@ class PoseOptimizer():
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
             'detection_missing': False,
+            'wx_est': curr_wx_est,
+            'tx_est': curr_tx_est,
+            'd_est': curr_d_est,
             'R_est': curr_R_est,
             't_est': curr_t_est,
             'HK': curr_HK,
@@ -649,6 +655,9 @@ class PoseOptimizer():
             deg_cm_err,
             symm_deg_cm_err,
             curr_err_est,
+            curr_wx_est,
+            curr_tx_est,
+            curr_d_est,
             curr_R_est,
             curr_t_est,
             curr_HK,
@@ -661,6 +670,9 @@ class PoseOptimizer():
             deg_cm_errors,
             symm_deg_cm_errors,
             err_est_numpy,
+            wx_est_numpy,
+            tx_est_numpy,
+            d_est_numpy,
             R_est_numpy,
             t_est_numpy,
             HK_numpy,
@@ -685,6 +697,12 @@ class PoseOptimizer():
         deg_cm_err.fill(np.inf)
         symm_deg_cm_err = deg_cm_err
 
+        wx_est = np.empty((len(self._optim_runs), N, self._num_wxdims))
+        wx_est.fill(np.nan)
+        tx_est = np.empty((len(self._optim_runs), N, self._num_txdims))
+        tx_est.fill(np.nan)
+        d_est = np.empty((len(self._optim_runs), N, self._num_ddims))
+        d_est.fill(np.nan)
         R_est = np.empty((len(self._optim_runs), N, 3, 3))
         R_est.fill(np.nan)
         t_est = np.empty((len(self._optim_runs), N, 3, 1))
@@ -699,6 +717,9 @@ class PoseOptimizer():
             'optim_runs': self._optim_runs,
             'optim_run_names_sorted': list(self._optim_runs.keys()),
             'detection_missing': True,
+            'wx_est': wx_est,
+            'tx_est': tx_est,
+            'd_est': d_est,
             'R_est': R_est,
             't_est': t_est,
             'HK': HK,
@@ -727,6 +748,9 @@ class PoseOptimizer():
             'optim_runs': metrics['optim_runs'],
             'optim_run_names_sorted': metrics['optim_run_names_sorted'],
             'detection_missing': metrics['detection_missing'],
+            'wx_est': op(metrics['wx_est']),
+            'tx_est': op(metrics['tx_est']),
+            'd_est': op(metrics['d_est']),
             'R_est': op(metrics['R_est']),
             't_est': op(metrics['t_est']),
             'HK': op(metrics['HK']),
