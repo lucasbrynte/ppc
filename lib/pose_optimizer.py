@@ -116,7 +116,7 @@ class FullPosePipeline(nn.Module):
 
         self._out_path = os.path.join(self._configs.experiment_path, 'eval_poseopt')
 
-    def forward(self, R, t, R_refpt=None, selected_samples=None, fname_dict={}):
+    def forward(self, R, t, R_refpt=None, selected_samples=None, fname_dict={}, fname_dict_ref_img={}, fname_dict_query_img={}):
         """
         selected_samples argument controls which samples to pick from variables defined in constructor. The tensors passed to this function are expected to be filtered already.
         """
@@ -162,18 +162,29 @@ class FullPosePipeline(nn.Module):
         query_img = rendering_out['img']
         query_img = (query_img - TV_MEAN[None,:,None,None].cuda()) / TV_STD[None,:,None,None].cuda()
 
-        for sample_idx, fname in fname_dict.items():
-            # img1 = _retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu())
-            # img2 = _retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu())
-            # Image.fromarray((img1*255.).astype(np.uint8)).save('/workspace/experiments/01_rawimgs_{:02d}_img1.png'.format(sample_idx))
-            # Image.fromarray((img2*255.).astype(np.uint8)).save('/workspace/experiments/01_rawimgs_{:02d}_img2.png'.format(sample_idx))
+        for sample_idx in sorted(set(fname_dict.keys()) | set(fname_dict_ref_img.keys()) | set(fname_dict_query_img.keys())):
+            curr_ref_img = _retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu())
+            curr_query_img = _retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu())
 
-            fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
-            axes_array[0,0].imshow(_retrieve_input_img(ref_img[sample_idx,:,:,:].detach().cpu()))
-            axes_array[0,1].imshow(_retrieve_input_img(query_img[sample_idx,:,:,:].detach().cpu()))
-            full_fpath = os.path.join(self._out_path, fname)
-            os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
-            fig.savefig(full_fpath)
+            if sample_idx in fname_dict_ref_img:
+                full_fpath = os.path.join(self._out_path, fname_dict_ref_img[sample_idx])
+                # full_path = '/workspace/experiments/01_rawimgs_{:02dr_ref_img.png'.format(sample_idx)
+                os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
+                Image.fromarray((curr_ref_img*255.).astype(np.uint8)).save(full_fpath)
+
+            if sample_idx in fname_dict_query_img:
+                full_fpath = os.path.join(self._out_path, fname_dict_query_img[sample_idx])
+                # full_path = '/workspace/experiments/01_rawimgs_{:02d}_query_img.png'.format(sample_idx)
+                os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
+                Image.fromarray((curr_query_img*255.).astype(np.uint8)).save(full_fpath)
+
+            if sample_idx in fname_dict:
+                fig, axes_array = plt.subplots(nrows=1, ncols=2, squeeze=False)
+                axes_array[0,0].imshow(curr_ref_img)
+                axes_array[0,1].imshow(curr_query_img)
+                full_fpath = os.path.join(self._out_path, fname_dict[sample_idx])
+                os.makedirs(os.path.dirname(full_fpath), exist_ok=True)
+                fig.savefig(full_fpath)
 
         # assert False
 
@@ -371,18 +382,18 @@ class PoseOptimizer():
             w = w + torch.bmm(self._w_basis[:,:,:self._num_wxdims], wx[:,:,None]).squeeze(2)
         return w
 
-    def eval_func(self, wx, tx, d, R_refpt=None, fname_dict={}):
+    def eval_func(self, wx, tx, d, R_refpt=None, fname_dict={}, fname_dict_ref_img={}, fname_dict_query_img={}):
         t = self._x2t(tx, d)
         w = self._x2w(wx)
         R = w_to_R(w)
-        H, ref_img, query_img, nn_out = self._pipeline(R, t, selected_samples=[ sample_idx for sample_idx in self._samples_with_init_pose for run_idx in range(self._num_optim_runs) ], R_refpt=R_refpt, fname_dict=fname_dict)
+        H, ref_img, query_img, nn_out = self._pipeline(R, t, selected_samples=[ sample_idx for sample_idx in self._samples_with_init_pose for run_idx in range(self._num_optim_runs) ], R_refpt=R_refpt, fname_dict=fname_dict, fname_dict_ref_img=fname_dict_ref_img, fname_dict_query_img=fname_dict_query_img)
         return H, self._nn_out2interp_pred_features(nn_out)
 
-    def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}):
+    def eval_func_and_calc_analytical_grad(self, wx, tx, d, fname_dict={}, fname_dict_ref_img={}, fname_dict_query_img={}):
         """
         Eval function and calculate analytical gradients
         """
-        H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict=fname_dict)
+        H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict=fname_dict, fname_dict_ref_img=fname_dict_ref_img, fname_dict_query_img=fname_dict_query_img)
         err_est = pred_features['avg_reproj_err']
         pixel_offset_est = pred_features['pixel_offset']
         rel_depth_est = pred_features['rel_depth_error']
@@ -405,7 +416,7 @@ class PoseOptimizer():
             wx2 = wx1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             wx2[:,x_idx] += forward_diff * step_size #* 110. / self._obj_diameter
-            H, pred_features = self.eval_func(wx2, tx, d, R_refpt=self._R_refpt, fname_dict={})
+            H, pred_features = self.eval_func(wx2, tx, d, R_refpt=self._R_refpt)
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
@@ -426,7 +437,7 @@ class PoseOptimizer():
             tx2 = tx1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             tx2[:,x_idx] += forward_diff*step_size
-            H, pred_features = self.eval_func(wx, tx2, d, R_refpt=self._R_refpt, fname_dict={})
+            H, pred_features = self.eval_func(wx, tx2, d, R_refpt=self._R_refpt)
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
@@ -447,7 +458,7 @@ class PoseOptimizer():
             d2 = d1.clone()
             forward_diff = 2.*(torch.rand(self._batch_size, device=self._device) < 0.5).float() - 1.
             d2[:,x_idx] += forward_diff*step_size
-            H, pred_features = self.eval_func(wx, tx, d2, R_refpt=self._R_refpt, fname_dict={})
+            H, pred_features = self.eval_func(wx, tx, d2, R_refpt=self._R_refpt)
             y2 = pred_features['avg_reproj_err'].squeeze(1)
             assert y2.shape == (self._batch_size,)
             grad[:,x_idx] = forward_diff * (y2-y1) / float(step_size)
@@ -1287,8 +1298,11 @@ class PoseOptimizer():
         all_d = torch.empty((self._batch_size, N, self._num_ddims), dtype=self._dtype, device=self._device)
 
         for j in range(N):
+            fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {}
+            fname_dict_ref_img = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations_ref_img/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {}
+            fname_dict_query_img = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations_query_img/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {}
             if self._numerical_grad:
-                H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+                H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = fname_dict, fname_dict_ref_img = fname_dict_ref_img, fname_dict_query_img = fname_dict_query_img)
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
                 if tx_leap_flag:
                     pixel_offset_est = pred_features['pixel_offset']
@@ -1310,7 +1324,7 @@ class PoseOptimizer():
                 else:
                     curr_d_grad = torch.zeros_like(d)
             else:
-                H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) } if enable_plotting else {})
+                H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = fname_dict, fname_dict_ref_img = fname_dict_ref_img, fname_dict_query_img = fname_dict_query_img)
             curr_t_est = self._x2t(tx, d)
             curr_w_est = self._x2w(wx)
             real_rel_depth_error = (curr_t_est[:,2] / self._t_gt[:,2]).squeeze(dim=1)
@@ -1589,9 +1603,12 @@ class PoseOptimizer():
             tx = param_vec[:,self._num_wxdims:self._num_wxdims+self._num_txdims]
             d = param_vec[:,self._num_wxdims+self._num_txdims:]
 
+            fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) }
+            fname_dict_ref_img = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations_ref_img/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) }
+            fname_dict_query_img = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations_query_img/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) }
             if calc_grad:
                 if self._numerical_grad:
-                    H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    H, pred_features = self.eval_func(wx, tx, d, R_refpt = self._R_refpt, fname_dict = fname_dict, fname_dict_ref_img = fname_dict_ref_img, fname_dict_query_img = fname_dict_query_img)
                     err_est = pred_features['avg_reproj_err'].squeeze(1)
                     if has_pixel_offset_flag:
                         pixel_offset_est = pred_features['pixel_offset']
@@ -1601,9 +1618,9 @@ class PoseOptimizer():
                     curr_tx_grad = self.eval_func_and_calc_numerical_tx_grad(wx, tx, d, err_est, step_size_tx)
                     curr_d_grad = self.eval_func_and_calc_numerical_d_grad(wx, tx, d, err_est, step_size_d)
                 else:
-                    H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                    H, err_est, curr_wx_grad, curr_tx_grad, curr_d_grad = self.eval_func_and_calc_analytical_grad(wx, tx, d, fname_dict = fname_dict, fname_dict_ref_img = fname_dict_ref_img, fname_dict_query_img = fname_dict_query_img)
             else:
-                H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict = { (sample_idx*self._num_optim_runs + run_idx): 'rendered_iterations/sample{:02}/optim_run_{:s}/iter{:03}.png'.format(sample_idx, run_name, j+1) for sample_idx in range(self._orig_batch_size) for run_idx, run_name in enumerate(self._optim_runs.keys()) })
+                H, pred_features = self.eval_func(wx, tx, d, R_refpt=self._R_refpt, fname_dict = fname_dict, fname_dict_ref_img = fname_dict_ref_img, fname_dict_query_img = fname_dict_query_img)
                 err_est = pred_features['avg_reproj_err'].squeeze(1)
                 if has_pixel_offset_flag:
                     pixel_offset_est = pred_features['pixel_offset']
