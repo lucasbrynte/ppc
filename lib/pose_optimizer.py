@@ -1580,9 +1580,12 @@ class PoseOptimizer():
         # param_delta = 0.02
         # param_delta = 0.05
         # param_delta = 0.15
-        param_delta = 0.25
+        # param_delta = 0.25
         # param_delta = 0.5
+        # param_delta = np.pi/6
         # param_delta = 1.5
+        param_delta = np.pi/2
+        # param_delta = np.pi
         # param_delta = 3.14159*2
         # param_delta = 50.
 
