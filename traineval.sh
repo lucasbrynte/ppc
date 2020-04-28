@@ -51,8 +51,8 @@ xhost + # allow connections to X server
 # Temporarily disable exit-on-error, in order to manually handle errors, and force cleanup.
 set +e
 for OBJ in ${OBJECTS[@]}; do
-    echo "CURRENT OBJECT: ""$OBJ"" / (""${OBJECTS[@]}"")"
     # TRAIN
+    echo "CURRENT OBJECT: ""$OBJ"" / (""${OBJECTS[@]}"")"
     ./rundocker.sh \
         $CONTAINER $CMD main.py \
         train \
@@ -64,6 +64,7 @@ for OBJ in ${OBJECTS[@]}; do
         break
     fi
     # EVAL
+    echo "CURRENT OBJECT: ""$OBJ"" / (""${OBJECTS[@]}"")"
     ./rundocker.sh \
         $CONTAINER $CMD main.py \
         $EVALMODE \
