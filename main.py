@@ -3,6 +3,7 @@ from torch import nn
 import numpy as np
 from attrdict import AttrDict
 from importlib import import_module
+import time
 
 import lib.setup
 from lib.checkpoint import CheckpointHandler
@@ -252,6 +253,7 @@ class Main():
                             R0 = R0.clone()
                             R0[:,:,:2] *= -1. # Change sign of first two columns - corresponding to 180 degree rotaiton around z-axis in object frame.
                             init_pose['zrot180'] = R0, t0
+                    t0 = time.time()
                     pose_optimizer.optimize(
                         init_pose,
                         N = N,
@@ -384,6 +386,13 @@ class Main():
                         print_iterates = opt_print_iterates,
                         store_eval = True,
                     )
+                    full_optim_time = time.time() - t0
+                    if N > 0:
+                        print('full time: {} s, time / sample: {} s, time / sample and iter: {} s'.format(
+                            full_optim_time,
+                            full_optim_time / batch_size,
+                            (full_optim_time / batch_size) / N,
+                        ))
                 if evaluate_and_plot:
                     pose_optimizer.evaluate(
                         num_wxdims = 1,
