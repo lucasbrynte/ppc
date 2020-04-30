@@ -155,6 +155,23 @@ real_occl_test:
 
 
 
+# ==============================================================================
+# real_occl_test_bop2019
+# ==============================================================================
+real_occl_test_bop2019:
+  ref_source: real
+  background: null
+  white_silhouette: false
+  colorjitter_during_train: false
+  blur_chain: []
+  real_opts:
+    linemod_seq: test_bop2019_occl/benchviseblue
+    static_frame_idx: null
+
+
+
+
+
 
 synth_voc:
   ref_source: synthetic

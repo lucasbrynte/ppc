@@ -4,6 +4,7 @@ default_schemeset_opts:
       # GT initialization
       # init_pose_suffix: ""
       # OccludedLINEMOD
+      # init_pose_suffix: _cdpn_synth_bop2019
       # init_pose_suffix: _dpod_synth
       # init_pose_suffix: _dpod_real
       # init_pose_suffix: _pvnet
@@ -14,6 +15,7 @@ data_sampling_scheme_defs:
       ref_schemeset:
         # OccludedLINEMOD
         - {scheme_name: real_occl_test}
+        # - {scheme_name: real_occl_test_bop2019}
         # - {scheme_name: real_occl_val}
 
         # driller frames
