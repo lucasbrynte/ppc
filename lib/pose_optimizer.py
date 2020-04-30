@@ -560,7 +560,7 @@ class PoseOptimizer():
             cm_err.detach().cpu().numpy(),
         ], axis=2)
 
-    def eval_pose_single_object(self, obj_id, H, wx_est, tx_est, d_est, err_est, R_gt, t_gt):
+    def eval_pose_single_object(self, obj_id, H, wx_est, tx_est, d_est, err_est, R_gt, t_gt, extra_numpy_arrays={}):
         R_gt = R_gt[:,None,:,:]
         t_gt = t_gt[:,None,:,:]
 
@@ -646,6 +646,7 @@ class PoseOptimizer():
                 'symm_deg_cm_err': symm_deg_cm_err,
                 'err_est': curr_err_est,
             },
+            'extra_numpy_arrays': {},
         } for (
             ref_img_path,
             add_metric,
@@ -677,6 +678,9 @@ class PoseOptimizer():
             t_est_numpy,
             HK_numpy,
         ) ]
+        for arr_name, A in extra_numpy_arrays.items():
+            for sample_idx in range(len(metrics)):
+                metrics[sample_idx]['extra_numpy_arrays'][arr_name] = A[sample_idx]
         return metrics
 
     def eval_pose_noinit(self, ref_img_paths):
@@ -732,14 +736,15 @@ class PoseOptimizer():
                 'symm_deg_cm_err': symm_deg_cm_err,
                 'err_est': err_est,
             },
+            'extra_numpy_arrays': {},
         } for ref_img_path in ref_img_paths ]
         return metrics
 
-    def eval_pose(self, all_H, all_wx, all_tx, all_d, all_err_est):
+    def eval_pose(self, all_H, all_wx, all_tx, all_d, all_err_est, extra_numpy_arrays={}):
         # NOTE: Assuming constant object ID. Since these methods rely on torch.expand on a single object model, the most efficient way to support multiple object IDs would probably be to define separate batches for the different objects.
         assert len(set(self._obj_id_list)) == 1
         obj_id = self._obj_id_list[0]
-        all_metrics = self.eval_pose_single_object(obj_id, all_H, all_wx, all_tx, all_d, all_err_est, self._R_gt, self._t_gt)
+        all_metrics = self.eval_pose_single_object(obj_id, all_H, all_wx, all_tx, all_d, all_err_est, self._R_gt, self._t_gt, extra_numpy_arrays=extra_numpy_arrays)
         return all_metrics
 
     def apply_op_on_metrics(self, metrics, op):
@@ -762,7 +767,8 @@ class PoseOptimizer():
                 'deg_cm_err': op(metrics['metrics']['deg_cm_err']),
                 'symm_deg_cm_err': op(metrics['metrics']['symm_deg_cm_err']),
                 'err_est': op(metrics['metrics']['err_est']),
-            }
+            },
+            'extra_numpy_arrays': { arr_name: op(A) for arr_name, A in metrics['extra_numpy_arrays'].items() },
         }
 
     def store_eval(self, metrics, out_path = None):
@@ -1307,6 +1313,9 @@ class PoseOptimizer():
         step_size_tx = 1.0 # 1 px
         step_size_d = 5e-3
 
+        all_lr_wx = np.empty((self._batch_size, N))
+        all_lr_tx = np.empty((self._batch_size, N))
+        all_lr_d = np.empty((self._batch_size, N))
         all_err_est = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_real_rel_depth_error = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
         all_t_errmag = torch.empty((self._batch_size, N), dtype=self._dtype, device=self._device)
@@ -1376,6 +1385,10 @@ class PoseOptimizer():
                 print('w_errmag: {}'.format(w_errmag.cpu().numpy()))
 
             # Store iterations
+            all_lr_wx[:,j] = self._wx_scheduler.get_lr()[0],
+            all_lr_tx[:,j] = self._tx_scheduler.get_lr()[0],
+            all_lr_d[:,j] = self._d_scheduler.get_lr()[0],
+
             # NOTE: Store already, since variables might be updated if tx_leap_flag==True.
             all_H[:,j,:,:] = H.detach().clone()
             all_wx[:,j,:] = wx.detach().clone()
@@ -1431,7 +1444,7 @@ class PoseOptimizer():
             self._d_scheduler.step()
 
         if store_eval:
-            all_metrics = self.eval_pose(all_H, all_wx, all_tx, all_d, all_err_est)
+            all_metrics = self.eval_pose(all_H, all_wx, all_tx, all_d, all_err_est, extra_numpy_arrays={'all_lr_wx': all_lr_wx, 'all_lr_tx': all_lr_tx, 'all_lr_d': all_lr_d})
             for metrics in all_metrics:
                 # print(json.dumps(metrics, indent=4))
                 self.store_eval(metrics)
